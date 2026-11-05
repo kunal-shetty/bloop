@@ -11,7 +11,7 @@ import android.view.View;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Hand-drawn 12x12 pixel icons, kept as text so they need no image files and stay easy to edit. */
+/** Hand-drawn square pixel icons (mostly 12x12), kept as text so they need no image files and stay easy to edit. */
 public final class PixelIcons {
 
     private PixelIcons() {}
@@ -34,6 +34,9 @@ public final class PixelIcons {
             case 's': return PixelTheme.SKY;
             case 'b': return 0xFF2E7FBF;
             case 'f': return 0xFFFF9A3C;
+            case 'p': return PixelTheme.PANEL_LIGHT;
+            case 'q': return 0xFF705CBE;
+            case 'u': return 0xFF40327C;
             default: return 0;
         }
     }
@@ -209,31 +212,41 @@ public final class PixelIcons {
                 ".kk......kk.",
                 "............"});
         ART.put("star", new String[]{
-                ".....kk.....",
-                ".....kyk....",
-                "....kyygk...",
-                "kkkkkygggkkk",
-                "kyyyyygggggk",
-                ".kyggggggok.",
-                "..kggggook..",
-                "..kggggook..",
-                ".kgggkkgook.",
-                ".kggk..kgok.",
-                "kgkk....kkok",
-                "kk........kk"});
+                ".................",
+                ".......kkk.......",
+                ".......kyk.......",
+                "......kyygk......",
+                "......kyggk......",
+                ".....kyggggk.....",
+                "kkkkkyggggggkkkkk",
+                ".kyyygggggggggok.",
+                "..kygggggggggok..",
+                "...kggggggggok...",
+                "....kgggggook....",
+                "....kggggoook....",
+                "...kgggkkkoook...",
+                "...kggk...kook...",
+                "...kkk.....kkk...",
+                ".................",
+                "................."});
         ART.put("star_off", new String[]{
-                ".....kk.....",
-                ".....kdk....",
-                "....kddkk...",
-                "kkkkkdddkkkk",
-                "kdddddddddk.",
-                ".kdddddddk..",
-                "..kdddddk...",
-                "..kdddddk...",
-                ".kdddkkddk..",
-                ".kddk..kdk..",
-                "kdkk....kkdk",
-                "kk........kk"});
+                ".................",
+                ".......kkk.......",
+                ".......kqk.......",
+                "......kqqpk......",
+                "......kqppk......",
+                ".....kqppppk.....",
+                "kkkkkqppppppkkkkk",
+                ".kqqqpppppppppuk.",
+                "..kqpppppppppuk..",
+                "...kppppppppuk...",
+                "....kpppppuuk....",
+                "....kppppuuuk....",
+                "...kpppkkkuuuk...",
+                "...kppk...kuuk...",
+                "...kkk.....kkk...",
+                ".................",
+                "................."});
         ART.put("sound", new String[]{
                 "............",
                 ".....kk...k.",
@@ -371,29 +384,29 @@ public final class PixelIcons {
         if (b != null) return b;
         String[] art = ART.get(name);
         if (art == null) throw new IllegalArgumentException("no icon " + name);
-        b = Bitmap.createBitmap(12, 12, Bitmap.Config.ARGB_8888);
-        for (int y = 0; y < 12; y++) {
+        int n = art.length;
+        b = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888);
+        for (int y = 0; y < n; y++) {
             String row = art[y];
-            for (int x = 0; x < 12 && x < row.length(); x++) b.setPixel(x, y, color(row.charAt(x)));
+            for (int x = 0; x < n && x < row.length(); x++) b.setPixel(x, y, color(row.charAt(x)));
         }
         CACHE.put(name, b);
         return b;
     }
 
-    private static final Rect SRC = new Rect(0, 0, 12, 12);
+    private static final Rect SRC = new Rect();
     private static final RectF DST = new RectF();
 
     /** Draws an icon at a whole multiple of its pixels, so each one stays perfectly square. */
     public static void draw(Canvas c, Paint p, String name, float x, float y, float size) {
-        float s = snap(size);
+        Bitmap b = bitmap(name);
+        int n = b.getWidth();
+        float s = Math.max(n, (float) Math.floor(size / n) * n);
         p.setFilterBitmap(false);
         p.setAlpha(255);
+        SRC.set(0, 0, n, n);
         DST.set(x + (size - s) / 2f, y + (size - s) / 2f, x + (size + s) / 2f, y + (size + s) / 2f);
-        c.drawBitmap(bitmap(name), SRC, DST, p);
-    }
-
-    private static float snap(float size) {
-        return Math.max(12f, (float) Math.floor(size / 12f) * 12f);
+        c.drawBitmap(b, SRC, DST, p);
     }
 
     /** A simple view showing one icon. */
