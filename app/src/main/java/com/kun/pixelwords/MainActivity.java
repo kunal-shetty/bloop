@@ -1,6 +1,8 @@
 package com.kun.pixelwords;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -19,6 +21,7 @@ import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.StreakLogic;
 import com.kun.pixelwords.services.PlayGamesService;
+import com.kun.pixelwords.services.Reminders;
 import com.kun.pixelwords.ui.AmbientView;
 import com.kun.pixelwords.ui.CatView;
 import com.kun.pixelwords.ui.ModeCard;
@@ -35,6 +38,8 @@ public class MainActivity extends BaseActivity {
 
     private static final String[] CHAPTERS = {"FROSTFALL", "PETAL DRIFT", "FIREFLY WOODS", "EMBER LEAVES"};
     private static final int LEVELS_PER_CHAPTER = 25;
+    private static final int[] REMINDER_HOURS = {9, 13, 19, 21};
+    private static final int REQUEST_NOTIFICATIONS = 1;
 
     private ProgressStore store;
     private Progress progress;
@@ -70,6 +75,7 @@ public class MainActivity extends BaseActivity {
             introduced = true;
             playIntro();
         }
+        offerReminders();
     }
 
     private int dp(float v) {
@@ -382,9 +388,70 @@ public class MainActivity extends BaseActivity {
             Settings.setHaptics(on);
             if (on) Haptics.success();
         });
+        m.toggle("calendar", "DAILY REMINDER", "A nudge at " + Reminders.hourLabel(Settings.reminderHour()),
+                Settings.reminders(), on -> {
+                    if (on) enableReminders();
+                    else setReminders(false);
+                });
+        m.button("REMINDER TIME", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "clock", Sfx.Id.UI_TAP, this::showReminderTimes);
         m.button("HOW TO PLAY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showHowToPlay);
         m.button("CREDITS", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showCredits);
         m.show();
+    }
+
+    private void showReminderTimes() {
+        PixelModal m = new PixelModal(this).title("REMINDER TIME").icon("clock").accent(PixelTheme.SKY)
+                .body("When should your cat nudge you? There's no nudge if you've already solved the daily.");
+        for (int hour : REMINDER_HOURS) {
+            boolean current = hour == Settings.reminderHour();
+            m.button(Reminders.hourLabel(hour), current ? PixelTheme.GOLD : PixelTheme.PANEL_LIGHT,
+                    current ? PixelTheme.INK : PixelTheme.TEXT, null, Sfx.Id.UI_TAP, () -> {
+                        Settings.setReminderHour(hour);
+                        Reminders.schedule(this);
+                        showSettings();
+                    });
+        }
+        m.show();
+    }
+
+    /** One time only, after the first daily, when the player already knows what's being offered. */
+    private void offerReminders() {
+        if (Settings.reminderOffered() || Settings.reminders() || progress.dailiesCompleted < 1 || modalShowing()) return;
+        Settings.setReminderOffered();
+        new PixelModal(this).title("DAILY REMINDER").icon("calendar").accent(PixelTheme.MINT)
+                .body("Want a nudge at " + Reminders.hourLabel(Settings.reminderHour())
+                        + " so your streak stays alive? You can change this in Settings.")
+                .primary("YES PLEASE", "check", this::enableReminders)
+                .secondary("NOT NOW", null)
+                .show();
+    }
+
+    /** Android 13+ needs the player's permission, which arrives in onRequestPermissionsResult. */
+    private void enableReminders() {
+        if (Reminders.mayNotify(this)) {
+            setReminders(true);
+        } else {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQUEST_NOTIFICATIONS);
+        }
+    }
+
+    private void setReminders(boolean on) {
+        Settings.setReminders(on);
+        Reminders.schedule(this);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode != REQUEST_NOTIFICATIONS) return;
+        boolean granted = results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED;
+        setReminders(granted);
+        if (!granted) {
+            new PixelModal(this).title("NOTIFICATIONS OFF").icon("calendar").accent(PixelTheme.ROSE)
+                    .body("Reminders can't appear until notifications are allowed for Bloop in your phone's settings.")
+                    .primary("GOT IT", null)
+                    .show();
+        }
     }
 
     private void showHowToPlay() {
