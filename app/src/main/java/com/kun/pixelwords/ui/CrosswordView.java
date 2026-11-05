@@ -1,0 +1,165 @@
+package com.kun.pixelwords.ui;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.PointF;
+import android.os.SystemClock;
+import android.util.AttributeSet;
+import android.view.View;
+
+import com.kun.pixelwords.game.GameSession;
+import com.kun.pixelwords.generator.Level;
+
+/**
+ * Draws the crossword for a session. Slots deal in when a round starts; found letters flip in one
+ * after another with a bright flash.
+ */
+public class CrosswordView extends View {
+
+    /** Told about each letter as it lands, so sound and haptics stay in time with the animation. */
+    public interface LetterListener {
+        void onLetterShown(int order);
+    }
+
+    private static final long STAGGER_MS = 55;
+    private static final long FLIP_MS = 170;
+    private static final long INTRO_MS = 12;
+
+    private final Paint paint = new Paint();
+    private final Paint textPaint = new Paint();
+    private GameSession session;
+    private float cell, originX, originY;
+    private long[][] showAt;     // when each letter was scheduled to appear; 0 = still hidden
+    private long[][] dealAt;     // when each slot deals in
+    private boolean[][] reported;
+    private int reportedCount;
+    private LetterListener letterListener;
+
+    public CrosswordView(Context context) {
+        this(context, null);
+    }
+
+    public CrosswordView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        paint.setAntiAlias(false);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        PixelTheme.styleDisplay(textPaint, 32f);
+    }
+
+    public void setLetterListener(LetterListener l) {
+        letterListener = l;
+    }
+
+    public void setSession(GameSession s) {
+        session = s;
+        Level l = s.level();
+        showAt = new long[l.rows][l.cols];
+        dealAt = new long[l.rows][l.cols];
+        reported = new boolean[l.rows][l.cols];
+        long now = SystemClock.uptimeMillis();
+        for (int r = 0; r < l.rows; r++) {
+            for (int c = 0; c < l.cols; c++) dealAt[r][c] = now + (r + c) * INTRO_MS * 3;
+        }
+        computeLayout();
+        invalidate();
+    }
+
+    /** Call after the session changed. Newly revealed letters are queued left to right, top to bottom. */
+    public void refresh() {
+        if (session == null) return;
+        Level l = session.level();
+        long at = SystemClock.uptimeMillis();
+        reportedCount = 0;
+        for (int r = 0; r < l.rows; r++) {
+            for (int c = 0; c < l.cols; c++) {
+                if (session.isRevealed(r, c) && showAt[r][c] == 0) {
+                    showAt[r][c] = at;
+                    at += STAGGER_MS;
+                }
+            }
+        }
+        invalidate();
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        computeLayout();
+    }
+
+    private void computeLayout() {
+        if (session == null || getWidth() == 0) return;
+        Level l = session.level();
+        float maxCell = PixelTheme.dp(getContext(), 58);
+        cell = Math.min(maxCell, Math.min(getWidth() / (float) l.cols, getHeight() / (float) l.rows));
+        originX = (getWidth() - cell * l.cols) / 2f;
+        originY = (getHeight() - cell * l.rows) / 2f;
+        textPaint.setTextSize(Math.max(8f, (float) Math.floor(cell * 0.5f / 8f) * 8f));
+    }
+
+    /** Centre of a grid cell in this view's pixel coordinates (for spawning effects). */
+    public PointF cellCenter(int row, int col) {
+        return new PointF(originX + (col + 0.5f) * cell, originY + (row + 0.5f) * cell);
+    }
+
+    public float cellSize() {
+        return cell;
+    }
+
+    @Override
+    protected void onDraw(Canvas c) {
+        if (session == null) return;
+        Level l = session.level();
+        char[][] grid = l.grid();
+        float gap = Math.max(2f, Math.round(cell / 24f));
+        float px = Math.max(2f, Math.round(cell / 22f));
+        float cap = -textPaint.ascent() * 0.86f;
+        long now = SystemClock.uptimeMillis();
+        boolean animating = false;
+
+        for (int r = 0; r < l.rows; r++) {
+            for (int col = 0; col < l.cols; col++) {
+                if (grid[r][col] == '\0') continue;
+                float cx = originX + (col + 0.5f) * cell;
+                float cy = originY + (r + 0.5f) * cell;
+                float half = cell / 2f - gap;
+
+                long deal = now - dealAt[r][col];
+                if (deal < 0) {
+                    animating = true;
+                    continue;
+                }
+                if (deal < 180) {
+                    half *= Math.round(deal / 180f * 5f) / 5f;
+                    animating = true;
+                }
+
+                long at = showAt[r][col];
+                long since = at == 0 ? -1 : now - at;
+                if (at == 0 || since < 0) {
+                    if (since < 0) animating = true;
+                    PixelTheme.drawSlot(c, paint, cx - half, cy - half, cx + half, cy + half, 0xF0251D4A, px);
+                    continue;
+                }
+
+                if (!reported[r][col]) {
+                    reported[r][col] = true;
+                    if (letterListener != null) letterListener.onLetterShown(reportedCount++);
+                }
+
+                float k = Math.min(1f, since / (float) FLIP_MS);
+                if (k < 1f) animating = true;
+                float bump = k < 1f ? 1f + 0.28f * (1f - k) : 1f;
+                float s = half * bump;
+                int fill = k < 0.5f ? 0xFFFFFFFF : PixelTheme.CREAM;
+                PixelTheme.drawTile(c, paint, cx - s, cy - s, cx + s, cy + s, fill, px, px * 2);
+                if (k >= 0.34f) {
+                    textPaint.setColor(PixelTheme.INK);
+                    c.drawText(String.valueOf(Character.toUpperCase(grid[r][col])), cx, cy - px + cap / 2f, textPaint);
+                }
+            }
+        }
+        if (animating) postInvalidateOnAnimation();
+    }
+}
