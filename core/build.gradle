@@ -1,0 +1,36 @@
+// Pure-Java module: level generator, dictionary + profanity filter, game rules, streaks, save format.
+// No Android dependencies, so everything here can be tested on any JDK.
+plugins {
+    id 'java-library'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+// Raw word lists live in core/data and are only used by tests and the dictionary-prep tool;
+// the app ships the much smaller filtered files produced by :core:prepareDictionary.
+sourceSets {
+    test {
+        resources.srcDir 'data'
+    }
+}
+
+// ./gradlew :core:selfTest
+tasks.register('selfTest', JavaExec) {
+    group = 'verification'
+    description = 'Runs the dependency-free self-test (dictionary, generator, game rules).'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.kun.pixelwords.generator.GeneratorSelfTest'
+}
+
+// ./gradlew :core:prepareDictionary   (re-run after changing the word lists or the filter)
+tasks.register('prepareDictionary', JavaExec) {
+    group = 'build setup'
+    description = 'Filters raw word lists into app/src/main/assets/{words,common}.txt'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.kun.pixelwords.generator.DictionaryPrep'
+    args "$projectDir/data/enable1.txt", "$projectDir/data/common.txt", "$projectDir/data/badwords.txt",
+         "$rootDir/app/src/main/assets"
+}
