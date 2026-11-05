@@ -1,0 +1,43 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.kun.pixelwords'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.kun.pixelwords'
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName '0.1.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    // Sprite sheets and word lists are read straight from assets; don't waste time compressing them.
+    androidResources {
+        noCompress 'png', 'txt', 'json', 'wav'   // SoundPool needs wav files stored uncompressed
+    }
+}
+
+dependencies {
+    implementation project(':core')
+
+    // Google Play services. Version numbers are starting points: check for the latest releases.
+    implementation 'com.google.android.gms:play-services-games-v2:20.1.0'   // sign-in, leaderboards, cloud save
+    implementation 'com.google.android.gms:play-services-ads:24.4.0'        // AdMob rewarded video
+    // implementation 'com.android.billingclient:billing:8.0.0'             // in-app purchases (not wired up yet)
+}
