@@ -1,0 +1,5 @@
+// Versions: the Android Gradle Plugin version below is a starting point. If Android Studio offers an
+// upgrade (AGP Upgrade Assistant), accept it, and bump compileSdk/targetSdk to whatever Google Play currently requires.
+plugins {
+    id 'com.android.application' version '8.9.1' apply false
+}
