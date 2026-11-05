@@ -2,6 +2,11 @@
 <resources>
     <string name="app_name">Bloop</string>
 
+    <string name="reminder_channel">Daily reminder</string>
+    <string name="reminder_title">Your cat is waiting!</string>
+    <string name="reminder_streak">Solve today\'s puzzle to keep your %1$d-day streak.</string>
+    <string name="reminder_fresh">Today\'s puzzle is ready. Come and solve it!</string>
+
     <!-- TODO: fill these in from the Google Play Console / AdMob console. -->
     <string name="play_games_app_id" translatable="false">000000000000</string>
     <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
