@@ -51,6 +51,7 @@ public class CatView extends View {
 
     private final Paint snore = new Paint();
     private Shop.Item head, face, neck;
+    private String coat = "";
     private long nextBlink, blinkUntil, hopAt, happyUntil, lastMew, lastPet;
     private boolean cheering, naps, gift;
     private Runnable onPet;
@@ -70,6 +71,12 @@ public class CatView extends View {
         head = Shop.wearing(p, Shop.Slot.HEAD);
         face = Shop.wearing(p, Shop.Slot.FACE);
         neck = Shop.wearing(p, Shop.Slot.NECK);
+        tryOn(Shop.breed(p));
+    }
+
+    /** Shows a breed just for this view. */
+    public void tryOn(Shop.Breed breed) {
+        coat = breed.key.isEmpty() ? "" : "_" + breed.key;
         invalidate();
     }
 
@@ -197,8 +204,8 @@ public class CatView extends View {
         dst.set(left, top - lift, left + size, top + size - lift);
         boolean happy = now < happyUntil;
         boolean asleep = naps && !happy && now - lastPet > NAP_AFTER_MS;
-        draw(c, "tail_" + (happy ? (now / 90) % 3 : (now / 340) % 3));
-        draw(c, "body");
+        draw(c, "tail_" + (happy ? (now / 90) % 3 : (now / 340) % 3) + coat);
+        draw(c, "body" + coat);
         draw(c, happy ? "eyes_happy" : asleep || now < blinkUntil ? "eyes_closed" : "eyes_open");
         wear(c, neck);
         wear(c, face);
