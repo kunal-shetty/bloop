@@ -1,6 +1,7 @@
 package com.kun.pixelwords.generator;
 
 import com.kun.pixelwords.game.Achievement;
+import com.kun.pixelwords.game.CatMood;
 import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.GameSession;
 import com.kun.pixelwords.game.Journey;
@@ -17,6 +18,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 /**
@@ -51,6 +53,7 @@ public final class GeneratorSelfTest {
         testAchievementRewards();
         testJourney(gen, dict);
         testQuests();
+        testCatMood();
         testCurve(gen);
 
         System.out.println();
@@ -155,6 +158,50 @@ public final class GeneratorSelfTest {
         Progress merged = Progress.merge(p, other);
         check(merged.starsFor(3) == 3 && merged.starsFor(4) == 2 && merged.starsFor(95) == 3, "a merge keeps the best stars from both");
         check(merged.chaptersRewarded == 2, "a merge can't pay a chapter twice");
+    }
+
+    private static void testCatMood() {
+        long day = 20763;
+        Progress p = new Progress();
+        Random rnd = new Random(1);
+        int offered = 0;
+        for (int i = 0; i < 2000; i++) {
+            int coins = CatMood.rollGift(p, day, rnd);
+            if (coins == 0) continue;
+            offered++;
+            check(coins >= CatMood.MIN_GIFT_COINS && coins <= CatMood.MAX_GIFT_COINS, "gifts stay within range");
+            if (p.catGiftsToday < CatMood.MAX_GIFTS_PER_DAY) CatMood.collectGift(p, day, coins);
+            check(p.catGiftsToday <= CatMood.MAX_GIFTS_PER_DAY, "the daily gift limit holds");
+        }
+        check(offered == CatMood.MAX_GIFTS_PER_DAY, "the cat stops offering at the daily limit");
+
+        int tomorrow = 0;
+        for (int i = 0; i < 200; i++) if (CatMood.rollGift(p, day + 1, rnd) > 0) tomorrow++;
+        check(tomorrow > 0, "gifts come back the next day");
+        CatMood.collectGift(p, day + 1, 7);
+        check(p.catGiftsToday == 1 && p.catGiftDay == day + 1, "a new day restarts the count");
+
+        Progress loaded = Progress.parse(p.serialize());
+        check(loaded.catGiftsToday == 1 && loaded.catGiftDay == day + 1, "gift limits survive a save and load");
+
+        Progress older = new Progress();
+        older.catGiftDay = day;
+        older.catGiftsToday = 3;
+        Progress merged = Progress.merge(p, older);
+        check(merged.catGiftDay == day + 1 && merged.catGiftsToday == 1, "a merge keeps the latest gift day");
+
+        Progress lapsed = new Progress();
+        lapsed.streak = new StreakLogic.State(0, 5, day - 9, 0);
+        boolean missed = false;
+        for (int i = 0; i < 100; i++) missed |= CatMood.line(lapsed, day, rnd).contains("missed");
+        check(missed, "the cat notices a lost streak");
+
+        Progress streaking = new Progress();
+        streaking.streak = new StreakLogic.State(4, 4, day - 1, 0);
+        boolean nudged = false;
+        for (int i = 0; i < 100; i++) nudged |= CatMood.line(streaking, day, rnd).contains("4-day streak");
+        check(nudged, "the cat nudges a live streak");
+        check(!CatMood.line(new Progress(), day, rnd).isEmpty(), "a new player still gets a line");
     }
 
     private static void testQuests() {
