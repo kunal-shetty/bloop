@@ -19,6 +19,7 @@ import com.kun.pixelwords.audio.Sfx;
 import com.kun.pixelwords.data.Days;
 import com.kun.pixelwords.data.GameEngine;
 import com.kun.pixelwords.data.ProgressStore;
+import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.GameSession;
@@ -925,14 +926,18 @@ public class GameActivity extends BaseActivity {
         shuffle.setIconSize(30);
         shuffle.setClickSound(Sfx.Id.SHUFFLE);
         shuffle.setOnClickListener(v -> wheel.shuffle(rnd));
-        wheelBox.addView(shuffle, new FrameLayout.LayoutParams(dp(62), dp(62), Gravity.BOTTOM | Gravity.START));
+        // The hint is the one players reach for under pressure, so it sits by their thumb.
+        boolean leftHanded = Settings.leftHanded();
+        wheelBox.addView(shuffle, new FrameLayout.LayoutParams(dp(62), dp(62),
+                Gravity.BOTTOM | (leftHanded ? Gravity.END : Gravity.START)));
 
         hintBtn = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         hintBtn.setIcon("bulb");
         hintBtn.setIconSize(30);
         hintBtn.setClickSound(null);
         hintBtn.setOnClickListener(v -> onHintPressed());
-        wheelBox.addView(hintBtn, new FrameLayout.LayoutParams(dp(62), dp(62), Gravity.BOTTOM | Gravity.END));
+        wheelBox.addView(hintBtn, new FrameLayout.LayoutParams(dp(62), dp(62),
+                Gravity.BOTTOM | (leftHanded ? Gravity.START : Gravity.END)));
 
         col.addView(wheelBox, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wheelSize));
 
