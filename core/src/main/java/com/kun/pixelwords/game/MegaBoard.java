@@ -39,10 +39,13 @@ public final class MegaBoard {
         p.megaFound = 0;
     }
 
-    /** Pays once for this weekend's board. False if it was already paid. */
-    public static boolean claim(Progress p, long epochDay) {
-        if (isSolved(p, epochDay)) return false;
-        p.megaSolvedWeek = Quest.weekOf(epochDay);
+    /**
+     * Pays once for the board in the save. It goes by that board's week rather than today's, so one
+     * finished just after midnight on Monday doesn't count as next weekend's.
+     */
+    public static boolean claim(Progress p) {
+        if (p.megaSolvedWeek == p.megaWeek) return false;
+        p.megaSolvedWeek = p.megaWeek;
         p.coins += COINS;
         return true;
     }
