@@ -16,6 +16,7 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.android.ump.ConsentInformation;
 import com.google.android.ump.ConsentRequestParameters;
 import com.google.android.ump.UserMessagingPlatform;
+import com.kun.pixelwords.Features;
 import com.kun.pixelwords.R;
 import com.kun.pixelwords.game.AdPolicy;
 import com.kun.pixelwords.game.Progress;
@@ -57,6 +58,7 @@ public final class AdsService {
 
     /** Asks for consent if the player's region requires it, then starts ads if they're allowed. */
     public void gatherConsent(Activity activity) {
+        if (!Features.MONETIZATION) return; // ads never start, so every other call here does nothing
         consent.requestConsentInfoUpdate(activity, new ConsentRequestParameters.Builder().build(),
                 () -> UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity, error -> startIfAllowed()),
                 error -> startIfAllowed());
