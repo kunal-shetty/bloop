@@ -225,12 +225,17 @@ public final class LanHost extends LanMatch {
             drop();
             if (id == null || closed) return;
             clients.remove(id);
-            synchronized (players) {
-                players.remove(id);
-            }
-            broadcast(playersMessage());
-            listener.onPlayersChanged();
-            if (started) {
+            if (!started) {
+                synchronized (players) {
+                    players.remove(id);
+                }
+                broadcast(playersMessage());
+                listener.onPlayersChanged();
+            } else {
+                // Their score stands, so someone who closes the app straight after winning still won.
+                synchronized (finished) {
+                    finished.add(id);
+                }
                 boolean everyone;
                 synchronized (finished) {
                     everyone = allFinished();
