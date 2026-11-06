@@ -292,7 +292,7 @@ public class MainActivity extends BaseActivity {
         ranksCard.setStatus("Top players");
 
         streakText.setText(streak == 0 ? "NO STREAK" : days(streak).toUpperCase(Locale.ROOT));
-        streakSub.setText(doneToday ? "Back tomorrow!" : streak > 0 ? "Play today!" : "Solve a daily");
+        streakSub.setText(doneToday ? "All done!" : streak > 0 ? "Play today!" : "Play daily");
 
         if (PlayGamesService.isConfigured(this)) {
             PlayGamesService.isSignedIn(this, ok -> cloudBtn.setVisibility(ok ? View.GONE : View.VISIBLE));
