@@ -4,6 +4,7 @@ import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.GameSession;
 import com.kun.pixelwords.game.Shop;
 import com.kun.pixelwords.game.Progress;
+import com.kun.pixelwords.game.ShareCard;
 import com.kun.pixelwords.game.StreakLogic;
 
 import java.io.IOException;
@@ -41,6 +42,7 @@ public final class GeneratorSelfTest {
         testProgress();
         testDuelBot(gen);
         testShop();
+        testShareCard();
         testCurve(gen);
 
         System.out.println();
@@ -56,6 +58,20 @@ public final class GeneratorSelfTest {
     }
 
     // ------------------------------------------------------------------ tests
+
+    private static void testShareCard() {
+        check(ShareCard.dailyNumber(20763) == 1, "launch day is daily #1");
+        check(ShareCard.dailyNumber(20765) == 3, "daily number counts up by day");
+        check(ShareCard.dailyNumber(20000) == 1, "a clock set before launch still gets a valid number");
+
+        String perfect = ShareCard.daily(20764, 3, 12, 0, 240);
+        check(perfect.startsWith("Bloop Daily #2\n"), "share card leads with the puzzle number");
+        check(perfect.contains("⭐⭐⭐  No hints!"), "share card shows stars and no hints");
+        check(perfect.contains("12-day streak"), "share card shows the streak");
+        check(perfect.endsWith("Score 240"), "share card ends with the score");
+        check(ShareCard.daily(20764, 2, 1, 1, 90).contains("⭐⭐  1 hint\n"), "one hint is singular");
+        check(ShareCard.daily(20764, 1, 1, 3, 90).contains("⭐  3 hints\n"), "several hints are plural");
+    }
 
     private static void testDictionary(Dictionary dict) {
         String[] mustHave = {"class", "assist", "pass", "hello", "cat", "plate", "scunthorpe".substring(0, 0) + "grass"};
