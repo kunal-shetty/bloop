@@ -2,6 +2,11 @@ plugins {
     id 'com.android.application'
 }
 
+// Release signing reads keystore.properties, which is never committed. See README.
+def keystoreFile = rootProject.file('keystore.properties')
+def keystore = new Properties()
+if (keystoreFile.exists()) keystoreFile.withInputStream { keystore.load(it) }
+
 android {
     namespace 'com.kun.pixelwords'
     compileSdk 36
@@ -14,8 +19,20 @@ android {
         versionName '0.1.0'
     }
 
+    signingConfigs {
+        release {
+            if (keystoreFile.exists()) {
+                storeFile rootProject.file(keystore['storeFile'])
+                storePassword keystore['storePassword']
+                keyAlias keystore['keyAlias']
+                keyPassword keystore['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (keystoreFile.exists()) signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -38,6 +55,7 @@ dependencies {
 
     // Google Play services. Version numbers are starting points: check for the latest releases.
     implementation 'com.google.android.gms:play-services-games-v2:20.1.0'   // sign-in, leaderboards, cloud save
-    implementation 'com.google.android.gms:play-services-ads:24.4.0'        // AdMob rewarded video
-    // implementation 'com.android.billingclient:billing:8.0.0'             // in-app purchases (not wired up yet)
+    implementation 'com.google.android.gms:play-services-ads:25.5.0'        // AdMob rewarded videos and ad breaks
+    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'   // ad consent
+    implementation 'com.android.billingclient:billing:9.1.0'                // in-app purchases
 }
