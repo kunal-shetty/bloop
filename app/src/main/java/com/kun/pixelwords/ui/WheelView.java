@@ -15,6 +15,8 @@ import android.view.animation.DecelerateInterpolator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Random;
 
 /** The letter wheel: swipe across letters to spell a word. Backtrack over the previous letter to undo. */
@@ -34,6 +36,8 @@ public class WheelView extends View {
     }
 
     private static final long POP_MS = 140;
+    private static final long GUIDE_STEP_MS = 520;
+    private static final long GUIDE_REST_MS = 900;
 
     private final Paint paint = new Paint();
     private final Paint textPaint = new Paint();
@@ -52,6 +56,9 @@ public class WheelView extends View {
     private boolean locked;
     private Bitmap plate;
     private Listener listener;
+    private String guide;
+    private int[] guidePath;
+    private long guideStart;
 
     public WheelView(Context context) {
         this(context, null);
@@ -75,8 +82,8 @@ public class WheelView extends View {
         if (l && touching) {
             touching = false;
             path.clear();
-            invalidate();
         }
+        invalidate();
     }
 
     public void setLetters(String word) {
@@ -85,7 +92,37 @@ public class WheelView extends View {
         path.clear();
         popAt = new long[letters.size()];
         layoutLetters();
+        traceGuide();
         invalidate();
+    }
+
+    /** Loops a ghost finger spelling this word until the next swipe, for teaching. Null turns it off. */
+    public void setGuide(String word) {
+        String next = word == null ? null : word.toUpperCase(Locale.ROOT);
+        if (Objects.equals(next, guide)) return;
+        guide = next;
+        guideStart = SystemClock.uptimeMillis();
+        traceGuide();
+        invalidate();
+    }
+
+    /** Finds which tile each guide letter sits on. A repeated letter uses a different tile each time. */
+    private void traceGuide() {
+        guidePath = null;
+        if (guide == null) return;
+        int[] found = new int[guide.length()];
+        boolean[] used = new boolean[letters.size()];
+        for (int g = 0; g < found.length; g++) {
+            found[g] = -1;
+            for (int i = 0; i < used.length && found[g] < 0; i++) {
+                if (!used[i] && letters.get(i) == guide.charAt(g)) {
+                    used[i] = true;
+                    found[g] = i;
+                }
+            }
+            if (found[g] < 0) return;
+        }
+        guidePath = found;
     }
 
     public void shuffle(Random rnd) {
@@ -107,6 +144,7 @@ public class WheelView extends View {
         letters.addAll(shuffled);
         path.clear();
         layoutLetters();
+        traceGuide();
 
         ValueAnimator a = ValueAnimator.ofFloat(0f, 1f);
         a.setDuration(320);
@@ -282,6 +320,48 @@ public class WheelView extends View {
         }
     }
 
+    private boolean guideShowing() {
+        return guidePath != null && guidePath.length > 1 && !touching && !locked && shuffleT >= 1f;
+    }
+
+    /** How far along the word the ghost finger is: 1.5 is halfway from the second letter to the third. */
+    private float guideProgress(long now) {
+        long travel = (guidePath.length - 1) * GUIDE_STEP_MS;
+        long t = (now - guideStart) % (travel + GUIDE_REST_MS);
+        return Math.min(t, travel) / (float) GUIDE_STEP_MS;
+    }
+
+    private void drawGuideTrail(Canvas c, float progress, float half, int color) {
+        int whole = (int) progress;
+        for (int i = 0; i < guidePath.length - 1 && i <= whole; i++) {
+            int a = guidePath[i], b = guidePath[i + 1];
+            float t = Math.min(1f, progress - i);
+            chunkyLine(c, lx[a], ly[a], lx[a] + (lx[b] - lx[a]) * t, ly[a] + (ly[b] - ly[a]) * t, half, color);
+        }
+    }
+
+    /** A chunky white fingertip, set just off the path so the letter underneath stays readable. */
+    private void drawGuideFinger(Canvas c, float progress) {
+        int seg = Math.min((int) progress, guidePath.length - 2);
+        int a = guidePath[seg], b = guidePath[seg + 1];
+        float t = progress - seg;
+        float x = lx[a] + (lx[b] - lx[a]) * t + tile * 0.24f;
+        float y = ly[a] + (ly[b] - ly[a]) * t + tile * 0.24f;
+        float half = tile * 0.17f;
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(PixelTheme.INK);
+        c.drawRect(x - half - px, y - half - px, x + half + px, y + half + px, paint);
+        paint.setColor(0xFFFFFFFF);
+        c.drawRect(x - half, y - half, x + half, y + half, paint);
+    }
+
+    private boolean guideReached(int tileIndex, float progress) {
+        for (int i = 0; i < guidePath.length && i <= (int) progress; i++) {
+            if (guidePath[i] == tileIndex) return true;
+        }
+        return false;
+    }
+
     @Override
     protected void onDraw(Canvas c) {
         int n = letters.size();
@@ -293,10 +373,18 @@ public class WheelView extends View {
         drawTrail(c, px * 2f, PixelTheme.GOLD);
 
         long now = SystemClock.uptimeMillis();
-        boolean animating = false;
+        boolean guiding = guideShowing();
+        float guideAt = guiding ? guideProgress(now) : 0f;
+        if (guiding) {
+            drawGuideTrail(c, guideAt, px * 3.5f, PixelTheme.INK);
+            drawGuideTrail(c, guideAt, px * 2f, PixelTheme.MINT);
+        }
+
+        boolean animating = guiding;
         float cap = -textPaint.ascent() * 0.86f;
         for (int i = 0; i < n; i++) {
             boolean on = path.contains(i);
+            boolean guided = guiding && guideReached(i, guideAt);
             float size = tile;
             long age = now - popAt[i];
             if (on && age < POP_MS) { // pops up as the finger reaches it
@@ -306,10 +394,11 @@ public class WheelView extends View {
             float x = tileX(i), y = tileY(i), half = size / 2f;
             float lift = on ? px : 0;
             PixelTheme.drawTile(c, paint, x - half, y - half - lift, x + half, y + half - lift + px * 3,
-                    on ? PixelTheme.GOLD : PixelTheme.PANEL_LIGHT, px, px * 3);
-            textPaint.setColor(on ? PixelTheme.INK : PixelTheme.TEXT);
+                    on ? PixelTheme.GOLD : guided ? PixelTheme.MINT : PixelTheme.PANEL_LIGHT, px, px * 3);
+            textPaint.setColor(on || guided ? PixelTheme.INK : PixelTheme.TEXT);
             c.drawText(String.valueOf(letters.get(i)), x, y - lift + cap / 2f, textPaint);
         }
+        if (guiding) drawGuideFinger(c, guideAt);
         if (animating) postInvalidateOnAnimation();
     }
 }
