@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds always use Google's test ads, whatever is in the main strings.xml. -->
+<resources>
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="admob_rewarded_unit" translatable="false">ca-app-pub-3940256099942544/5224354917</string>
+    <string name="admob_interstitial_unit" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
+</resources>
