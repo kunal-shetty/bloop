@@ -36,6 +36,14 @@ public final class Progress {
     public long claimedAchievements = 0;
     /** How many finished chapters have paid their reward. Chapters pay in order. */
     public int chaptersRewarded = 0;
+    /** The week the quests below belong to, and the stats when it began. See Quest. */
+    public long questWeek = 0;
+    public int questBaseWords = 0;
+    public int questBaseLevel = 0;
+    public int questBaseDuels = 0;
+    public int questBaseDailies = 0;
+    /** This week's quest rewards already paid, as a bit per quest. */
+    public int questClaimed = 0;
     /** Best stars per level, indexed by level - 1. */
     private byte[] levelStars = new byte[0];
     /** Shop.Item id worn in each slot; 0 = nothing. */
@@ -100,6 +108,12 @@ public final class Progress {
         put(sb, "owned", ownedItems);
         put(sb, "claimed", claimedAchievements);
         put(sb, "chapters", chaptersRewarded);
+        put(sb, "qWeek", questWeek);
+        put(sb, "qWords", questBaseWords);
+        put(sb, "qLevel", questBaseLevel);
+        put(sb, "qDuels", questBaseDuels);
+        put(sb, "qDailies", questBaseDailies);
+        put(sb, "qClaimed", questClaimed);
         putStars(sb);
         put(sb, "wearHead", wearHead);
         put(sb, "wearFace", wearFace);
@@ -137,6 +151,12 @@ public final class Progress {
         p.ownedItems = get(m, "owned", 0);
         p.claimedAchievements = get(m, "claimed", 0);
         p.chaptersRewarded = (int) Math.max(0, get(m, "chapters", 0));
+        p.questWeek = get(m, "qWeek", 0);
+        p.questBaseWords = (int) get(m, "qWords", 0);
+        p.questBaseLevel = (int) get(m, "qLevel", 0);
+        p.questBaseDuels = (int) get(m, "qDuels", 0);
+        p.questBaseDailies = (int) get(m, "qDailies", 0);
+        p.questClaimed = (int) get(m, "qClaimed", 0);
         p.readStars(m);
         p.wearHead = (int) get(m, "wearHead", 0);
         p.wearFace = (int) get(m, "wearFace", 0);
@@ -168,6 +188,13 @@ public final class Progress {
         out.ownedItems = a.ownedItems | b.ownedItems; // a purchase on any device is kept
         out.claimedAchievements = a.claimedAchievements | b.claimedAchievements; // a reward is only ever paid once
         out.chaptersRewarded = Math.max(a.chaptersRewarded, b.chaptersRewarded);
+        Progress quests = a.questWeek != b.questWeek ? (a.questWeek > b.questWeek ? a : b) : newer;
+        out.questWeek = quests.questWeek;
+        out.questBaseWords = quests.questBaseWords;
+        out.questBaseLevel = quests.questBaseLevel;
+        out.questBaseDuels = quests.questBaseDuels;
+        out.questBaseDailies = quests.questBaseDailies;
+        out.questClaimed = a.questWeek == b.questWeek ? a.questClaimed | b.questClaimed : quests.questClaimed;
         for (int level = 1; level <= Math.max(a.levelStars.length, b.levelStars.length); level++) {
             out.recordStars(level, Math.max(a.starsFor(level), b.starsFor(level)));
         }
