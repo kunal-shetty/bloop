@@ -18,12 +18,19 @@ public final class LevelGenerator {
     private static final long PROGRESSION_SALT = 0x5057_4F52_4453_0001L;
     private static final long DAILY_SALT = 0x5057_4441_494C_0002L;
     private static final long HARD_SALT = 0x5057_4841_5244_0003L;
+    private static final long MEGA_SALT = 0x5057_4D45_4741_0004L;
+    private static final long LIVES_SALT = 0x5057_4C49_5645_0005L;
     private static final int MAX_WHEEL_LETTERS = 8;
     /** Few wheels spell more long common words than this, and chasing more wastes every generation attempt. */
     private static final int MAX_HARD_WORDS = 9;
 
     public static final int MAX_ROWS = 10;
     public static final int MAX_COLS = 10;
+    /** Only weekend boards go past the usual limit, so no other level changes shape. */
+    public static final int MEGA_MAX_GRID = 12;
+    private static final int MEGA_WORDS = 18;
+    private static final int LIVES_MAX_LETTERS = 8;
+    private static final int LIVES_MAX_WORDS = 12;
     /** Most words in a level that can pay coins, however many the letters could spell. */
     public static final int MAX_BONUS = 5;
 
@@ -100,6 +107,21 @@ public final class LevelGenerator {
         return generate("M" + Long.toHexString(matchSeed), Level.Kind.DUEL, matchSeed, new Spec(6, 8, 9));
     }
 
+    /** The weekend board for a week number: everyone gets the same one. */
+    public Level forMega(long week) {
+        long seed = SeedUtil.mix(MEGA_SALT, week);
+        return generate("W" + week, Level.Kind.MEGA, seed, new Spec(MAX_WHEEL_LETTERS, MEGA_WORDS, MEGA_MAX_GRID));
+    }
+
+    /** A board in a Nine Lives run. {@code depth} is how many boards the run has cleared. */
+    public Level forLives(long runSeed, int depth) {
+        int letters = Math.min(LIVES_MAX_LETTERS, 4 + depth / 3);
+        int words = Math.min(LIVES_MAX_WORDS, 3 + depth);
+        int grid = Math.min(MAX_ROWS, 6 + depth / 3);
+        long seed = SeedUtil.mix(SeedUtil.mix(LIVES_SALT, runSeed), depth);
+        return generate("L" + depth, Level.Kind.LIVES, seed, new Spec(letters, words, grid));
+    }
+
     /**
      * Difficulty curve for generated campaign levels (levelNumber is 1-based, >= 4 in practice).
      * Word length, word count and grid size all climb slowly, one step at a time.
@@ -161,7 +183,9 @@ public final class LevelGenerator {
         }
 
         int target = spec.targetWords;
-        CrosswordBuilder builder = new CrosswordBuilder(Math.min(spec.maxGrid, MAX_ROWS), Math.min(spec.maxGrid, MAX_COLS));
+        int limit = kind == Level.Kind.MEGA ? MEGA_MAX_GRID : Math.min(MAX_ROWS, MAX_COLS);
+        int size = Math.min(spec.maxGrid, limit);
+        CrosswordBuilder builder = new CrosswordBuilder(size, size);
         List<String> placedWords = new ArrayList<>();
         for (String w : order) {
             if (builder.placedCount() >= target) break;
