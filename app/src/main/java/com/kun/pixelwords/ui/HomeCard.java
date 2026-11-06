@@ -72,6 +72,10 @@ public class HomeCard extends PressableView {
             String label = inRoom ? "IN ROOM" : "OWNED";
             price.setColor(inRoom ? PixelTheme.CREAM : PixelTheme.TEXT_DIM);
             c.drawText(label, (w - price.measureText(label)) / 2f, rowY, price);
+        } else if (!Home.forSale(item)) {
+            String label = "SPECIAL";
+            price.setColor(PixelTheme.SKY);
+            c.drawText(label, (w - price.measureText(label)) / 2f, rowY, price);
         } else {
             String label = String.valueOf(item.price);
             float icon = dp(COIN_DP), gap = dp(4);
