@@ -17,6 +17,7 @@ app/    Android app (Activity/View based, no XML layouts, no AndroidX)
   assets/     words.txt, common.txt, fx/ (25 PixelFX effects), sfx/ (31 sounds), cat/ (layered art), fonts/ (Press Start 2P, VT323)
 tools/export-fx.sh   Re-export PixelFX effects as sprite sheets
 tools/gen_sfx.py     Regenerate the sound pack (needs numpy)
+tools/gen_music.py   Regenerate the background music (needs numpy and soundfile)
 tools/gen_cat.py     Regenerate the cat and its accessories (needs Pillow)
 tools/gen_icon.py    Regenerate the launcher icon (needs Pillow)
 ```
@@ -35,6 +36,8 @@ tools/gen_icon.py    Regenerate the launcher icon (needs Pillow)
 - **Difficulty** climbs slowly by level: 4 letters on a 6x6 grid (levels 4-15), 5 on 7x7, 6 on 8x8, 7 on 9x9, then 8 letters on 10x10 from level 171, with more words at each step. Daily puzzles get harder towards the weekend.
 - **Streaks:** consecutive daily completions grow the streak; one missed day is forgiven if you have a freeze (earned every 7 days, max 3).
 - **Shop:** `Shop` holds the catalogue and rules. Items are stored by id in the save, so add new ones with a new id, add their art to `tools/gen_cat.py`, and never renumber.
+- **Achievements:** `Achievement` works out unlocks from stats already in the save, and only stores which rewards were claimed. Add new ones with a new id, and never renumber.
+- **Accessibility:** `PixelTheme.applySettings` swaps the right-and-wrong colours and scales text. Keep `MINT` and `ROSE` non-final, and read them at draw time.
 - **Saves:** `Progress` serialises to `key=value` lines; `Progress.merge` resolves local-vs-cloud conflicts without losing progress.
 
 ## Before you can run it on a phone (setup checklist)
@@ -47,7 +50,7 @@ tools/gen_icon.py    Regenerate the launcher icon (needs Pillow)
 
 - **Tested:** everything in `core/` (run `selfTest`).
 - **Run on a real phone (Vivo V2143, Android 13):** the splash, menu, modals and core gameplay. Play Games sign-in, leaderboards and real ads have not been exercised, because they need the console setup above.
-- **Not built yet:** in-app purchases (`BillingService` is a stub with the planned product list); real multiplayer duels (see below); music; level-select / chapter map.
+- **Not built yet:** in-app purchases (`BillingService` is a stub with the planned product list); real multiplayer duels (see below); level-select / chapter map.
 
 ## Duels: needs your own backend
 
