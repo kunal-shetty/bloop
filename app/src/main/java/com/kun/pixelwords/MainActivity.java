@@ -22,6 +22,7 @@ import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.Progress;
+import com.kun.pixelwords.game.Quest;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.StreakLogic;
 import com.kun.pixelwords.services.PlayGamesService;
@@ -72,6 +73,7 @@ public class MainActivity extends BaseActivity {
     protected void onResume() {
         super.onResume();
         progress = store.load();
+        if (Quest.rollOver(progress, Days.today())) store.save(progress);
         refresh();
         if (!introduced) {
             introduced = true;
@@ -245,7 +247,7 @@ public class MainActivity extends BaseActivity {
         coinChip.setValue(progress.coins);
         hintChip.setValue(progress.hintTokens);
         cat.dress(progress);
-        int ready = Achievement.claimable(progress).size();
+        int ready = Achievement.claimable(progress).size() + Quest.claimable(progress).size();
         claimBadge.setText(String.valueOf(ready));
         claimBadge.setVisibility(ready > 0 ? View.VISIBLE : View.GONE);
 
