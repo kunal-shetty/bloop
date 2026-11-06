@@ -23,6 +23,7 @@ import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.GameSession;
+import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.ShareCard;
@@ -54,6 +55,8 @@ import java.util.Set;
 public class GameActivity extends BaseActivity {
 
     public static final String EXTRA_MODE = "mode";
+    /** A cleared campaign level to replay. Left out, the campaign plays the next new level. */
+    public static final String EXTRA_REPLAY_LEVEL = "replayLevel";
 
     public enum Mode { CAMPAIGN, DAILY, TIMED, DUEL }
 
@@ -90,6 +93,8 @@ public class GameActivity extends BaseActivity {
     private boolean startPending;   // the countdown ended while the app was in the background
     private int combo;
     private int coachLevel;         // the opening level being taught this round, or 0
+    private int replayLevel;        // the cleared level being replayed, or 0 for the next new level
+    private int playLevel;          // the campaign level on the board
     private List<DuelBot.Event> botScript;
     private boolean firstDailyToday;
     private final Random rnd = new Random();
@@ -105,6 +110,7 @@ public class GameActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         String m = getIntent().getStringExtra(EXTRA_MODE);
         if (m != null) mode = Mode.valueOf(m);
+        replayLevel = getIntent().getIntExtra(EXTRA_REPLAY_LEVEL, 0);
         store = new ProgressStore(this);
         progress = store.load();
         buildUi();
@@ -191,14 +197,16 @@ public class GameActivity extends BaseActivity {
                 titleText.setText("DUEL");
                 break;
             default:
-                level = gen.forProgression(progress.level);
-                ambient.setTheme(AmbientView.Theme.values()[((progress.level - 1) / 25) % AmbientView.Theme.values().length]);
-                titleText.setText("LEVEL " + progress.level);
+                playLevel = replayLevel > 0 ? replayLevel : progress.level;
+                boolean hard = Journey.isHard(playLevel);
+                level = hard ? gen.forHard(playLevel) : gen.forProgression(playLevel);
+                ambient.setTheme(AmbientView.Theme.values()[Journey.themeIndex(Journey.chapterOf(playLevel))]);
+                titleText.setText((hard ? "HARD " : "LEVEL ") + playLevel);
                 break;
         }
 
         session = new GameSession(level, level.fingerprint());
-        coachLevel = mode == Mode.CAMPAIGN && progress.level <= LAST_COACHED_LEVEL ? progress.level : 0;
+        coachLevel = mode == Mode.CAMPAIGN && replayLevel == 0 && progress.level <= LAST_COACHED_LEVEL ? progress.level : 0;
         coachText.setVisibility(coachLevel > 0 ? View.VISIBLE : View.GONE);
         grid.setSession(session);
         wheel.setLetters(level.letters);
@@ -508,14 +516,20 @@ public class GameActivity extends BaseActivity {
         o.hints = session.hintsUsed();
         o.score = session.score(secondsLeft);
         o.coins = session.coinsEarned();
-        o.levelNumber = progress.level;
+        o.levelNumber = playLevel;
         o.streakBefore = StreakLogic.displayStreak(progress.streak, Days.today());
         int freezesBefore = progress.streak.freezes;
         Set<Achievement> hadBefore = Achievement.unlocked(progress);
 
         if (solved && mode == Mode.CAMPAIGN) {
-            o.coins += Scoring.COINS_PER_LEVEL;
-            progress.level++;
+            progress.recordStars(playLevel, stars(o.hints));
+            if (replayLevel > 0) {
+                o.coins = 0; // replays are for stars only, so old levels can't be farmed
+            } else {
+                o.coins += Journey.coinsForLevel(playLevel);
+                o.chapterFinished = Journey.slotOf(playLevel) == Journey.LEVELS_PER_CHAPTER;
+                progress.level++;
+            }
         } else if (solved && mode == Mode.DAILY && firstDailyToday) {
             o.coins += Scoring.COINS_PER_DAILY;
             progress.streak = StreakLogic.onDailyCompleted(progress.streak, Days.today());
@@ -538,7 +552,7 @@ public class GameActivity extends BaseActivity {
             }
         }
         progress.coins += o.coins;
-        progress.totalWordsFound += o.found + o.bonus;
+        if (replayLevel == 0) progress.totalWordsFound += o.found + o.bonus; // or replays could farm achievements
         o.achievements = Achievement.newlyUnlocked(hadBefore, progress);
         store.save(progress);
         PlayGamesService.saveProgress(this, progress.serialize());
@@ -557,7 +571,7 @@ public class GameActivity extends BaseActivity {
 
     /** What happened in the round, gathered for the results modal. */
     private static final class Outcome {
-        boolean solved, record, streakGrew, freezeEarned;
+        boolean solved, record, streakGrew, freezeEarned, chapterFinished;
         int found, bonus, hints, score, coins, levelNumber, streakBefore, mine, bot, previousBest;
         List<Achievement> achievements = new ArrayList<>();
     }
@@ -625,9 +639,16 @@ public class GameActivity extends BaseActivity {
                 .countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
         addAchievements(m, o);
         if (s < 3) m.note("Clear a level with no hints for three stars.");
-        m.primary("NEXT LEVEL", "play", this::startRound)
-                .secondary("MENU", this::finish)
-                .show();
+        if (replayLevel > 0) {
+            m.note("Replays can win more stars, but they don't pay coins.")
+                    .primary("TO THE MAP", this::finish)
+                    .secondary("PLAY AGAIN", this::startRound);
+        } else if (o.chapterFinished) {
+            m.primary("TO THE MAP", this::finish); // the chapter's reward is waiting there
+        } else {
+            m.primary("NEXT LEVEL", "play", this::startRound).secondary("MAP", this::finish);
+        }
+        m.show();
     }
 
     private View cheeringCat() {
