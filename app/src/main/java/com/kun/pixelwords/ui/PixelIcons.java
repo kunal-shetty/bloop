@@ -42,6 +42,97 @@ public final class PixelIcons {
     }
 
     static {
+        ART.put("wheel", new String[]{
+                "...kkkkkk...",
+                "..krrrggsk..",
+                ".krrrrggssk.",
+                "kmmrrrggssfk",
+                "kmmmrkkssffk",
+                "kmmmmkkfffk.",
+                "kqqqqkkbbbbk",
+                "kqqqkkkkbbbk",
+                ".kqqqyybbbk.",
+                "..kqqyybbk..",
+                "...kkkkkk...",
+                "............"});
+        ART.put("paw", new String[]{
+                "...kk..kk...",
+                "..kyyk.kyyk.",
+                "kkkyyk.kyykk",
+                "kyykkkkkkyyk",
+                "kyykyyyyykyk",
+                ".kkyyyyyyyk.",
+                "..kyyyyyyyk.",
+                ".kyyyyyyyyyk",
+                ".kyyyyyyyyyk",
+                ".kyyykkkyyyk",
+                "..kkk...kkk.",
+                "............"});
+        ART.put("ticket", new String[]{
+                "............",
+                "kkkkkkkkkkkk",
+                "krrrrkrrrrrk",
+                "krrrrkryyrrk",
+                ".krrrkrryyrk",
+                "..krrkryyrrk",
+                "..krrkrrrrrk",
+                ".krrrkryyrrk",
+                "krrrrkrrrrrk",
+                "kxxxxkxxxxxk",
+                "kkkkkkkkkkkk",
+                "............"});
+        ART.put("sticker", new String[]{
+                "kkkkkkkkkkk.",
+                "kwwwwwwwwwk.",
+                "kwwssswwwwwk",
+                "kwssssswwwwk",
+                "kwssssswwwwk",
+                "kwwssswwwwwk",
+                "kwwwwwwwwkkk",
+                "kwwwwwwwkddk",
+                "kwwwwwwkddk.",
+                "kwwwwwkddk..",
+                "kkkkkkkkk...",
+                "............"});
+        ART.put("fish", new String[]{
+                "............",
+                "...kkkkk..kk",
+                "..ksssssk.ks",
+                ".ksswsssskss",
+                "kssskssssssk",
+                "ksssssssbssk",
+                "kssssssbbbsk",
+                ".kssssssbssk",
+                "..ksssssk.ks",
+                "...kkkkk..kk",
+                "............",
+                "............"});
+        ART.put("jar", new String[]{
+                "..kkkkkkkk..",
+                "..kbbbbbbk..",
+                "...kkkkkk...",
+                "..kwsssssk..",
+                ".kwssssssskk",
+                ".kwsggggssk.",
+                ".kwgyggggsk.",
+                ".kwgggyggsk.",
+                ".kwggggggsk.",
+                ".kssssssssk.",
+                "..kkkkkkkk..",
+                "............"});
+        ART.put("bolt", new String[]{
+                ".....kkkkk..",
+                "....kyygk...",
+                "...kyygk....",
+                "..kyygkkkk..",
+                ".kyygggggk..",
+                ".kkkkgggk...",
+                "....kggk....",
+                "...kggk.....",
+                "..kggk......",
+                "..kgk.......",
+                "..kk........",
+                "............"});
         ART.put("coin", new String[]{
                 "...kkkkkk...",
                 "..kyyyyggk..",
