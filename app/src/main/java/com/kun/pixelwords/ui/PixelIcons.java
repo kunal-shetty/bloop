@@ -405,6 +405,11 @@ public final class PixelIcons {
                 "............"});
     }
 
+    /** Forgets drawn icons, so they pick up a palette change. */
+    static void clearCache() {
+        CACHE.clear();
+    }
+
     public static Bitmap bitmap(String name) {
         Bitmap b = CACHE.get(name);
         if (b != null) return b;
