@@ -7,6 +7,7 @@ import com.kun.pixelwords.audio.Music;
 import com.kun.pixelwords.audio.Sfx;
 import com.kun.pixelwords.data.GameEngine;
 import com.kun.pixelwords.data.Settings;
+import com.kun.pixelwords.services.BillingService;
 import com.kun.pixelwords.services.PlayGamesService;
 import com.kun.pixelwords.services.Reminders;
 import com.kun.pixelwords.ui.PixelTheme;
@@ -23,5 +24,6 @@ public class PixelWordsApp extends Application {
         PlayGamesService.initialize(this);
         GameEngine.init(this); // starts loading the dictionary on a background thread
         Reminders.schedule(this);
+        BillingService.get(this).refresh(); // picks up anything paid since the last launch
     }
 }
