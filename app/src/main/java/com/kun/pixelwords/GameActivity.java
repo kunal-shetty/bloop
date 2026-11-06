@@ -21,13 +21,22 @@ import com.kun.pixelwords.data.GameEngine;
 import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
+import com.kun.pixelwords.game.Album;
 import com.kun.pixelwords.game.DuelBot;
+import com.kun.pixelwords.game.FishHunt;
 import com.kun.pixelwords.game.GameSession;
 import com.kun.pixelwords.game.Journey;
+import com.kun.pixelwords.game.MegaBoard;
+import com.kun.pixelwords.game.NineLives;
+import com.kun.pixelwords.game.PiggyJar;
+import com.kun.pixelwords.game.PowerUps;
 import com.kun.pixelwords.game.Progress;
+import com.kun.pixelwords.game.Reward;
 import com.kun.pixelwords.game.Scoring;
+import com.kun.pixelwords.game.Season;
 import com.kun.pixelwords.game.ShareCard;
 import com.kun.pixelwords.game.StreakLogic;
+import com.kun.pixelwords.game.TileMods;
 import com.kun.pixelwords.generator.Level;
 import com.kun.pixelwords.generator.LevelGenerator;
 import com.kun.pixelwords.lan.LanMatch;
@@ -54,14 +63,14 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 
-/** The puzzle screen for all four modes: campaign, daily, timed and (offline-bot) duel. */
+/** The puzzle screen for every mode. */
 public class GameActivity extends BaseActivity {
 
     public static final String EXTRA_MODE = "mode";
     /** A cleared campaign level to replay. Left out, the campaign plays the next new level. */
     public static final String EXTRA_REPLAY_LEVEL = "replayLevel";
 
-    public enum Mode { CAMPAIGN, DAILY, TIMED, DUEL, LAN }
+    public enum Mode { CAMPAIGN, DAILY, TIMED, DUEL, LAN, MEGA, LIVES }
 
     private static final int TIMED_SECONDS = 120;
     private static final int DUEL_SECONDS = 90;
@@ -86,7 +95,7 @@ public class GameActivity extends BaseActivity {
     private PixelBar timerBar;
     private View timerRow;
     private StatChip coinChip;
-    private PixelButton hintBtn;
+    private PixelButton hintBtn, powerBtn;
     private CatView wheelCat;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -94,6 +103,7 @@ public class GameActivity extends BaseActivity {
     private int secondsLeft;
     private int botScore;
     private boolean roundLive;      // the clock may run: false during the countdown and after the round
+    private boolean sparkAnnounced;
     private boolean adShowing;
     private boolean resumed;
     private boolean startPending;   // the countdown ended while the app was in the background
@@ -105,6 +115,11 @@ public class GameActivity extends BaseActivity {
     private int lastRaceScore;
     private List<DuelBot.Event> botScript;
     private boolean firstDailyToday;
+    private boolean usedExtraTime;  // this Timed run bought seconds, so it can't set a record
+    private NineLives run;          // the Nine Lives run, in LIVES mode
+    private long runSeed;
+    private boolean runRecorded;
+    private List<int[]> fishCells = new ArrayList<>();
     private final Random rnd = new Random();
 
     @Override
@@ -164,8 +179,10 @@ public class GameActivity extends BaseActivity {
 
     @Override
     protected void onBack() {
-        if (finished) finish();
-        else if (mode == Mode.LAN) confirmLeaveRace();
+        if (finished) {
+            if (mode == Mode.LIVES) recordRun(0);
+            finish();
+        } else if (mode == Mode.LAN) confirmLeaveRace();
         else showPause();
     }
 
@@ -187,7 +204,11 @@ public class GameActivity extends BaseActivity {
         roundLive = false;
         combo = 0;
         botScore = 0;
+        usedExtraTime = false;
+        sparkAnnounced = false;
         fx.clear();
+        TileMods mods = TileMods.NONE;
+        Season.rollOver(progress, today);
 
         switch (mode) {
             case DAILY:
@@ -213,19 +234,42 @@ public class GameActivity extends BaseActivity {
                 ambient.setTheme(AmbientView.Theme.LEAVES);
                 titleText.setText("DUEL");
                 break;
+            case MEGA:
+                MegaBoard.begin(progress, today);
+                level = gen.forMega(progress.megaWeek);
+                mods = TileMods.forLevel(level);
+                ambient.setTheme(AmbientView.Theme.FIREFLIES);
+                titleText.setText("MEGA BOARD");
+                break;
+            case LIVES:
+                if (run == null) {
+                    run = new NineLives();
+                    runSeed = rnd.nextLong();
+                    runRecorded = false;
+                }
+                level = gen.forLives(runSeed, run.boards());
+                if (run.boards() >= NineLives.FIRST_TWIST_DEPTH) mods = TileMods.forLevel(level);
+                ambient.setTheme(AmbientView.Theme.values()[run.boards() % AmbientView.Theme.values().length]);
+                titleText.setText("BOARD " + (run.boards() + 1));
+                break;
             default:
                 playLevel = replayLevel > 0 ? replayLevel : progress.level;
                 boolean hard = Journey.isHard(playLevel);
                 level = hard ? gen.forHard(playLevel) : gen.forProgression(playLevel);
+                if (hard) mods = TileMods.forLevel(level);
                 ambient.setTheme(AmbientView.Theme.values()[Journey.themeIndex(Journey.chapterOf(playLevel))]);
                 titleText.setText((hard ? "HARD " : "LEVEL ") + playLevel);
                 break;
         }
 
-        session = new GameSession(level, level.fingerprint());
+        session = new GameSession(level, level.fingerprint(), mods);
+        if (mode == Mode.MEGA) session.restore(progress.megaFound);
         coachLevel = mode == Mode.CAMPAIGN && replayLevel == 0 && progress.level <= LAST_COACHED_LEVEL ? progress.level : 0;
         coachText.setVisibility(coachLevel > 0 ? View.VISIBLE : View.GONE);
         grid.setSession(session);
+        fishCells = huntOn() ? FishHunt.fishOn(level, Season.indexOf(today)) : new ArrayList<>();
+        grid.setFish(fishCells);
+        grid.refresh();
         wheel.setLetters(level.letters);
         preview.clear();
         timerBar.setAlarm(false);
@@ -233,9 +277,14 @@ public class GameActivity extends BaseActivity {
         timerBar.setValue(1f);
         boolean timed = limit() > 0;
         timerRow.setVisibility(timed ? View.VISIBLE : View.GONE);
-        duelText.setVisibility(mode == Mode.DUEL || mode == Mode.LAN ? View.VISIBLE : View.GONE);
+        duelText.setVisibility(mode == Mode.DUEL || mode == Mode.LAN || mode == Mode.LIVES ? View.VISIBLE : View.GONE);
+        powerBtn.setVisibility(mode == Mode.DUEL || mode == Mode.LAN ? View.GONE : View.VISIBLE);
         secondsLeft = limit();
         updateHud();
+        if (mode == Mode.MEGA && session.isComplete()) { // every word was saved, but the board was never paid
+            handler.post(() -> endRound(true));
+            return;
+        }
 
         if (timed) {
             wheel.setLocked(true);
@@ -244,6 +293,19 @@ public class GameActivity extends BaseActivity {
             wheel.setLocked(false);
             roundLive = true;
         }
+    }
+
+    /** Fish hide on new campaign levels and on the first daily of the day, while a hunt is on. */
+    private boolean huntOn() {
+        boolean board = mode == Mode.CAMPAIGN && replayLevel == 0 || mode == Mode.DAILY && firstDailyToday;
+        return board && FishHunt.isLive(Days.today());
+    }
+
+    /** How many fish the revealed letters have uncovered so far. */
+    private int fishFound() {
+        int found = 0;
+        for (int[] cell : fishCells) if (session.isRevealed(cell[0], cell[1])) found++;
+        return found;
     }
 
     private int limit() {
@@ -358,26 +420,30 @@ public class GameActivity extends BaseActivity {
                 wheelCat.hop();
                 String praise = praiseFor(word.length());
                 say((praise == null ? "" : praise + "  ") + "+" + Scoring.gridWordPoints(word.toLowerCase(Locale.ROOT)), PixelTheme.MINT);
+                if (session.sparkWon() && !sparkAnnounced) {
+                    sparkAnnounced = true;
+                    say("SPARK!  +" + TileMods.SPARK_COINS, PixelTheme.GOLD);
+                }
+                keepMegaProgress();
                 if (session.isComplete()) endRound(true);
                 break;
             case FOUND_BONUS:
                 combo++;
                 preview.resolve(PixelTheme.GOLD, false);
                 wheelCat.hop();
-                say("BONUS WORD  +" + Scoring.COINS_PER_BONUS_WORD, PixelTheme.GOLD);
+                say("BONUS WORD  JAR +1", PixelTheme.GOLD);
                 Sfx.play(Sfx.Id.WORD_BONUS);
-                handler.postDelayed(() -> Sfx.play(Sfx.Id.COIN), 220);
                 Haptics.success();
+                break;
+            case FROZEN:
+                preview.resolve(PixelTheme.SKY, true);
+                say("FROZEN! FIND A CROSSING WORD", PixelTheme.SKY);
+                Sfx.play(Sfx.Id.WORD_ALREADY);
+                Haptics.click();
                 break;
             case ALREADY_FOUND:
                 preview.resolve(PixelTheme.TEXT_DIM, false);
                 say("ALREADY FOUND", PixelTheme.TEXT_DIM);
-                Sfx.play(Sfx.Id.WORD_ALREADY);
-                Haptics.click();
-                break;
-            case NOT_IN_PUZZLE:
-                preview.resolve(PixelTheme.TEXT_DIM, false); // a real word, so it isn't punished as a mistake
-                say("NOT IN THIS PUZZLE", PixelTheme.TEXT_DIM);
                 Sfx.play(Sfx.Id.WORD_ALREADY);
                 Haptics.click();
                 break;
@@ -388,12 +454,27 @@ public class GameActivity extends BaseActivity {
                 Sfx.play(Sfx.Id.WORD_WRONG);
                 Haptics.error();
                 shakeWheel();
+                if (mode == Mode.LIVES) {
+                    run.wrongWord();
+                    if (run.isOver()) {
+                        updateHud();
+                        endRound(false);
+                        return;
+                    }
+                }
                 break;
             default:
                 preview.clear(); // too short: ignore silently
                 break;
         }
         updateHud();
+    }
+
+    /** A weekend board can take two days, so each word is saved as it's found. */
+    private void keepMegaProgress() {
+        if (mode != Mode.MEGA) return;
+        progress.megaFound = session.foundMask();
+        store.save(progress);
     }
 
     /** Praise grows with your run of correct words; a long word earns some right away. */
@@ -464,12 +545,11 @@ public class GameActivity extends BaseActivity {
                 .stat("coin", "Your coins", String.valueOf(progress.coins), PixelTheme.GOLD)
                 .stat("coin", "Hint price", String.valueOf(Scoring.HINT_COST_COINS), PixelTheme.TEXT);
         if (Features.MONETIZATION) {
-            m.note("You're " + needed + " coins short. Bonus words pay +" + Scoring.COINS_PER_BONUS_WORD
-                    + " each, or watch a short video to reveal one letter for free.")
+            m.note("You're " + needed + " coins short. Watch a short video to reveal one letter for free.")
                     .primary("WATCH VIDEO", "film", this::watchVideo)
                     .secondary("KEEP PLAYING", null);
         } else {
-            m.note("You're " + needed + " coins short. Bonus words pay +" + Scoring.COINS_PER_BONUS_WORD + " each.")
+            m.note("You're " + needed + " coins short. Fill your piggy jar with bonus words for more.")
                     .primary("KEEP PLAYING", null);
         }
         m.onDismiss(this::afterModal).show();
@@ -482,13 +562,99 @@ public class GameActivity extends BaseActivity {
             adShowing = false;
             new PixelModal(this).title("NO VIDEO").icon("film").accent(PixelTheme.ROSE)
                     .body("There isn't a video available right now. This usually clears up in a minute, or check your connection.")
-                    .note("You can also earn coins: bonus words +" + Scoring.COINS_PER_BONUS_WORD
-                            + ", clearing a level +" + Scoring.COINS_PER_LEVEL
+                    .note("You can also earn coins: clearing a level +" + Scoring.COINS_PER_LEVEL
                             + ", the daily puzzle +" + Scoring.COINS_PER_DAILY + ".")
                     .primary("KEEP PLAYING", null)
                     .onDismiss(this::afterModal)
                     .show();
         });
+    }
+
+    // ------------------------------------------------------------------ power-ups
+
+    private void onPowerPressed() {
+        if (finished || session == null || !roundLive) return;
+        Sfx.play(Sfx.Id.UI_TAP);
+        stopClock();
+        wheel.setLocked(true);
+        PixelModal m = new PixelModal(this).title("POWER-UPS").icon("bolt").accent(PixelTheme.GOLD);
+        if (mode == Mode.TIMED) addPower(m, PowerUps.Kind.EXTRA_TIME);
+        else {
+            addPower(m, PowerUps.Kind.PICK_LETTER);
+            addPower(m, PowerUps.Kind.REVEAL_WORD);
+        }
+        if (mode == Mode.CAMPAIGN) m.note("Each one counts against your stars, like a hint.");
+        m.secondary("CANCEL", null).onDismiss(this::afterModal).show();
+    }
+
+    private void addPower(PixelModal m, PowerUps.Kind kind) {
+        int held = PowerUps.tokens(progress, kind);
+        m.note(kind.title + ": " + kind.detail);
+        String name = kind.title.toUpperCase(Locale.ROOT);
+        String label = held > 0 ? name + " x" + held : name + " " + kind.price;
+        boolean can = PowerUps.canUse(progress, kind);
+        m.button(label, can ? PixelTheme.GOLD : PixelTheme.PANEL, can ? PixelTheme.INK : PixelTheme.TEXT_DIM,
+                held > 0 ? kind.icon : "coin", Sfx.Id.UI_TAP, () -> usePower(kind));
+    }
+
+    private void usePower(PowerUps.Kind kind) {
+        if (!PowerUps.canUse(progress, kind)) {
+            say("NOT ENOUGH COINS", PixelTheme.ROSE);
+            return;
+        }
+        switch (kind) {
+            case REVEAL_WORD:
+                revealWord();
+                break;
+            case PICK_LETTER:
+                say("TAP A HIDDEN LETTER", PixelTheme.GOLD);
+                grid.pickLetter(this::onLetterPicked);
+                break;
+            default:
+                addTime();
+                break;
+        }
+    }
+
+    private void revealWord() {
+        if (session.isComplete() || !PowerUps.spend(progress, PowerUps.Kind.REVEAL_WORD)) return;
+        Level.Placement p = session.revealWord();
+        store.save(progress);
+        burstAt(p.rowAt(p.word.length() / 2), p.colAt(p.word.length() / 2));
+        afterReveal();
+    }
+
+    /** Nothing is charged until the tap lands on a hidden letter. */
+    private void onLetterPicked(int[] cell) {
+        if (finished || cell == null || !session.revealCell(cell[0], cell[1])) {
+            say("NO LETTER PICKED", PixelTheme.TEXT_DIM);
+            return;
+        }
+        PowerUps.spend(progress, PowerUps.Kind.PICK_LETTER);
+        store.save(progress);
+        burstAt(cell[0], cell[1]);
+        afterReveal();
+    }
+
+    private void addTime() {
+        if (!PowerUps.spend(progress, PowerUps.Kind.EXTRA_TIME)) return;
+        store.save(progress);
+        usedExtraTime = true;
+        stopClock(); // the running timer would otherwise overwrite the new time on its next tick
+        secondsLeft += PowerUps.EXTRA_SECONDS;
+        resumeClock();
+        Sfx.play(Sfx.Id.HINT);
+        say("+" + PowerUps.EXTRA_SECONDS + " SECONDS", PixelTheme.MINT);
+        updateHud();
+    }
+
+    private void afterReveal() {
+        grid.refresh();
+        Sfx.play(Sfx.Id.HINT);
+        Haptics.click();
+        updateHud();
+        keepMegaProgress();
+        if (session.isComplete()) endRound(true);
     }
 
     /** Reveals one letter. Returns false if nothing was left to reveal (so the player is not charged). */
@@ -500,6 +666,7 @@ public class GameActivity extends BaseActivity {
         Sfx.play(Sfx.Id.HINT);
         Haptics.click();
         updateHud();
+        keepMegaProgress();
         if (session.isComplete()) endRound(true);
         return true;
     }
@@ -514,7 +681,9 @@ public class GameActivity extends BaseActivity {
                 .stat("sparkle", "Bonus words", String.valueOf(session.foundBonusWords().size()), PixelTheme.GOLD);
         if (timed) m.stat("clock", "Time left", clock(secondsLeft), PixelTheme.SKY);
         m.note(timed ? "The clock is stopped. If you quit, this run won't count."
-                        : "If you quit, this puzzle restarts next time and coins from bonus words are lost.")
+                        : mode == Mode.MEGA ? "Your found words are saved, so you can come back to this board."
+                        : mode == Mode.LIVES ? "If you quit, the run ends here."
+                        : "If you quit, this puzzle restarts next time and its bonus words are lost.")
                 .primary("RESUME", "play", null)
                 .button("QUIT TO MENU", PixelTheme.ROSE, PixelTheme.INK, null, Sfx.Id.UI_BACK, this::quit)
                 .onDismiss(this::afterModal)
@@ -524,7 +693,19 @@ public class GameActivity extends BaseActivity {
     private void quit() {
         finished = true;
         stopClock();
+        if (mode == Mode.LIVES) recordRun(session.score(0));
         finish();
+    }
+
+    /** Ends a Nine Lives run. Safe to call twice, so the run can never be paid again. */
+    private boolean recordRun(int lastBoard) {
+        if (run == null || runRecorded) return false;
+        runRecorded = true;
+        run.addScore(lastBoard);
+        boolean record = run.finish(progress);
+        store.save(progress);
+        PlayGamesService.saveProgress(this, progress.serialize());
+        return record;
     }
 
     // ------------------------------------------------------------------ finishing
@@ -548,6 +729,9 @@ public class GameActivity extends BaseActivity {
         o.streakBefore = StreakLogic.displayStreak(progress.streak, Days.today());
         int freezesBefore = progress.streak.freezes;
         Set<Achievement> hadBefore = Achievement.unlocked(progress);
+        long today = Days.today();
+        boolean fresh = replayLevel == 0 && !(mode == Mode.DAILY && !firstDailyToday);
+        if (fresh) bankCollections(o, today);
 
         if (solved && mode == Mode.CAMPAIGN) {
             progress.recordStars(playLevel, stars(o.hints));
@@ -557,6 +741,7 @@ public class GameActivity extends BaseActivity {
                 o.coins += Journey.coinsForLevel(playLevel);
                 o.chapterFinished = Journey.slotOf(playLevel) == Journey.LEVELS_PER_CHAPTER;
                 progress.level++;
+                Season.addXp(progress, today, Season.XP_LEVEL);
             }
         } else if (solved && mode == Mode.DAILY && firstDailyToday) {
             o.coins += Scoring.COINS_PER_DAILY;
@@ -564,8 +749,17 @@ public class GameActivity extends BaseActivity {
             progress.dailiesCompleted++;
             o.streakGrew = true;
             o.freezeEarned = progress.streak.freezes > freezesBefore;
+            Season.addXp(progress, today, Season.XP_DAILY);
         }
-        if (mode == Mode.TIMED) {
+        if (solved && mode == Mode.MEGA && MegaBoard.claim(progress)) {
+            Season.addXp(progress, today, MegaBoard.SEASON_XP);
+            o.prize = Reward.sticker().grant(progress, today);
+            o.megaCoins = MegaBoard.COINS;
+        }
+        if (mode == Mode.LIVES && solved) {
+            o.lifeBack = run.boardCleared(o.score);
+        }
+        if (mode == Mode.TIMED && !usedExtraTime) {
             o.record = o.score > progress.bestTimed && o.score > 0;
             o.previousBest = progress.bestTimed;
             progress.bestTimed = Math.max(progress.bestTimed, o.score);
@@ -593,7 +787,7 @@ public class GameActivity extends BaseActivity {
         o.achievements = Achievement.newlyUnlocked(hadBefore, progress);
         store.save(progress);
         PlayGamesService.saveProgress(this, progress.serialize());
-        submitScore(o.score);
+        if (mode != Mode.TIMED || !usedExtraTime) submitScore(o.score);
         coinChip.animateTo(progress.coins);
 
         if (solved) {
@@ -606,14 +800,30 @@ public class GameActivity extends BaseActivity {
         handler.postDelayed(() -> showResults(o), solved ? 1150 : 900);
     }
 
+    /** Drops bonus words in the jar, sticks in new stickers and banks fish. */
+    private void bankCollections(Outcome o, long today) {
+        PiggyJar.add(progress, session.foundBonusWords().size());
+        for (String word : session.foundGridWords()) if (Album.collect(progress, word)) o.stickers++;
+        for (String word : session.foundBonusWords()) if (Album.collect(progress, word)) o.stickers++;
+        o.fish = fishFound();
+        if (o.fish > 0) FishHunt.add(progress, today, o.fish);
+    }
+
     /** What happened in the round, gathered for the results modal. */
     private static final class Outcome {
-        boolean solved, record, streakGrew, freezeEarned, chapterFinished;
+        boolean solved, record, streakGrew, freezeEarned, chapterFinished, lifeBack;
         int found, bonus, hints, score, coins, levelNumber, streakBefore, mine, bot, previousBest;
+        int stickers, fish, megaCoins;
+        Reward prize;
         List<Achievement> achievements = new ArrayList<>();
     }
 
     private void addAchievements(PixelModal m, Outcome o) {
+        if (o.bonus > 0 && replayLevel == 0) {
+            m.stat("jar", "Piggy jar", progress.jarWords + " / " + PiggyJar.CAPACITY, PixelTheme.GOLD);
+        }
+        if (o.stickers > 0) m.stat("sticker", "New stickers", "+" + o.stickers, PixelTheme.SKY);
+        if (o.fish > 0) m.stat("fish", "Fish caught", "+" + o.fish, PixelTheme.SKY);
         if (o.achievements.isEmpty()) return;
         m.heading("ACHIEVEMENT UNLOCKED");
         for (Achievement a : o.achievements) m.stat("trophy", a.title, "+" + a.tier.coins, PixelTheme.GOLD);
@@ -660,6 +870,12 @@ public class GameActivity extends BaseActivity {
             case DUEL:
                 showDuelResults(o);
                 break;
+            case MEGA:
+                showMegaResults(o);
+                break;
+            case LIVES:
+                showLivesResults(o);
+                break;
             default:
                 showCampaignResults(o);
                 break;
@@ -689,6 +905,61 @@ public class GameActivity extends BaseActivity {
             m.primary("NEXT LEVEL", "play", this::nextLevel).secondary("MAP", this::finish);
         }
         m.show();
+    }
+
+    private void showMegaResults(Outcome o) {
+        PixelModal m = new PixelModal(this).title("MEGA BOARD CLEAR!").icon("star").accent(PixelTheme.GOLD)
+                .quiet().cancelable(false)
+                .custom(cheeringCat())
+                .countStat("coin", "Coins earned", "+", o.coins + o.megaCoins, PixelTheme.GOLD)
+                .stat("ticket", "Season XP", "+" + MegaBoard.SEASON_XP, PixelTheme.ROSE);
+        if (o.prize != null) m.stat(o.prize.icon(), o.prize.label(), "", PixelTheme.SKY);
+        addAchievements(m, o);
+        m.primary("MENU", this::finish).show();
+    }
+
+    private void showLivesResults(Outcome o) {
+        if (o.solved) {
+            PixelModal m = new PixelModal(this).title("BOARD CLEAR!").icon("heart").accent(PixelTheme.MINT)
+                    .quiet().cancelable(false)
+                    .countStat("trophy", "Run score", "", run.score(), PixelTheme.GOLD)
+                    .stat("heart", "Lives", String.valueOf(run.lives()), PixelTheme.ROSE);
+            if (o.lifeBack) m.note("You won a life back!");
+            addAchievements(m, o);
+            m.primary("NEXT BOARD", "play", this::startRound)
+                    .secondary("END RUN", () -> showRunOver(o))
+                    .show();
+        } else if (run.canContinue(progress)) {
+            new PixelModal(this).title("OUT OF LIVES").icon("heart").accent(PixelTheme.ROSE)
+                    .quiet().cancelable(false)
+                    .countStat("trophy", "Run score", "", run.score(), PixelTheme.GOLD)
+                    .note("Try this board again with " + NineLives.CONTINUE_LIVES + " lives. Once per run.")
+                    .button("CONTINUE FOR " + NineLives.CONTINUE_COINS, PixelTheme.GOLD, PixelTheme.INK, "coin", null, this::continueRun)
+                    .secondary("END RUN", () -> showRunOver(o))
+                    .show();
+        } else {
+            showRunOver(o);
+        }
+    }
+
+    private void continueRun() {
+        if (!run.continueRun(progress)) return;
+        store.save(progress);
+        coinChip.animateTo(progress.coins);
+        startRound(); // a fresh round, so the words banked from the last one can't be banked twice
+    }
+
+    private void showRunOver(Outcome o) {
+        boolean record = recordRun(o.solved ? 0 : o.score);
+        coinChip.animateTo(progress.coins);
+        PixelModal m = new PixelModal(this).title("RUN OVER").icon("heart").accent(PixelTheme.ROSE)
+                .quiet().cancelable(false)
+                .countStat("trophy", "Run score", "", run.score(), PixelTheme.GOLD)
+                .stat("star", "Boards cleared", String.valueOf(run.boards()), PixelTheme.MINT)
+                .stat("sparkle", record ? "New best!" : "Your best", String.valueOf(progress.bestLives), PixelTheme.TEXT)
+                .countStat("coin", "Coins earned", "+", run.boards() * NineLives.COINS_PER_BOARD, PixelTheme.GOLD);
+        run = null;
+        m.primary("AGAIN", "play", this::startRound).secondary("MENU", this::finish).show();
     }
 
     private void nextLevel() {
@@ -908,14 +1179,18 @@ public class GameActivity extends BaseActivity {
         else hintBtn.setBadge(Features.MONETIZATION ? "AD" : "");
 
         if (session != null) {
-            subText.setText(session.foundGridWords().size() + " of " + level.placements.size() + " words");
+            String words = session.foundGridWords().size() + " of " + level.placements.size() + " words";
+            subText.setText(fishCells.isEmpty() ? words : words + "   FISH " + fishFound() + "/" + fishCells.size());
         }
         if (limit() > 0) {
             timerText.setText(clock(secondsLeft));
             timerText.setTextColor(secondsLeft <= URGENT_SECONDS ? PixelTheme.ROSE : PixelTheme.TEXT);
-            timerBar.setValue(secondsLeft / (float) limit());
+            timerBar.setValue(Math.min(1f, secondsLeft / (float) limit()));
         }
         if (mode == Mode.LAN && session != null) showRaceHud();
+        if (mode == Mode.LIVES && run != null) {
+            duelText.setText("LIVES " + run.lives() + "   SCORE " + (run.score() + (session == null ? 0 : session.score(0))));
+        }
         if (mode == Mode.DUEL && session != null) {
             duelText.setText("YOU " + (session.gridPoints() + session.bonusPoints()) + "   VS   BOT " + botScore);
         }
@@ -1088,6 +1363,14 @@ public class GameActivity extends BaseActivity {
         hintBtn.setOnClickListener(v -> onHintPressed());
         wheelBox.addView(hintBtn, new FrameLayout.LayoutParams(dp(62), dp(62),
                 Gravity.BOTTOM | (leftHanded ? Gravity.START : Gravity.END)));
+
+        powerBtn = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
+        powerBtn.setIcon("bolt");
+        powerBtn.setIconSize(30);
+        powerBtn.setClickSound(null);
+        powerBtn.setOnClickListener(v -> onPowerPressed());
+        wheelBox.addView(powerBtn, new FrameLayout.LayoutParams(dp(62), dp(62),
+                Gravity.TOP | (leftHanded ? Gravity.START : Gravity.END)));
 
         col.addView(wheelBox, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wheelSize));
 
