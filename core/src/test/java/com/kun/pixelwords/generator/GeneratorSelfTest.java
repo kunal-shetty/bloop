@@ -1,6 +1,7 @@
 package com.kun.pixelwords.generator;
 
 import com.kun.pixelwords.game.Achievement;
+import com.kun.pixelwords.game.AdPolicy;
 import com.kun.pixelwords.game.CatMood;
 import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.GameSession;
@@ -8,6 +9,7 @@ import com.kun.pixelwords.game.Home;
 import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.Shop;
 import com.kun.pixelwords.game.Progress;
+import com.kun.pixelwords.game.Purchases;
 import com.kun.pixelwords.game.Quest;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.ShareCard;
@@ -55,6 +57,8 @@ public final class GeneratorSelfTest {
         testGameSession(gen);
         testStreaks();
         testProgress();
+        testPurchases();
+        testAdPolicy();
         testDuelBot(gen);
         testShop();
         testShareCard();
@@ -683,6 +687,64 @@ public final class GeneratorSelfTest {
         check(m.adsRemoved, "purchases are sticky");
         check(m.streak.lastDay == 500 && m.streak.streak == 3 && m.streak.best == 9, "merge keeps the more recent streak and best of both");
         check(Progress.merge(a, b).serialize().equals(Progress.merge(b, a).serialize()), "merge is order-independent");
+    }
+
+    private static void testPurchases() {
+        Progress p = new Progress();
+        p.coins = 40;
+        check(Purchases.credit(p, "token-a", 250) && p.coins == 290, "a purchase pays its coins");
+        check(!Purchases.credit(p, "token-a", 250) && p.coins == 290, "a retried purchase pays nothing");
+        check(Purchases.credit(p, "token-b", 800) && p.coins == 1090, "buying again pays again");
+        check(Progress.parse(p.serialize()).serialize().equals(p.serialize()), "the purchase ledger round-trips");
+        check(!Purchases.credit(Progress.parse(p.serialize()), "token-a", 250), "a reload still remembers a purchase");
+        check(Progress.parse("paidzz=250\npaid1f=-5\ncoins=7\n").paidCoins.isEmpty(), "a corrupt ledger line is skipped");
+
+        Progress older = new Progress();
+        older.coins = 100; older.updatedAt = 100;
+        Purchases.credit(older, "bought-here", 250);
+        Progress newer = new Progress();
+        newer.coins = 60; newer.updatedAt = 200;
+        Progress merged = Progress.merge(older, newer);
+        check(merged.coins == 310, "coins bought on the older device survive a merge");
+        check(Progress.merge(merged, older).coins == 310, "merging again doesn't pay twice");
+        Purchases.credit(newer, "bought-there", 800);
+        check(Progress.merge(older, newer).coins == 1110, "purchases on both devices add up");
+
+        Progress screen = new Progress();
+        screen.coins = 5;
+        Progress stored = new Progress();
+        stored.coins = 5;
+        stored.adsRemoved = true;
+        Purchases.credit(stored, "cleared-mid-game", 2000);
+        screen.coins -= 5; // the screen spends from its stale copy
+        Purchases.absorb(screen, stored);
+        Purchases.absorb(screen, stored);
+        check(screen.coins == 2000 && screen.adsRemoved, "a stale screen keeps a purchase that cleared while it was open");
+
+        for (Purchases.Pack pack : Purchases.Pack.values()) check(Purchases.Pack.byProduct(pack.productId) == pack, "packs resolve by product id");
+        check(Purchases.Pack.byProduct(Purchases.REMOVE_ADS) == null, "remove_ads is not a coin pack");
+    }
+
+    private static void testAdPolicy() {
+        long gap = AdPolicy.MIN_MILLIS_BETWEEN_AD_BREAKS;
+        Progress p = new Progress();
+        p.level = AdPolicy.FIRST_AD_BREAK_LEVEL;
+        check(!AdPolicy.adBreakDue(p, 99, gap), "new players see no ad breaks");
+        p.level = AdPolicy.FIRST_AD_BREAK_LEVEL + 1;
+        check(AdPolicy.adBreakDue(p, AdPolicy.LEVELS_PER_AD_BREAK, gap), "an ad break is due after enough levels");
+        check(!AdPolicy.adBreakDue(p, AdPolicy.LEVELS_PER_AD_BREAK - 1, gap), "ad breaks wait for enough levels");
+        check(!AdPolicy.adBreakDue(p, 99, gap - 1), "ad breaks wait for enough time");
+        p.adsRemoved = true;
+        check(!AdPolicy.adBreakDue(p, 99, gap), "remove_ads stops ad breaks");
+
+        long day = 20400;
+        Progress v = new Progress();
+        for (int i = 0; i < AdPolicy.COIN_VIDEOS_PER_DAY; i++) check(AdPolicy.payCoinVideo(v, day), "coin videos pay");
+        check(v.coins == AdPolicy.COIN_VIDEOS_PER_DAY * Scoring.REWARDED_AD_COINS, "coin videos pay the set amount");
+        check(AdPolicy.coinVideosLeft(v, day) == 0 && !AdPolicy.payCoinVideo(v, day), "coin videos stop for the day");
+        check(AdPolicy.coinVideosLeft(v, day + 1) == AdPolicy.COIN_VIDEOS_PER_DAY, "coin videos come back tomorrow");
+        check(AdPolicy.payCoinVideo(v, day + 1) && v.coinVideosToday == 1, "a new day counts from one");
+        check(Progress.parse(v.serialize()).serialize().equals(v.serialize()), "coin video counts round-trip");
     }
 
     private static void testDuelBot(LevelGenerator gen) {
