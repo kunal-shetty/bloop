@@ -20,6 +20,7 @@ import com.kun.pixelwords.data.Days;
 import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
+import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.StreakLogic;
@@ -39,8 +40,6 @@ import java.util.Locale;
 /** Main menu: your cat, the streak and shop, the big PLAY button, and a card for each game mode. */
 public class MainActivity extends BaseActivity {
 
-    private static final String[] CHAPTERS = {"FROSTFALL", "PETAL DRIFT", "FIREFLY WOODS", "EMBER LEAVES"};
-    private static final int LEVELS_PER_CHAPTER = 25;
     private static final int[] REMINDER_HOURS = {9, 13, 19, 21};
     private static final int REQUEST_NOTIFICATIONS = 1;
 
@@ -109,7 +108,7 @@ public class MainActivity extends BaseActivity {
         playBtn.setIcon("play");
         playBtn.setIconSize(30);
         playBtn.setShine(true);
-        playBtn.setOnClickListener(v -> launch(GameActivity.Mode.CAMPAIGN));
+        playBtn.setOnClickListener(v -> go(new Intent(this, JourneyActivity.class)));
         column.addView(playBtn, matchWrap(10));
 
         dailyCard = new ModeCard(this, "calendar", "DAILY", PixelTheme.MINT);
@@ -250,10 +249,8 @@ public class MainActivity extends BaseActivity {
         claimBadge.setText(String.valueOf(ready));
         claimBadge.setVisibility(ready > 0 ? View.VISIBLE : View.GONE);
 
-        int chapter =(progress.level - 1) / LEVELS_PER_CHAPTER;
-        int inChapter = (progress.level - 1) % LEVELS_PER_CHAPTER + 1;
-        playBtn.setSubtitle(CHAPTERS[chapter % CHAPTERS.length] + " - LEVEL " + progress.level
-                + "  (" + inChapter + "/" + LEVELS_PER_CHAPTER + ")");
+        playBtn.setSubtitle(Journey.chapterName(Journey.chapterOf(progress.level)) + " - LEVEL " + progress.level
+                + "  (" + Journey.slotOf(progress.level) + "/" + Journey.LEVELS_PER_CHAPTER + ")");
 
         long today = Days.today();
         int streak = StreakLogic.displayStreak(progress.streak, today);
