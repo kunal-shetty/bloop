@@ -10,12 +10,14 @@ import android.widget.TextView;
 
 import com.kun.pixelwords.audio.Haptics;
 import com.kun.pixelwords.audio.Sfx;
+import com.kun.pixelwords.data.Days;
 import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.Progress;
+import com.kun.pixelwords.game.Quest;
 import com.kun.pixelwords.services.PlayGamesService;
-import com.kun.pixelwords.ui.AchievementCard;
 import com.kun.pixelwords.ui.AmbientView;
+import com.kun.pixelwords.ui.GoalCard;
 import com.kun.pixelwords.ui.PanelDrawable;
 import com.kun.pixelwords.ui.PixelBar;
 import com.kun.pixelwords.ui.PixelButton;
@@ -27,16 +29,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
-/** Every achievement, with rewards to claim at the top, then the closest goals, then finished ones. */
+/** This week's quests, then every achievement: rewards to claim first, then the closest goals. */
 public class AchievementsActivity extends BaseActivity {
+
+    private static final int BRONZE = 0xFFD08A4E;
+    private static final int SILVER = 0xFFCFD8EA;
 
     private ProgressStore store;
     private Progress progress;
     private StatChip coins;
     private TextView summary, waiting;
     private PixelBar bar;
-    private final List<AchievementCard> cards = new ArrayList<>();
+    private final List<Runnable> cardUpdates = new ArrayList<>();
 
     @Override
     protected View createBackground() {
@@ -50,6 +56,7 @@ public class AchievementsActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         store = new ProgressStore(this);
         progress = store.load();
+        if (Quest.rollOver(progress, Days.today())) store.save(progress);
         buildUi();
         fx.preload("pickups_collect-burst");
         coins.setValue(progress.coins);
@@ -73,18 +80,54 @@ public class AchievementsActivity extends BaseActivity {
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(0, dp(2), 0, dp(16));
-        for (Achievement a : inDisplayOrder()) {
-            AchievementCard card = new AchievementCard(this, a);
-            card.setClickSound(null);
-            card.setOnClickListener(v -> onCard(card));
-            cards.add(card);
-            list.addView(card, matchWrap(8));
-        }
+
+        int days = Quest.daysLeft(Days.today());
+        addHeading(list, "THIS WEEK", days == 1 ? "Last day!" : days + " days left");
+        for (Quest q : Quest.forWeek(progress.questWeek)) addQuest(list, q);
+        addHeading(list, "ACHIEVEMENTS", null);
+        for (Achievement a : inDisplayOrder()) addAchievement(list, a);
+
         scroll.addView(list);
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
         sp.topMargin = dp(4);
         page.addView(scroll, sp);
         contentLayer.addView(page, fill());
+    }
+
+    private void addHeading(LinearLayout list, String text, String detail) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setBackground(new PanelDrawable(0xE0251D4A, Math.max(2f, dp(1))));
+        row.setPadding(dp(10), dp(8), dp(10), dp(9));
+        row.addView(PixelTheme.display(this, text, 10, PixelTheme.CREAM),
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (detail != null) row.addView(PixelTheme.body(this, detail, 16, PixelTheme.GOLD));
+        list.addView(row, matchWrap(10));
+    }
+
+    private void addQuest(LinearLayout list, Quest q) {
+        GoalCard card = new GoalCard(this, q.title(), q.icon(), PixelTheme.SKY, q.coins, q.goal);
+        addCard(list, card, () -> card.update(q.progress(progress), q.isClaimed(progress)), () -> q.claim(progress));
+    }
+
+    private void addAchievement(LinearLayout list, Achievement a) {
+        GoalCard card = new GoalCard(this, a.title, a.icon, medalColor(a), a.tier.coins, a.goal);
+        addCard(list, card, () -> card.update(a.progress(progress), a.isClaimed(progress)), () -> a.claim(progress));
+    }
+
+    private void addCard(LinearLayout list, GoalCard card, Runnable update, BooleanSupplier claim) {
+        card.setClickSound(null);
+        card.setOnClickListener(v -> onCard(card, claim));
+        cardUpdates.add(update);
+        list.addView(card, matchWrap(8));
+    }
+
+    private static int medalColor(Achievement a) {
+        switch (a.tier) {
+            case BRONZE: return BRONZE;
+            case SILVER: return SILVER;
+            default: return PixelTheme.GOLD;
+        }
     }
 
     private View topBar() {
@@ -96,7 +139,7 @@ public class AchievementsActivity extends BaseActivity {
         back.setClickSound(Sfx.Id.UI_BACK);
         back.setOnClickListener(v -> finish());
         row.addView(back, new LinearLayout.LayoutParams(dp(46), dp(46)));
-        TextView title = PixelTheme.display(this, "ACHIEVEMENTS", 12, PixelTheme.GOLD);
+        TextView title = PixelTheme.display(this, "GOALS", 14, PixelTheme.GOLD);
         title.setGravity(Gravity.CENTER);
         row.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         coins = new StatChip(this, "coin");
@@ -157,13 +200,14 @@ public class AchievementsActivity extends BaseActivity {
         bar.animateTo(unlocked / (float) total);
         int ready = 0;
         for (Achievement a : Achievement.claimable(progress)) ready += a.tier.coins;
+        for (Quest q : Quest.claimable(progress)) ready += q.coins;
         waiting.setText(ready > 0 ? ready + " coins ready to claim!" : "Keep playing to earn more coins");
         waiting.setTextColor(ready > 0 ? PixelTheme.GOLD : PixelTheme.TEXT_DIM);
-        for (AchievementCard c : cards) c.update(progress);
+        for (Runnable update : cardUpdates) update.run();
     }
 
-    private void onCard(AchievementCard card) {
-        if (!card.achievement.claim(progress)) {
+    private void onCard(View card, BooleanSupplier claim) {
+        if (!claim.getAsBoolean()) {
             Sfx.play(Sfx.Id.UI_TAP);
             return;
         }
