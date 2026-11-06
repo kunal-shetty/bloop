@@ -61,6 +61,9 @@ public class MainActivity extends BaseActivity {
     /** Players on these first levels skip the list of modes. */
     private static final int NEW_PLAYER_LEVELS = 3;
 
+    /** The cat's size on the menu. It shrinks to fit on a short screen. */
+    private static final int CAT_DP = 240;
+
     private PixelButton playBtn;
     private PixelButton spinBtn, tripsBtn, passBtn, albumBtn, jarBtn;
     private StatChip coinChip, hintChip;
@@ -121,7 +124,7 @@ public class MainActivity extends BaseActivity {
         column.addView(topBar(), matchWrap(0));
 
         // The cat takes all the spare height, sitting just above the panels below.
-        cat = new CatView(this, 184);
+        cat = new CatView(this, CAT_DP);
         cat.enableNaps();
         cat.setPetListener(this::onCatPetted);
         catBubble = PixelTheme.body(this, "", 16, PixelTheme.INK);
@@ -133,6 +136,7 @@ public class MainActivity extends BaseActivity {
         catBox.addView(cat, fill());
         catBox.addView(catBubble, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+        catBox.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> sitBubbleOverCat(v.getHeight()));
         column.addView(catBox, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(136), 1f));
 
         column.addView(streakAndShop(), matchWrap(8));
@@ -222,6 +226,12 @@ public class MainActivity extends BaseActivity {
         row.addView(sideButton("SHOP", "bag", 0xFFFF9A3C, ShopActivity.class), sideParams());
         row.addView(sideButton("HOME", "home", PixelTheme.SKY, HomeActivity.class), sideParams());
         return row;
+    }
+
+    /** The cat sits at the bottom of its box, so the bubble is moved down to just over its head. */
+    private void sitBubbleOverCat(int boxHeight) {
+        int catHeight = Math.min(boxHeight, dp(CAT_DP));
+        catBubble.setTranslationY(Math.max(0, boxHeight - catHeight - catBubble.getHeight()));
     }
 
     /** A new player goes straight to the Journey, so the first thing they see is the first level. */
