@@ -25,7 +25,7 @@ public enum Achievement {
     DUEL_1(12, "Win a duel", "swords", Tier.BRONZE, Stat.DUEL_WINS, 1),
     DUEL_10(13, "Win 10 duels", "swords", Tier.SILVER, Stat.DUEL_WINS, 10),
     FIRST_ITEM(14, "Buy your cat an accessory", "bag", Tier.BRONZE, Stat.ITEMS, 1),
-    ALL_ITEMS(15, "Buy every accessory", "bag", Tier.GOLD, Stat.ITEMS, Shop.Item.values().length);
+    ALL_ITEMS(15, "Own 12 accessories", "bag", Tier.GOLD, Stat.ITEMS, 12);
 
     public enum Tier {
         BRONZE(25), SILVER(75), GOLD(200);
