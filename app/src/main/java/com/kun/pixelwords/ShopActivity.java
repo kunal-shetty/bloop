@@ -22,7 +22,6 @@ import com.kun.pixelwords.services.PlayGamesService;
 import com.kun.pixelwords.ui.AmbientView;
 import com.kun.pixelwords.ui.CatView;
 import com.kun.pixelwords.ui.ItemCard;
-import com.kun.pixelwords.ui.PanelDrawable;
 import com.kun.pixelwords.ui.PixelButton;
 import com.kun.pixelwords.ui.PixelModal;
 import com.kun.pixelwords.ui.PixelTheme;
@@ -47,6 +46,9 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
     private final List<ItemCard> cards = new ArrayList<>();
     private final Map<Purchases.Pack, PixelButton> packButtons = new EnumMap<>(Purchases.Pack.class);
     private final Map<Shop.Breed, PixelButton> breedButtons = new EnumMap<>(Shop.Breed.class);
+    private final List<PixelButton> tabs = new ArrayList<>();
+    private final List<LinearLayout> sections = new ArrayList<>();
+    private ScrollView shelf;
     private PixelButton removeAdsButton;
     private PixelButton videoButton;
     private BillingService billing;
@@ -120,30 +122,54 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(0, dp(4), 0, dp(16));
-        if (Features.MONETIZATION) {
-            addHeading(list, "GET COINS");
-            addStore(list);
-        }
-        addHeading(list, "BREEDS");
-        addBreeds(list);
-        for (Shop.Slot slot : Shop.Slot.values()) {
-            addHeading(list, slot.title.toUpperCase(java.util.Locale.ROOT));
-            addRows(list, Shop.itemsIn(slot));
-        }
+        addBreeds(addTab(list, "BREEDS"));
+        addRows(addTab(list, "HATS"), Shop.itemsIn(Shop.Slot.HEAD));
+        addRows(addTab(list, "GLASSES"), Shop.itemsIn(Shop.Slot.FACE));
+        addRows(addTab(list, "NECK"), Shop.itemsIn(Shop.Slot.NECK));
+        if (Features.MONETIZATION) addStore(addTab(list, "COINS"));
         scroll.addView(list);
+        shelf = scroll;
+        page.addView(tabRow(), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
         page.addView(scroll, sp);
         contentLayer.addView(page, fill());
     }
 
-    private void addHeading(LinearLayout list, String text) {
-        android.widget.TextView heading = PixelTheme.display(this, text, 10, PixelTheme.CREAM);
-        heading.setBackground(new PanelDrawable(0xE0251D4A, Math.max(2f, dp(1))));
-        heading.setPadding(dp(10), dp(8), dp(10), dp(9));
-        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        hp.topMargin = dp(10);
-        hp.bottomMargin = dp(6);
-        list.addView(heading, hp);
+    /** Adds a tab and the section it shows, and returns the section to fill. */
+    private LinearLayout addTab(LinearLayout list, String label) {
+        LinearLayout section = new LinearLayout(this);
+        section.setOrientation(LinearLayout.VERTICAL);
+        section.setPadding(0, dp(10), 0, 0);
+        list.addView(section);
+        sections.add(section);
+        PixelButton tab = new PixelButton(this, label, PixelTheme.PANEL, PixelTheme.TEXT);
+        tab.setLabelSize(8);
+        final int index = tabs.size();
+        tab.setOnClickListener(v -> showTab(index));
+        tabs.add(tab);
+        return section;
+    }
+
+    private View tabRow() {
+        LinearLayout row = new LinearLayout(this);
+        row.setPadding(0, dp(6), 0, 0);
+        for (int i = 0; i < tabs.size(); i++) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            if (i > 0) lp.leftMargin = dp(6);
+            row.addView(tabs.get(i), lp);
+        }
+        showTab(0);
+        return row;
+    }
+
+    private void showTab(int index) {
+        for (int i = 0; i < tabs.size(); i++) {
+            boolean on = i == index;
+            sections.get(i).setVisibility(on ? View.VISIBLE : View.GONE);
+            tabs.get(i).setFill(on ? PixelTheme.GOLD : PixelTheme.PANEL);
+            tabs.get(i).setTextColor(on ? PixelTheme.INK : PixelTheme.TEXT);
+        }
+        shelf.scrollTo(0, 0);
     }
 
     private void addBreeds(LinearLayout list) {
