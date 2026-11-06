@@ -2,11 +2,21 @@ package com.kun.pixelwords.generator;
 
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.AdPolicy;
+import com.kun.pixelwords.game.Album;
 import com.kun.pixelwords.game.CatMood;
+import com.kun.pixelwords.game.DailySpin;
 import com.kun.pixelwords.game.DuelBot;
+import com.kun.pixelwords.game.Expedition;
+import com.kun.pixelwords.game.FishHunt;
 import com.kun.pixelwords.game.GameSession;
 import com.kun.pixelwords.game.Home;
 import com.kun.pixelwords.game.Journey;
+import com.kun.pixelwords.game.MegaBoard;
+import com.kun.pixelwords.game.NineLives;
+import com.kun.pixelwords.game.PiggyJar;
+import com.kun.pixelwords.game.PowerUps;
+import com.kun.pixelwords.game.Reward;
+import com.kun.pixelwords.game.Season;
 import com.kun.pixelwords.game.Shop;
 import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Purchases;
@@ -14,6 +24,7 @@ import com.kun.pixelwords.game.Quest;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.ShareCard;
 import com.kun.pixelwords.game.StreakLogic;
+import com.kun.pixelwords.game.TileMods;
 import com.kun.pixelwords.lan.LanClient;
 import com.kun.pixelwords.lan.LanHost;
 import com.kun.pixelwords.lan.LanMatch;
@@ -68,6 +79,20 @@ public final class GeneratorSelfTest {
         testQuests();
         testCatMood();
         testHome();
+        testLevelsUnchanged(gen);
+        testBonusWordsAndJar(gen);
+        testTileMods(gen);
+        testPowerUps(gen);
+        testMegaBoard(gen);
+        testNineLives(gen);
+        testBreedsAndThemes();
+        testRewards();
+        testDailySpin();
+        testExpedition();
+        testAlbum(dict);
+        testSeason();
+        testFishHunt(gen);
+        testNewSaveFields();
         testLan();
         testCurve(gen);
 
@@ -105,11 +130,11 @@ public final class GeneratorSelfTest {
 
         check(!Achievement.ALL_ITEMS.isUnlocked(p), "no accessories owned yet");
         p.coins = 100_000;
-        for (Shop.Item item : Shop.Item.values()) {
+        for (int i = 0; i < Achievement.ALL_ITEMS.goal; i++) {
             check(!Achievement.ALL_ITEMS.isUnlocked(p), "the last accessory is still needed");
-            Shop.buy(p, item);
+            Shop.buy(p, Shop.Item.values()[i]);
         }
-        check(Achievement.ALL_ITEMS.isUnlocked(p), "owning every accessory unlocks the collector goal");
+        check(Achievement.ALL_ITEMS.isUnlocked(p), "owning twelve accessories unlocks the collector goal");
 
         p.streak = StreakLogic.onDailyCompleted(StreakLogic.State.fresh(), 100);
         for (long day = 101; day < 107; day++) p.streak = StreakLogic.onDailyCompleted(p.streak, day);
@@ -339,7 +364,7 @@ public final class GeneratorSelfTest {
     private static void testHome() {
         Progress p = new Progress();
         for (Home.Slot slot : Home.Slot.values()) {
-            check(Home.itemsIn(slot).size() == 3, "every slot has three items to choose from");
+            check(Home.itemsIn(slot).size() >= 3, "every slot has at least three items to choose from");
             check(Home.placed(p, slot) == null, "a new room is empty");
             check(slot.x + slot.width <= Home.ROOM_SIZE && slot.y + slot.height <= Home.ROOM_SIZE, "slots start inside the room");
         }
@@ -608,20 +633,14 @@ public final class GeneratorSelfTest {
         check(s.isComplete(), "complete after all grid words");
         check(s.gridPoints() == 60, "grid points 30+30 = " + s.gridPoints());
 
-        // Bonus words earn coins once.
+        // Bonus words score once.
         Level three = gen.forProgression(3);
         GameSession b = new GameSession(three, 7);
         check(!three.bonusWords.isEmpty(), "level 3 has a bonus word");
         String bonus = three.bonusWords.get(0);
         check(b.submit(bonus) == GameSession.Result.FOUND_BONUS, "bonus word found");
         check(b.submit(bonus) == GameSession.Result.ALREADY_FOUND, "bonus word only once");
-        check(b.coinsEarned() == 2 && b.bonusPoints() == 5 * bonus.length(), "bonus coins/points");
-
-        // Other real words are recognised, but pay nothing.
-        check(!three.extraWords.isEmpty(), "level 3 has extra words");
-        int coinsBefore = b.coinsEarned();
-        check(b.submit(three.extraWords.get(0)) == GameSession.Result.NOT_IN_PUZZLE, "extra word is not called wrong");
-        check(b.coinsEarned() == coinsBefore, "extra word pays nothing");
+        check(b.coinsEarned() == 0 && b.bonusPoints() == 5 * bonus.length(), "bonus words score but pay through the jar");
 
         // Hints on level 1 after finding CAT: two hints complete ACT through crossing logic.
         GameSession h = new GameSession(gen.forProgression(1), 3);
@@ -667,6 +686,484 @@ public final class GeneratorSelfTest {
 
         StreakLogic.State capped = new StreakLogic.State(13, 13, 200, StreakLogic.MAX_FREEZES);
         check(StreakLogic.onDailyCompleted(capped, 201).freezes == StreakLogic.MAX_FREEZES, "freezes capped");
+    }
+
+    /** Levels are regenerated from their number, so any change here would rewrite every player's journey. */
+    private static void testLevelsUnchanged(LevelGenerator gen) {
+        long h = 17;
+        for (int n = 1; n <= 200; n++) h = h * 31 + levelHash(gen.forProgression(n));
+        for (int n = 4; n <= 240; n += 3) h = h * 31 + levelHash(gen.forHard(n));
+        for (long d = 20400; d < 20430; d++) h = h * 31 + levelHash(gen.forDaily(d));
+        for (long s = 1; s <= 30; s++) h = h * 31 + levelHash(gen.forDuel(s * 7919));
+        check(h == 7444352991985563297L, "existing levels are unchanged: " + h);
+    }
+
+    private static long levelHash(Level l) {
+        return l.fingerprint() * 31 + l.bonusWords.hashCode() * 31L + l.extraWords.hashCode();
+    }
+
+    private static void testBonusWordsAndJar(LevelGenerator gen) {
+        Level three = gen.forProgression(3);
+        check(!three.extraWords.isEmpty(), "level 3 has other real words");
+        GameSession s = new GameSession(three, 7);
+        String extra = three.extraWords.get(0);
+        check(s.submit(extra) == GameSession.Result.FOUND_BONUS, "every real word is a bonus word");
+        check(s.submit(extra) == GameSession.Result.ALREADY_FOUND, "a bonus word counts once");
+        check(s.foundBonusWords().size() == 1, "bonus word is counted");
+        check(s.bonusPoints() == 0, "words outside the picked bonus words don't change the score");
+        check(s.submit("zzz") == GameSession.Result.NOT_A_WORD, "nonsense is still wrong");
+
+        Progress p = new Progress();
+        long day = 20500;
+        PiggyJar.add(p, PiggyJar.CAPACITY - 1);
+        check(!PiggyJar.isFull(p) && !PiggyJar.open(p, day), "a jar that isn't full stays shut");
+        PiggyJar.add(p, 5);
+        check(p.jarWords == PiggyJar.CAPACITY, "the jar stops at its capacity");
+        for (int i = 0; i < PiggyJar.MAX_OPENS_PER_DAY; i++) {
+            check(PiggyJar.open(p, day), "jar opens " + i);
+            PiggyJar.add(p, PiggyJar.CAPACITY);
+        }
+        check(p.coins == PiggyJar.COINS * PiggyJar.MAX_OPENS_PER_DAY, "each open pays");
+        check(!PiggyJar.open(p, day), "opens are limited each day");
+        check(p.jarWords == PiggyJar.CAPACITY, "a jar that can't open keeps its words");
+        check(PiggyJar.open(p, day + 1), "the limit resets the next day");
+    }
+
+    private static void testTileMods(LevelGenerator gen) {
+        int frozenBoards = 0;
+        for (int n = 20; n < 260; n += 7) {
+            Level l = gen.forHard(n);
+            TileMods mods = TileMods.forLevel(l);
+            String id = "hard " + n;
+            check(TileMods.forLevel(l).sparkWord() == mods.sparkWord(), id + ": twists are deterministic");
+            check(mods.sparkWord() >= 0 && !mods.isFrozen(mods.sparkWord()), id + ": the spark word is never frozen");
+            if (mods.frozenCount() > 0) frozenBoards++;
+            for (int a = 0; a < l.placements.size(); a++) {
+                if (!mods.isFrozen(a)) continue;
+                boolean thawable = false;
+                for (int b = 0; b < l.placements.size(); b++) {
+                    if (a == b || !TileMods.crosses(l.placements.get(a), l.placements.get(b))) continue;
+                    check(!mods.isFrozen(b), id + ": frozen words never cross");
+                    thawable = true;
+                }
+                check(thawable, id + ": a frozen word has a word that thaws it");
+            }
+            check(solvableInAnyOrder(l, mods), id + ": can be solved by spelling words alone");
+        }
+        check(frozenBoards > 0, "some boards have frozen words");
+
+        Level l = gen.forHard(40);
+        TileMods mods = TileMods.forLevel(l);
+        GameSession s = new GameSession(l, 1, mods);
+        String spark = l.placements.get(mods.sparkWord()).word;
+        check(s.sparkLive(), "the spark starts lit");
+        check(s.submit(spark) == GameSession.Result.FOUND_GRID && s.sparkWon(), "spark word found in time");
+        check(s.coinsEarned() >= TileMods.SPARK_COINS, "the spark pays");
+
+        GameSession late = new GameSession(l, 1, mods);
+        int spent = 0;
+        for (int i = 0; i < l.placements.size() && spent < TileMods.SPARK_WINDOW; i++) {
+            if (i == mods.sparkWord()) continue;
+            if (late.submit(l.placements.get(i).word) == GameSession.Result.FOUND_GRID) spent++;
+        }
+        if (spent == TileMods.SPARK_WINDOW && !late.foundGridWords().contains(spark)) {
+            check(!late.sparkLive(), "the spark goes out");
+            late.submit(spark);
+            check(!late.sparkWon(), "a late spark word pays nothing");
+        }
+        check(new GameSession(gen.forProgression(5), 1).coinsEarned() == 0, "plain boards have no twists");
+    }
+
+    /** Keeps spelling whatever isn't frozen. Proves frozen words can't deadlock a board. */
+    private static boolean solvableInAnyOrder(Level l, TileMods mods) {
+        GameSession s = new GameSession(l, 1, mods);
+        for (int pass = 0; pass <= l.placements.size(); pass++) {
+            for (int i = 0; i < l.placements.size(); i++) s.submit(l.placements.get(i).word);
+        }
+        return s.isComplete();
+    }
+
+    private static void testPowerUps(LevelGenerator gen) {
+        Progress p = new Progress();
+        check(!PowerUps.canUse(p, PowerUps.Kind.REVEAL_WORD) && !PowerUps.spend(p, PowerUps.Kind.REVEAL_WORD), "no token, no coins, no power-up");
+        p.coins = 100;
+        p.pickTokens = 1;
+        check(PowerUps.spend(p, PowerUps.Kind.PICK_LETTER) && p.pickTokens == 0 && p.coins == 100, "a token is used before coins");
+        check(PowerUps.spend(p, PowerUps.Kind.PICK_LETTER) && p.coins == 100 - PowerUps.Kind.PICK_LETTER.price, "then coins");
+
+        Level l = gen.forProgression(30);
+        GameSession s = new GameSession(l, 9);
+        Level.Placement word = s.revealWord();
+        check(word != null && s.foundGridWords().contains(word.word), "reveal word finds a word");
+        check(s.hintsUsed() == PowerUps.Kind.REVEAL_WORD.hintCost, "reveal word counts as two hints");
+        Level.Placement other = l.placements.get(0).word.equals(word.word) ? l.placements.get(1) : l.placements.get(0);
+        int free = -1;
+        for (int i = 0; i < other.word.length() && free < 0; i++) {
+            if (!s.isRevealed(other.rowAt(i), other.colAt(i))) free = i;
+        }
+        int before = s.hintsUsed();
+        check(s.revealCell(other.rowAt(free), other.colAt(free)) && s.hintsUsed() == before + 1, "pick a letter reveals that cell");
+        check(!s.revealCell(other.rowAt(free), other.colAt(free)), "a showing cell can't be picked again");
+        char[][] grid = l.grid();
+        boolean foundEmpty = false;
+        for (int r = 0; r < l.rows && !foundEmpty; r++) {
+            for (int c = 0; c < l.cols && !foundEmpty; c++) {
+                if (grid[r][c] == '\0') {
+                    foundEmpty = true;
+                    check(!s.revealCell(r, c), "an empty cell can't be picked");
+                }
+            }
+        }
+        check(s.revealWord() != null, "reveal word works again");
+        int guard = 0;
+        while (!s.isComplete() && guard++ < 50) s.revealWord();
+        check(s.isComplete() && s.revealWord() == null, "reveal word stops when the board is done");
+    }
+
+    private static void testMegaBoard(LevelGenerator gen) {
+        long t0 = System.currentTimeMillis();
+        long slowest = 0;
+        int fewest = Integer.MAX_VALUE;
+        for (long week = 2900; week < 2920; week++) {
+            long start = System.currentTimeMillis();
+            Level l = gen.forMega(week);
+            slowest = Math.max(slowest, System.currentTimeMillis() - start);
+            fewest = Math.min(fewest, l.placements.size());
+            check(l.rows <= LevelGenerator.MEGA_MAX_GRID && l.cols <= LevelGenerator.MEGA_MAX_GRID, "mega fits its limit");
+            check(l.letters.length() == 8, "mega has eight letters");
+            check(l.placements.size() < 64, "mega words fit the save's bitmask");
+            check(gen.forMega(week).fingerprint() == l.fingerprint(), "mega is the same for everyone");
+            check(solvableInAnyOrder(l, TileMods.forLevel(l)), "mega can be solved");
+        }
+        check(fewest >= 12, "mega boards feel big: fewest words " + fewest);
+        System.out.println("Mega boards: fewest words " + fewest + ", slowest " + slowest + " ms, all "
+                + (System.currentTimeMillis() - t0) + " ms");
+
+        Level l = gen.forMega(2900);
+        GameSession s = new GameSession(l, 1);
+        s.submit(l.placements.get(0).word);
+        s.submit(l.placements.get(3).word);
+        GameSession resumed = new GameSession(l, 1);
+        resumed.restore(s.foundMask());
+        check(resumed.foundMask() == s.foundMask() && resumed.gridPoints() == s.gridPoints(), "a saved board picks up where it left off");
+
+        long friday = 20763, saturday = 20764; // 2026-11-06 and 07
+        check(!MegaBoard.isOpen(friday) && MegaBoard.daysUntilOpen(friday) == 1, "shut on Friday");
+        check(MegaBoard.isOpen(saturday) && MegaBoard.isOpen(saturday + 1), "open all weekend");
+        check(!MegaBoard.isOpen(saturday + 2), "shut on Monday");
+        Progress p = new Progress();
+        MegaBoard.begin(p, saturday);
+        p.megaFound = 5;
+        MegaBoard.begin(p, saturday + 1);
+        check(p.megaFound == 5, "the board carries across the weekend");
+        check(MegaBoard.claim(p, saturday) && !MegaBoard.claim(p, saturday + 1), "a weekend pays once");
+        check(p.coins == MegaBoard.COINS, "mega coins");
+        MegaBoard.begin(p, saturday + 7);
+        check(p.megaFound == 0 && !MegaBoard.isSolved(p, saturday + 7), "next weekend starts fresh");
+    }
+
+    private static void testNineLives(LevelGenerator gen) {
+        for (int depth = 0; depth < 40; depth++) {
+            Level l = gen.forLives(99, depth);
+            check(l.rows <= LevelGenerator.MAX_ROWS && l.placements.size() >= 2, "lives board " + depth + " is playable");
+            check(gen.forLives(99, depth).fingerprint() == l.fingerprint(), "lives boards come from the run seed");
+        }
+        NineLives run = new NineLives();
+        check(run.lives() == NineLives.MAX_LIVES, "a run starts with nine lives");
+        run.wrongWord();
+        for (int i = 1; i <= NineLives.BOARDS_PER_LIFE; i++) {
+            boolean won = run.boardCleared(100);
+            check(won == (i == NineLives.BOARDS_PER_LIFE), "a life comes back every five boards");
+        }
+        check(run.lives() == NineLives.MAX_LIVES && run.boards() == 5 && run.score() == 500, "run totals");
+        for (int i = 0; i < NineLives.BOARDS_PER_LIFE; i++) run.boardCleared(0);
+        check(run.lives() == NineLives.MAX_LIVES, "lives never pass nine");
+        for (int i = 0; i < NineLives.MAX_LIVES + 3; i++) run.wrongWord();
+        check(run.isOver() && run.lives() == 0, "the run ends at no lives");
+
+        Progress p = new Progress();
+        check(!run.continueRun(p), "no coins, no continue");
+        p.coins = NineLives.CONTINUE_COINS;
+        check(run.continueRun(p) && p.coins == 0 && run.lives() == NineLives.CONTINUE_LIVES, "continue pays for lives");
+        for (int i = 0; i < NineLives.CONTINUE_LIVES; i++) run.wrongWord();
+        p.coins = NineLives.CONTINUE_COINS;
+        check(!run.continueRun(p), "one continue a run");
+        p.coins = 0;
+        check(run.finish(p) && p.bestLives == run.score(), "a best score is recorded");
+        check(p.coins == run.boards() * NineLives.COINS_PER_BOARD, "boards pay coins");
+        check(!run.finish(p), "matching a best isn't a record");
+    }
+
+    private static void testBreedsAndThemes() {
+        Progress p = new Progress();
+        check(Shop.owns(p, Shop.Breed.ORANGE) && Shop.breed(p) == Shop.Breed.ORANGE, "every player has the first breed");
+        check(!Shop.buy(p, Shop.Breed.TUXEDO), "too expensive");
+        p.coins = 5000;
+        check(Shop.buy(p, Shop.Breed.TUXEDO) && Shop.breed(p) == Shop.Breed.TUXEDO, "buying a breed uses it");
+        check(!Shop.buy(p, Shop.Breed.TUXEDO), "a breed sells once");
+        check(!Shop.buy(p, Shop.Breed.GALAXY), "the galaxy cat can't be bought");
+        check(!Shop.buy(p, Shop.Item.GALAXY_CROWN), "exclusive items can't be bought");
+        check(!Home.buy(p, Home.Item.ART_GALAXY), "season furniture can't be bought");
+        p.breed = 99;
+        check(Shop.breed(p) == Shop.Breed.ORANGE, "an unknown breed falls back");
+        p.breed = Shop.Breed.SIAMESE.id;
+        check(Shop.breed(p) == Shop.Breed.ORANGE, "a breed the player doesn't own falls back");
+
+        check(Home.owns(p, Home.Theme.COZY) && Home.theme(p) == Home.Theme.COZY, "every player has the first room");
+        check(Home.buy(p, Home.Theme.SPACE) && Home.theme(p) == Home.Theme.SPACE, "buying a room moves in");
+        check(!Home.buy(p, Home.Theme.SPACE), "a room sells once");
+        Home.use(p, Home.Theme.COZY);
+        check(Home.theme(p) == Home.Theme.COZY, "rooms can be swapped");
+
+        Set<Integer> ids = new HashSet<>();
+        for (Shop.Item i : Shop.Item.values()) check(ids.add(i.id) && i.id < 64, "item id is unique and fits a bit: " + i);
+        ids.clear();
+        for (Home.Slot slot : Home.Slot.values()) {
+            for (Home.Item i : Home.itemsIn(slot)) check(ids.add(i.ordinal()), "furniture is listed once: " + i);
+        }
+        check(ids.size() == Home.Item.values().length && Home.Item.values().length < 64, "furniture ids fit a bit");
+
+        Progress old = new Progress();
+        old.ownedItems = (1L << 13) - 2; // the first twelve accessories
+        check(Achievement.ALL_ITEMS.isUnlocked(old), "new accessories don't take away the old achievement");
+    }
+
+    private static void testRewards() {
+        Progress p = new Progress();
+        check(Reward.coins(30).grant(p, 1).kind == Reward.Kind.COINS && p.coins == 30, "coins");
+        Reward.hints(2).grant(p, 1);
+        check(p.hintTokens == 5, "hints");
+        Reward.powerUp(PowerUps.Kind.EXTRA_TIME, 2).grant(p, 1);
+        check(p.timeTokens == 2, "power-ups");
+        Reward crown = Reward.item(Shop.Item.GALAXY_CROWN);
+        check(crown.grant(p, 1) == crown && Shop.owns(p, Shop.Item.GALAXY_CROWN), "items");
+        int before = p.coins;
+        Reward again = crown.grant(p, 1);
+        check(again.kind == Reward.Kind.COINS && p.coins == before + Reward.DUPLICATE_COINS, "a duplicate item turns to coins");
+        Reward cat = Reward.breed(Shop.Breed.GALAXY);
+        check(cat.grant(p, 1) == cat && cat.grant(p, 1).kind == Reward.Kind.COINS, "breeds");
+        Reward lamp = Reward.furniture(Home.Item.LAMP_STORM);
+        check(lamp.grant(p, 1) == lamp && Home.owns(p, Home.Item.LAMP_STORM) && lamp.grant(p, 1).kind == Reward.Kind.COINS, "furniture");
+    }
+
+    private static void testDailySpin() {
+        int total = 0;
+        for (DailySpin.Segment s : DailySpin.segments()) total += s.odds;
+        check(total == 1000, "the odds add up");
+        check(DailySpin.segments().size() == 8, "eight slices");
+
+        Progress p = new Progress();
+        long day = 21000;
+        DailySpin.Result first = DailySpin.spin(p, day, 42);
+        check(first != null, "the first spin works");
+        check(DailySpin.spin(p, day, 42) == null, "one spin a day");
+        check(DailySpin.spin(p, day - 1, 42) == null, "moving the clock back gives no spin");
+        Progress same = new Progress();
+        check(DailySpin.spin(same, day, 42).segment == first.segment, "the result can't be rerolled");
+
+        int[] landed = new int[8];
+        int runs = 20000;
+        for (int i = 0; i < runs; i++) {
+            Progress q = new Progress();
+            landed[DailySpin.spin(q, 30000 + i, i).segment]++;
+        }
+        for (int i = 0; i < 8; i++) {
+            double wanted = DailySpin.segments().get(i).odds / 1000.0;
+            double seen = landed[i] / (double) runs;
+            check(Math.abs(seen - wanted) < 0.012, "slice " + i + " matches its odds: " + seen + " vs " + wanted);
+        }
+
+        Progress dry = new Progress();
+        boolean sawLegendary = false;
+        int legendaries = 0;
+        for (int d = 1; d <= DailySpin.LEGENDARY_AFTER * 8; d++) {
+            DailySpin.Result r = DailySpin.spin(dry, 40000 + d, 7);
+            if (r.isLegendary()) legendaries++;
+            check(dry.spinsDry < DailySpin.LEGENDARY_AFTER, "never more than sixty dry spins");
+        }
+        check(legendaries >= 4, "the guarantee pays out: " + legendaries);
+        check(Shop.owns(dry, Shop.Breed.GALAXY) && Shop.owns(dry, Shop.Item.GALAXY_CROWN)
+                && Shop.owns(dry, Shop.Item.GOLD_SHADES) && Shop.owns(dry, Shop.Item.PHOENIX_CAPE), "every legendary can be won");
+        for (DailySpin.Segment s : DailySpin.segments()) {
+            check(s.legendary || s.reward != null, "every slice has a prize");
+            check(s.oddsLabel().endsWith("%"), "odds read as a percent");
+        }
+    }
+
+    private static void testExpedition() {
+        long hour = 60 * 60 * 1000L, now = 1_800_000_000_000L;
+        Progress p = new Progress();
+        check(!Expedition.isAway(p) && Expedition.collect(p, now).isEmpty(), "nothing to collect from home");
+        check(Expedition.start(p, Expedition.Place.FOREST, now), "the cat leaves");
+        check(!Expedition.start(p, Expedition.Place.BEACH, now), "one trip at a time");
+        check(!Expedition.isBack(p, now + 3 * hour) && Expedition.collect(p, now + 3 * hour).isEmpty(), "not back early");
+        check(!Expedition.isBack(p, now - hour), "a clock moved back doesn't end a trip");
+        check(Expedition.rushCost(p, now + hour) == 60, "rushing costs by the hours left: " + Expedition.rushCost(p, now + hour));
+        check(!Expedition.rush(p, now + hour), "rushing needs coins");
+        p.coins = 60;
+        check(Expedition.rush(p, now + hour) && p.coins == 0 && Expedition.isBack(p, now + hour), "rushing brings the cat home");
+        Progress atHome = Progress.parse(p.serialize());
+        check(!Expedition.collect(p, now + hour).isEmpty(), "souvenirs are collected");
+        check(p.coins >= 90 && !Expedition.isAway(p), "the trip pays and ends");
+        check(Expedition.collect(p, now + 2 * hour).isEmpty(), "a trip pays once");
+
+        p.updatedAt = 2;
+        atHome.updatedAt = 1;
+        Progress merged = Progress.merge(p, atHome);
+        check(!Expedition.isAway(merged), "an old copy of the save can't bring a paid trip back");
+        check(Expedition.collect(merged, now + 2 * hour).isEmpty(), "and can't pay it twice");
+        p.updatedAt = 1;
+        atHome.updatedAt = 2;
+        check(!Expedition.isAway(Progress.merge(p, atHome)), "even when the old copy is the newer save");
+
+        Progress same = new Progress(), again = new Progress();
+        Expedition.start(same, Expedition.Place.MOUNTAIN, now);
+        Expedition.start(again, Expedition.Place.MOUNTAIN, now);
+        Expedition.collect(same, now + 8 * hour);
+        Expedition.collect(again, now + 8 * hour);
+        check(same.coins == again.coins && same.hintTokens == 4, "what a trip brings is fixed when it leaves");
+    }
+
+    private static void testAlbum(Dictionary dict) {
+        for (Album.Page page : Album.Page.values()) {
+            check(page.words.length == Album.WORDS_PER_PAGE, page + " has a full page");
+            for (String w : page.words) check(dict.isCommon(w), w + " can turn up in a puzzle");
+        }
+        Progress p = new Progress();
+        check(Album.collect(p, "CAT") && !Album.collect(p, "cat"), "a sticker is new once");
+        check(!Album.collect(p, "zebra"), "other words aren't stickers");
+        check(Album.collected(p, Album.Page.ANIMALS) == 1, "stickers count");
+        check(Album.claim(p, Album.Page.ANIMALS) == null, "an unfinished page doesn't pay");
+        for (String w : Album.Page.NATURE.words) Album.collect(p, w);
+        check(Album.isClaimable(p, Album.Page.NATURE) && Album.claimableCount(p) == 1, "a full page is ready");
+        Reward prize = Album.claim(p, Album.Page.NATURE);
+        check(prize != null && Shop.owns(p, Shop.Item.EXPLORER_HAT) && p.coins == 150, "a page pays coins and its prize");
+        check(Album.claim(p, Album.Page.NATURE) == null, "a page pays once");
+
+        Progress r = new Progress();
+        int stickers = Album.Page.values().length * Album.WORDS_PER_PAGE;
+        Set<String> seen = new HashSet<>();
+        for (int i = 0; i < stickers; i++) seen.add(Reward.sticker().grant(r, i).label());
+        int got = 0;
+        for (Album.Page page : Album.Page.values()) got += Album.collected(r, page);
+        check(got >= stickers - 2 && seen.size() >= stickers - 2, "sticker rewards are always new ones: " + got);
+        for (int i = 0; i < 4; i++) Reward.sticker().grant(r, i);
+        check(Reward.sticker().grant(r, 1).kind == Reward.Kind.COINS, "a full album pays coins");
+    }
+
+    private static void testSeason() {
+        long first = 20758;
+        check(Season.indexOf(first) == 1 && Season.dayOf(first) == 0, "season one starts");
+        check(Season.indexOf(first + 29) == 1 && Season.indexOf(first + 30) == 2, "seasons last 30 days");
+        check(Season.daysLeft(first + 29) == 1, "last day of a season");
+        check(Season.theme(1) == Season.Theme.FROST && Season.theme(7) == Season.Theme.FROST, "themes repeat");
+
+        for (Season.Theme t : Season.Theme.values()) {
+            check(t.accessory.source == Shop.Source.SEASON, t + " has an exclusive accessory");
+            check(!Home.forSale(t.furniture), t + " has exclusive furniture");
+        }
+        for (long season = 1; season <= 6; season++) {
+            for (int tier = 1; tier <= Season.TIERS; tier++) {
+                check(Season.reward(season, tier, false) != null && Season.reward(season, tier, true) != null, "every tier pays");
+            }
+        }
+
+        Progress p = new Progress();
+        long day = first + 3;
+        check(Season.rollOver(p, day) && !Season.rollOver(p, day), "a new season starts once");
+        Season.addXp(p, day, Season.XP_PER_TIER * 2 + 5);
+        check(Season.tiersReached(p) == 2 && Season.xpIntoTier(p) == 5, "xp becomes tiers");
+        check(Season.claim(p, 3, false) == null, "a tier not reached doesn't pay");
+        check(Season.claim(p, 2, true) == null, "premium needs unlocking");
+        check(Season.claimableCount(p) == 2, "two free tiers ready");
+        int coins = p.coins;
+        check(Season.claim(p, 1, false) != null && p.coins > coins, "a tier pays");
+        check(Season.claim(p, 1, false) == null, "a tier pays once");
+        check(!Season.buyPremium(p), "premium costs coins");
+        p.coins = Season.PREMIUM_COINS;
+        check(Season.buyPremium(p) && p.coins == 0 && p.seasonPremium && !Season.buyPremium(p), "premium unlocks once");
+        check(Season.claimableCount(p) == 3, "premium tiers open up");
+
+        Season.addXp(p, day, Season.XP_PER_TIER * 100);
+        check(Season.tiersReached(p) == Season.TIERS, "tiers stop at the top");
+        Season.rollOver(p, first + 31);
+        check(Shop.owns(p, Shop.Item.ICE_CROWN) && Home.owns(p, Home.Item.WINDOW_AURORA), "unclaimed rewards are paid when a season ends");
+        check(p.seasonId == 2 && p.seasonXp == 0 && !p.seasonPremium && p.seasonClaimedFree == 0, "the next season starts clean");
+
+        Progress a = new Progress(), b = new Progress();
+        a.seasonId = b.seasonId = 3;
+        a.seasonXp = 500;
+        b.seasonXp = 200;
+        a.seasonClaimedFree = 2;
+        b.seasonClaimedFree = 4;
+        b.seasonPremium = true;
+        a.updatedAt = 1;
+        b.updatedAt = 2;
+        Progress m = Progress.merge(a, b);
+        check(m.seasonXp == 500 && m.seasonClaimedFree == 6 && m.seasonPremium, "one season merges upward");
+        a.seasonId = 4;
+        a.seasonXp = 10;
+        a.seasonPremium = false;
+        m = Progress.merge(a, b);
+        check(m.seasonId == 4 && m.seasonXp == 10 && !m.seasonPremium, "a later season wins a merge");
+    }
+
+    private static void testFishHunt(LevelGenerator gen) {
+        long first = 20758;
+        check(!FishHunt.isLive(first + 11) && FishHunt.isLive(first + 12), "the hunt starts mid-season");
+        check(FishHunt.isLive(first + 18) && !FishHunt.isLive(first + 19), "the hunt lasts a week");
+        check(FishHunt.daysToChange(first + 11) == 1 && FishHunt.daysToChange(first + 18) == 1, "countdowns");
+        check(FishHunt.daysToChange(first + 29) == 13, "the wait carries into the next season");
+
+        Level l = gen.forProgression(50);
+        List<int[]> fish = FishHunt.fishOn(l, 1);
+        char[][] grid = l.grid();
+        check(fish.size() >= 2 && fish.size() <= 3, "a board hides two or three fish");
+        for (int[] cell : fish) check(grid[cell[0]][cell[1]] != '\0', "fish hide under letters");
+        check(FishHunt.fishOn(l, 1).get(0)[0] == fish.get(0)[0], "fish stay put on a board");
+        for (int i = 4; i < 200; i++) check(!FishHunt.fishOn(gen.forProgression(i % 40 + 1), 2).isEmpty(), "every board has fish");
+
+        Progress p = new Progress();
+        long day = first + 13;
+        FishHunt.add(p, first, 5);
+        check(p.fishCount == 0, "no fish outside the hunt");
+        FishHunt.add(p, day, 12);
+        check(p.fishCount == 12 && p.fishEvent == 1, "fish are banked");
+        check(FishHunt.claimableCount(p) == 1, "one prize ready");
+        check(FishHunt.claim(p, 0) != null && p.coins == 50, "a prize pays");
+        check(FishHunt.claim(p, 0) == null && FishHunt.claim(p, 1) == null, "prizes pay once, and only when reached");
+        FishHunt.add(p, day, 200);
+        Season.rollOver(p, first + 31);
+        check(Shop.owns(p, Shop.Item.FISH_HAT), "waiting prizes are paid when the season ends");
+        check(p.fishCount == 0 && p.fishClaimed == 0, "the catch clears");
+    }
+
+    /** Every new field must survive a save, a cloud copy, and a merge in either order. */
+    private static void testNewSaveFields() {
+        Progress p = new Progress();
+        p.themesOwned = 6; p.homeTheme = 2; p.jarWords = 12; p.jarDay = 20; p.jarOpensToday = 2;
+        p.revealTokens = 1; p.pickTokens = 2; p.timeTokens = 3;
+        p.megaWeek = 8; p.megaFound = 1L << 40; p.megaSolvedWeek = 7; p.bestLives = 900;
+        p.breedsOwned = 6; p.breed = 2; p.spinDay = 21; p.spinsDry = 11;
+        p.expPlace = 2; p.expStart = 500; p.expEnd = 900; p.expClaimed = 100;
+        p.album[0] = 7; p.album[7] = 1L << 8; p.albumClaimed = 3;
+        p.seasonId = 5; p.seasonXp = 321; p.seasonClaimedFree = 8; p.seasonClaimedPremium = 16; p.seasonPremium = true;
+        p.fishEvent = 5; p.fishCount = 44; p.fishClaimed = 3;
+        p.updatedAt = 9;
+        check(Progress.parse(p.serialize()).serialize().equals(p.serialize()), "new fields round-trip");
+        check(Progress.parse(new Progress().serialize()).jarWords == 0, "an empty save has an empty jar");
+        Progress old = Progress.parse("level=9\ncoins=5\n");
+        check(old.level == 9 && old.seasonId == 0 && old.album[0] == 0 && Shop.breed(old) == Shop.Breed.ORANGE, "an old save loads");
+
+        Progress q = Progress.parse(p.serialize());
+        q.updatedAt = 3;
+        q.themesOwned = 8; q.breedsOwned = 8; q.album[0] = 8; q.albumClaimed = 4; q.bestLives = 1000; q.megaFound = 1;
+        Progress m = Progress.merge(p, q);
+        check(m.themesOwned == 14 && m.breedsOwned == 14, "owned things add up");
+        check(m.album[0] == 15 && m.album[7] == 1L << 8 && m.albumClaimed == 7, "stickers add up");
+        check(m.bestLives == 1000 && m.megaFound == (1L << 40 | 1), "bests and found words merge up");
+        check(m.jarWords == 12 && m.revealTokens == 1, "balances follow the newer save");
+        check(Progress.merge(p, q).serialize().equals(Progress.merge(q, p).serialize()), "the merge is order-independent");
     }
 
     private static void testProgress() {
@@ -794,6 +1291,16 @@ public final class GeneratorSelfTest {
             check(ids.add(i.id), "unique shop id: " + i);
             check(i.id > 0 && i.id < 63, "shop id fits the save bitmask: " + i);
             if (dir.isDirectory()) check(new java.io.File(dir, "acc_" + i.key + ".png").isFile(), "art exists for " + i);
+        }
+        for (Shop.Breed b : Shop.Breed.values()) {
+            if (b == Shop.Breed.ORANGE || !dir.isDirectory()) continue;
+            check(new java.io.File(dir, "body_" + b.key + ".png").isFile(), "body art exists for " + b);
+            for (int t = 0; t < 3; t++) check(new java.io.File(dir, "tail_" + t + "_" + b.key + ".png").isFile(), "tail art exists for " + b);
+        }
+        java.io.File home = new java.io.File("../app/src/main/assets/home");
+        if (home.isDirectory()) {
+            for (Home.Item i : Home.Item.values()) check(new java.io.File(home, i.key + ".png").isFile(), "art exists for " + i);
+            for (Home.Theme t : Home.Theme.values()) check(new java.io.File(home, t.key + ".png").isFile(), "art exists for " + t);
         }
     }
 
