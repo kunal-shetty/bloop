@@ -3,6 +3,9 @@ build/
 *.iml
 .idea/
 local.properties
+keystore.properties
+*.jks
+*.keystore
 .DS_Store
 captures/
 .externalNativeBuild/
