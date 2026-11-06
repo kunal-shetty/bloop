@@ -185,6 +185,19 @@ public final class PixelIcons {
                 "..krfgyyfrk.",
                 "...krfgyrk..",
                 "....kkkkk..."});
+        ART.put("share", new String[]{
+                ".....kk.....",
+                "....kkkk....",
+                "...kkkkkk...",
+                "..kk.kk.kk..",
+                ".....kk.....",
+                ".....kk.....",
+                ".....kk.....",
+                ".k...kk...k.",
+                ".k........k.",
+                ".k........k.",
+                ".kkkkkkkkkk.",
+                "............"});
         ART.put("check", new String[]{
                 "............",
                 "..........kk",
