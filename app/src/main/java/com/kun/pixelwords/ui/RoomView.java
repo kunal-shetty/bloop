@@ -92,7 +92,7 @@ public class RoomView extends View {
 
     @Override
     protected void onDraw(Canvas c) {
-        drawAt(c, "room", 0, 0);
+        drawAt(c, Home.theme(progress).key, 0, 0);
         for (Home.Slot slot : Home.Slot.values()) {
             Home.Item item = Home.placed(progress, slot);
             if (item != null) drawAt(c, item.key, Home.x(progress, slot), Home.y(progress, slot));
