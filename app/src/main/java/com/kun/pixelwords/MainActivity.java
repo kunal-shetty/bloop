@@ -26,6 +26,7 @@ import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Quest;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.StreakLogic;
+import com.kun.pixelwords.services.AdsService;
 import com.kun.pixelwords.services.PlayGamesService;
 import com.kun.pixelwords.services.Reminders;
 import com.kun.pixelwords.ui.AmbientView;
@@ -73,6 +74,7 @@ public class MainActivity extends BaseActivity {
         store = new ProgressStore(this);
         buildUi();
         syncWithCloud();
+        AdsService.get(this).gatherConsent(this);
     }
 
     @Override
@@ -479,6 +481,10 @@ public class MainActivity extends BaseActivity {
         m.button("ACCESSIBILITY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showAccessibility);
         m.button("HOW TO PLAY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showHowToPlay);
         m.button("CREDITS", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showCredits);
+        AdsService ads = AdsService.get(this);
+        if (ads.hasPrivacyOptions()) {
+            m.button("AD PRIVACY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "gear", Sfx.Id.UI_TAP, () -> ads.showPrivacyOptions(this));
+        }
         m.show();
     }
 
