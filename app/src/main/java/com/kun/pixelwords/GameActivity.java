@@ -19,6 +19,7 @@ import com.kun.pixelwords.audio.Sfx;
 import com.kun.pixelwords.data.Days;
 import com.kun.pixelwords.data.GameEngine;
 import com.kun.pixelwords.data.ProgressStore;
+import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.GameSession;
 import com.kun.pixelwords.game.Progress;
@@ -46,6 +47,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import java.util.Set;
 
 /** The puzzle screen for all four modes: campaign, daily, timed and (offline-bot) duel. */
 public class GameActivity extends BaseActivity {
@@ -105,7 +107,7 @@ public class GameActivity extends BaseActivity {
         store = new ProgressStore(this);
         progress = store.load();
         buildUi();
-        fx.preload("pickups_collect-burst", "ui_confetti", "ui_quest-complete", "pickups_coin-spin");
+        fx.preload("pickups_collect-burst", "ui_confetti", "ui_quest-complete", "pickups_coin-spin", "ui_achievement");
         AdsService.get(this); // start loading a rewarded ad early
         GameEngine.get().whenReady(this::startRound);
     }
@@ -508,6 +510,7 @@ public class GameActivity extends BaseActivity {
         o.levelNumber = progress.level;
         o.streakBefore = StreakLogic.displayStreak(progress.streak, Days.today());
         int freezesBefore = progress.streak.freezes;
+        Set<Achievement> hadBefore = Achievement.unlocked(progress);
 
         if (solved && mode == Mode.CAMPAIGN) {
             o.coins += Scoring.COINS_PER_LEVEL;
@@ -535,6 +538,7 @@ public class GameActivity extends BaseActivity {
         }
         progress.coins += o.coins;
         progress.totalWordsFound += o.found + o.bonus;
+        o.achievements = Achievement.newlyUnlocked(hadBefore, progress);
         store.save(progress);
         PlayGamesService.saveProgress(this, progress.serialize());
         submitScore(o.score);
@@ -554,6 +558,18 @@ public class GameActivity extends BaseActivity {
     private static final class Outcome {
         boolean solved, record, streakGrew, freezeEarned;
         int found, bonus, hints, score, coins, levelNumber, streakBefore, mine, bot, previousBest;
+        List<Achievement> achievements = new ArrayList<>();
+    }
+
+    private void addAchievements(PixelModal m, Outcome o) {
+        if (o.achievements.isEmpty()) return;
+        m.heading("ACHIEVEMENT UNLOCKED");
+        for (Achievement a : o.achievements) m.stat("trophy", a.title, "+" + a.tier.coins, PixelTheme.GOLD);
+        m.note("Claim your coins from the trophy on the menu.");
+        handler.postDelayed(() -> {
+            fx.play("ui_achievement", fx.getWidth() / 2f, fx.getHeight() * 0.25f, PixelTheme.dp(this, 3), null);
+            Sfx.play(Sfx.Id.STREAK_UP);
+        }, 700);
     }
 
     private static int stars(int hints) {
@@ -606,6 +622,7 @@ public class GameActivity extends BaseActivity {
                 .stat("sparkle", "Bonus words", String.valueOf(o.bonus), PixelTheme.GOLD)
                 .stat("bulb", "Hints used", String.valueOf(o.hints), o.hints == 0 ? PixelTheme.MINT : PixelTheme.TEXT)
                 .countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
+        addAchievements(m, o);
         if (s < 3) m.note("Clear a level with no hints for three stars.");
         m.primary("NEXT LEVEL", "play", this::startRound)
                 .secondary("MENU", this::finish)
@@ -639,6 +656,7 @@ public class GameActivity extends BaseActivity {
         } else {
             m.note("You'd already solved today's puzzle, so this replay pays no coins and doesn't change your streak.");
         }
+        addAchievements(m, o);
         if (o.streakGrew) m.primary("SHARE", "share", () -> shareDaily(o)).secondary("MENU", this::finish);
         else m.primary("MENU", this::finish);
         m.show();
@@ -667,6 +685,7 @@ public class GameActivity extends BaseActivity {
         m.stat("book", "Words found", o.found + " / " + level.placements.size(), PixelTheme.MINT)
                 .stat("sparkle", "Bonus words", String.valueOf(o.bonus), PixelTheme.GOLD);
         if (o.coins > 0) m.countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
+        addAchievements(m, o);
         addMissed(m);
         m.primary("AGAIN", "play", this::startRound).secondary("MENU", this::finish).show();
     }
@@ -680,6 +699,7 @@ public class GameActivity extends BaseActivity {
                 .countStat("close", "Bot", "", o.bot, won ? PixelTheme.TEXT : PixelTheme.ROSE)
                 .stat("trophy", "Your record", MainActivity.wins(progress.duelWins).toUpperCase(Locale.ROOT) + " / " + progress.duelsPlayed, PixelTheme.TEXT);
         if (won) m.countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
+        addAchievements(m, o);
         addMissed(m);
         m.primary("REMATCH", "swords", this::startRound).secondary("MENU", this::finish).show();
     }
