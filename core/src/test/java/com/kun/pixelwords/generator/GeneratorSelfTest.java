@@ -12,15 +12,23 @@ import com.kun.pixelwords.game.Quest;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.ShareCard;
 import com.kun.pixelwords.game.StreakLogic;
+import com.kun.pixelwords.lan.LanClient;
+import com.kun.pixelwords.lan.LanHost;
+import com.kun.pixelwords.lan.LanMatch;
+import com.kun.pixelwords.lan.LanPlayer;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.Socket;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Dependency-free self-test (plain main, no JUnit) so it runs anywhere with only a JDK:
@@ -32,7 +40,7 @@ public final class GeneratorSelfTest {
     private static int failures = 0;
     private static int checks = 0;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         long t0 = System.currentTimeMillis();
         Dictionary dict = loadDictionary();
         LevelGenerator gen = new LevelGenerator(dict);
@@ -56,6 +64,7 @@ public final class GeneratorSelfTest {
         testQuests();
         testCatMood();
         testHome();
+        testLan();
         testCurve(gen);
 
         System.out.println();
@@ -160,6 +169,166 @@ public final class GeneratorSelfTest {
         Progress merged = Progress.merge(p, other);
         check(merged.starsFor(3) == 3 && merged.starsFor(4) == 2 && merged.starsFor(95) == 3, "a merge keeps the best stars from both");
         check(merged.chaptersRewarded == 2, "a merge can't pay a chapter twice");
+    }
+
+    /** Counts what a phone's game screen would hear. */
+    private static final class LanProbe implements LanMatch.Listener {
+        final Semaphore players = new Semaphore(0), started = new Semaphore(0), scores = new Semaphore(0);
+        final Semaphore ended = new Semaphore(0), lost = new Semaphore(0);
+        volatile String reason = "";
+
+        @Override public void onPlayersChanged() { players.release(); }
+        @Override public void onRaceStarted() { started.release(); }
+        @Override public void onScoresChanged() { scores.release(); }
+        @Override public void onRaceEnded() { ended.release(); }
+        @Override public void onDisconnected(String why) {
+            reason = why;
+            lost.release();
+        }
+    }
+
+    private static boolean heard(Semaphore s) throws InterruptedException {
+        return s.tryAcquire(3, TimeUnit.SECONDS);
+    }
+
+    private static LanClient join(LanHost host, String id, String name, LanProbe probe) throws IOException {
+        LanClient c = new LanClient(new LanPlayer(id, name, "1234"));
+        c.setListener(probe);
+        c.connect(InetAddress.getLoopbackAddress(), host.port());
+        return c;
+    }
+
+    private static void waitForPlayers(LanMatch m, int count) throws InterruptedException {
+        for (int i = 0; i < 300 && m.players().size() != count; i++) Thread.sleep(10);
+    }
+
+    private static void testLan() throws IOException, InterruptedException {
+        check(LanPlayer.cleanName("  Kunal\t|x\n ").equals("Kunalx"), "names lose anything that could break a message");
+        check(LanPlayer.cleanName("").equals("Player") && LanPlayer.cleanName(null).equals("Player"), "an empty name gets a default");
+        check(LanPlayer.cleanName("abcdefghijklmnopqrst").length() == LanPlayer.MAX_NAME_LENGTH, "long names are cut");
+        check(new LanPlayer("a", "Kunal", "4821").label().equals("Kunal#4821"), "labels show the name and tag");
+
+        LanProbe hostProbe = new LanProbe(), aProbe = new LanProbe(), bProbe = new LanProbe();
+        LanHost host = new LanHost(new LanPlayer("host", "Host", "1111"));
+        host.setListener(hostProbe);
+        check(!host.startRace(LanMatch.RACE_SECONDS), "a race needs someone to play against");
+
+        LanClient a = join(host, "a", "Asha", aProbe);
+        LanClient b = join(host, "b", "Ben", bProbe);
+        waitForPlayers(host, 3);
+        waitForPlayers(a, 3);
+        waitForPlayers(b, 3);
+        check(host.players().size() == 3 && a.players().size() == 3 && b.players().size() == 3, "everyone sees the whole room");
+
+        LanProbe sameProbe = new LanProbe();
+        LanClient same = join(host, "a", "Copy", sameProbe);
+        check(heard(sameProbe.lost) && sameProbe.reason.contains("already"), "the same player can't join twice");
+        same.close();
+
+        LanClient d = join(host, "d", "Dev", new LanProbe());
+        waitForPlayers(host, 4);
+        LanProbe fullProbe = new LanProbe();
+        LanClient full = join(host, "e", "Eve", fullProbe);
+        check(heard(fullProbe.lost) && fullProbe.reason.contains("full"), "a fifth player is turned away");
+        full.close();
+        d.close();
+        waitForPlayers(host, 3);
+        check(host.players().size() == 3, "a player who leaves the lobby is removed");
+        waitForPlayers(a, 3);
+        check(a.players().size() == 3, "everyone sees them go");
+
+        check(host.startRace(LanMatch.RACE_SECONDS), "the host can start");
+        check(heard(aProbe.started) && heard(bProbe.started), "everyone starts together");
+        check(a.seed() == host.seed() && b.seed() == host.seed(), "everyone gets the same board");
+        check(a.seconds() == LanMatch.RACE_SECONDS, "everyone gets the same time limit");
+        check(!host.startRace(LanMatch.RACE_SECONDS), "a race can't start twice");
+
+        LanProbe lateProbe = new LanProbe();
+        LanClient late = join(host, "z", "Zed", lateProbe);
+        check(heard(lateProbe.lost) && lateProbe.reason.contains("started"), "nobody can join a race in progress");
+        late.close();
+
+        a.sendScore(50);
+        host.sendScore(30);
+        check(heard(bProbe.scores) && heard(bProbe.scores), "scores reach the other players");
+        Thread.sleep(50);
+        List<LanPlayer> ranks = LanPlayer.ranked(b.players());
+        check(ranks.get(0).id.equals("a") && ranks.get(0).score == 50, "the leader is ranked first");
+        check(ranks.get(1).id.equals("host") && ranks.get(2).id.equals("b"), "the rest follow in score order");
+
+        b.finish(70, true);
+        check(heard(hostProbe.ended) && heard(aProbe.ended) && heard(bProbe.ended), "clearing the board ends the race for everyone");
+        check(LanPlayer.ranked(host.players()).get(0).id.equals("b"), "the final score counts");
+        check(!heard2(aProbe.lost), "a normal ending isn't a lost connection");
+        a.close();
+        b.close();
+        host.close();
+
+        testLanEndings();
+    }
+
+    private static boolean heard2(Semaphore s) throws InterruptedException {
+        return s.tryAcquire(200, TimeUnit.MILLISECONDS);
+    }
+
+    private static void testLanEndings() throws IOException, InterruptedException {
+        LanProbe one = new LanProbe(), two = new LanProbe();
+        LanHost host = new LanHost(new LanPlayer("h", "Host", "1111"));
+        host.setListener(one);
+        LanClient c = join(host, "c", "Cat", two);
+        waitForPlayers(host, 2);
+        host.startRace(LanMatch.RACE_SECONDS);
+        heard(two.started);
+        host.finish(10, false);
+        check(!heard2(two.ended), "the race waits for players still going");
+        c.finish(20, false);
+        check(heard(one.ended) && heard(two.ended), "the race ends when everyone has finished");
+        c.close();
+        host.close();
+
+        LanProbe lostHost = new LanProbe();
+        LanHost leaving = new LanHost(new LanPlayer("h", "Host", "1111"));
+        LanClient waiting = join(leaving, "c", "Cat", lostHost);
+        waitForPlayers(leaving, 2);
+        leaving.close();
+        check(heard(lostHost.lost), "players are told when the host leaves");
+        waiting.close();
+
+        LanProbe dropper = new LanProbe();
+        LanHost dropHost = new LanHost(new LanPlayer("h", "Host", "1111"));
+        dropHost.setListener(dropper);
+        LanClient gone = join(dropHost, "c", "Cat", new LanProbe());
+        waitForPlayers(dropHost, 2);
+        dropHost.startRace(LanMatch.RACE_SECONDS);
+        dropHost.finish(10, false);
+        gone.close();
+        check(heard(dropper.ended), "a dropped player can't hang the race");
+        dropHost.close();
+
+        LanProbe timed = new LanProbe(), stalled = new LanProbe();
+        LanHost strict = new LanHost(new LanPlayer("h", "Host", "1111"), 100);
+        strict.setListener(timed);
+        LanClient silent = join(strict, "c", "Cat", stalled);
+        waitForPlayers(strict, 2);
+        strict.startRace(0);
+        check(heard(timed.ended) && heard(stalled.ended), "the deadline ends a race nobody finished");
+        silent.close();
+        strict.close();
+
+        Socket stranger = new Socket(InetAddress.getLoopbackAddress(), new LanHostProbe().port);
+        stranger.getOutputStream().write("GET / HTTP/1.1\n".getBytes());
+        stranger.getOutputStream().flush();
+        check(stranger.getInputStream().read() >= 0, "a stranger is answered with a refusal, not a crash");
+        stranger.close();
+    }
+
+    /** A live room for a stranger to knock on. */
+    private static final class LanHostProbe {
+        final int port;
+
+        LanHostProbe() throws IOException {
+            port = new LanHost(new LanPlayer("h", "Host", "1111")).port();
+        }
     }
 
     private static void testHome() {
