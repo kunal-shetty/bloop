@@ -856,10 +856,14 @@ public final class GeneratorSelfTest {
         p.megaFound = 5;
         MegaBoard.begin(p, saturday + 1);
         check(p.megaFound == 5, "the board carries across the weekend");
-        check(MegaBoard.claim(p, saturday) && !MegaBoard.claim(p, saturday + 1), "a weekend pays once");
+        check(MegaBoard.claim(p) && !MegaBoard.claim(p), "a weekend pays once");
+        check(MegaBoard.isSolved(p, saturday + 1), "a solved board stays solved all weekend");
         check(p.coins == MegaBoard.COINS, "mega coins");
         MegaBoard.begin(p, saturday + 7);
         check(p.megaFound == 0 && !MegaBoard.isSolved(p, saturday + 7), "next weekend starts fresh");
+        Progress late = new Progress();
+        MegaBoard.begin(late, saturday);
+        check(MegaBoard.claim(late) && !MegaBoard.isSolved(late, saturday + 7), "finishing on Monday leaves next weekend open");
     }
 
     private static void testNineLives(LevelGenerator gen) {
