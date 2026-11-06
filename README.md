@@ -58,6 +58,7 @@ tools/gen_album.py   Regenerate the sticker album banners (needs Pillow)
 - **Sticker Album:** `Album` holds eight pages of nine words. Never reorder a page's words, because each one is a bit in the save.
 - **Season Pass:** `Season` runs 30-day seasons from a fixed date, so a new one needs no update or server. There are six themes, then they repeat. Unclaimed rewards are paid when a season ends. Premium costs coins for now: `Season.PREMIUM_WITH_COINS` is the switch for selling it instead.
 - **Fish Hunt:** `FishHunt` runs for seven days in the middle of each season. Fish positions come from the level and the event.
+- **Screens:** the menu stays small: PLAY opens `PlayActivity`, which lists every mode, and players on the first three levels go straight to the Journey. Cloud save lives in Settings, and the shop shows one tab at a time.
 - **Saves:** `Progress` serialises to `key=value` lines (stars are packed, 30 levels to a line); `Progress.merge` resolves local-vs-cloud conflicts without losing progress.
 
 ## Before you can run it on a phone (setup checklist)
