@@ -3,6 +3,7 @@ package com.kun.pixelwords;
 import android.app.Application;
 
 import com.kun.pixelwords.audio.Haptics;
+import com.kun.pixelwords.audio.Music;
 import com.kun.pixelwords.audio.Sfx;
 import com.kun.pixelwords.data.GameEngine;
 import com.kun.pixelwords.data.Settings;
@@ -18,6 +19,7 @@ public class PixelWordsApp extends Application {
         PixelTheme.init(this);
         Haptics.init(this);
         Sfx.init(this);
+        Music.init(this);
         PlayGamesService.initialize(this);
         GameEngine.init(this); // starts loading the dictionary on a background thread
         Reminders.schedule(this);
