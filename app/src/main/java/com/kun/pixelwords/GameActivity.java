@@ -30,7 +30,10 @@ import com.kun.pixelwords.game.ShareCard;
 import com.kun.pixelwords.game.StreakLogic;
 import com.kun.pixelwords.generator.Level;
 import com.kun.pixelwords.generator.LevelGenerator;
+import com.kun.pixelwords.lan.LanMatch;
+import com.kun.pixelwords.lan.LanPlayer;
 import com.kun.pixelwords.services.AdsService;
+import com.kun.pixelwords.services.LanSession;
 import com.kun.pixelwords.services.PlayGamesService;
 import com.kun.pixelwords.ui.AmbientView;
 import com.kun.pixelwords.ui.CatView;
@@ -58,7 +61,7 @@ public class GameActivity extends BaseActivity {
     /** A cleared campaign level to replay. Left out, the campaign plays the next new level. */
     public static final String EXTRA_REPLAY_LEVEL = "replayLevel";
 
-    public enum Mode { CAMPAIGN, DAILY, TIMED, DUEL }
+    public enum Mode { CAMPAIGN, DAILY, TIMED, DUEL, LAN }
 
     private static final int TIMED_SECONDS = 120;
     private static final int DUEL_SECONDS = 90;
@@ -98,6 +101,8 @@ public class GameActivity extends BaseActivity {
     private int coachLevel;         // the opening level being taught this round, or 0
     private int replayLevel;        // the cleared level being replayed, or 0 for the next new level
     private int playLevel;          // the campaign level on the board
+    private LanMatch race;          // the Wi-Fi race being played, in LAN mode
+    private int lastRaceScore;
     private List<DuelBot.Event> botScript;
     private boolean firstDailyToday;
     private final Random rnd = new Random();
@@ -114,6 +119,7 @@ public class GameActivity extends BaseActivity {
         String m = getIntent().getStringExtra(EXTRA_MODE);
         if (m != null) mode = Mode.valueOf(m);
         replayLevel = getIntent().getIntExtra(EXTRA_REPLAY_LEVEL, 0);
+        if (mode == Mode.LAN && !joinRace()) return;
         store = new ProgressStore(this);
         progress = store.load();
         buildUi();
@@ -141,7 +147,8 @@ public class GameActivity extends BaseActivity {
         super.onPause();
         resumed = false;
         // Leaving the app must never burn the clock.
-        if (timer != null && !adShowing) {
+        // A race can't wait for one player, so its clock keeps running.
+        if (timer != null && !adShowing && mode != Mode.LAN) {
             stopClock();
             showPause();
         }
@@ -152,11 +159,13 @@ public class GameActivity extends BaseActivity {
         super.onDestroy();
         stopClock();
         handler.removeCallbacksAndMessages(null);
+        if (mode == Mode.LAN) LanSession.close();
     }
 
     @Override
     protected void onBack() {
         if (finished) finish();
+        else if (mode == Mode.LAN) confirmLeaveRace();
         else showPause();
     }
 
@@ -192,6 +201,11 @@ public class GameActivity extends BaseActivity {
                 ambient.setTheme(AmbientView.Theme.SNOW);
                 titleText.setText("TIMED");
                 break;
+            case LAN:
+                level = gen.forDuel(race.seed());
+                ambient.setTheme(AmbientView.Theme.LEAVES);
+                titleText.setText("WI-FI RACE");
+                break;
             case DUEL:
                 long seed = rnd.nextLong();
                 level = gen.forDuel(seed);
@@ -219,7 +233,7 @@ public class GameActivity extends BaseActivity {
         timerBar.setValue(1f);
         boolean timed = limit() > 0;
         timerRow.setVisibility(timed ? View.VISIBLE : View.GONE);
-        duelText.setVisibility(mode == Mode.DUEL ? View.VISIBLE : View.GONE);
+        duelText.setVisibility(mode == Mode.DUEL || mode == Mode.LAN ? View.VISIBLE : View.GONE);
         secondsLeft = limit();
         updateHud();
 
@@ -233,6 +247,7 @@ public class GameActivity extends BaseActivity {
     }
 
     private int limit() {
+        if (mode == Mode.LAN) return race.seconds();
         return mode == Mode.TIMED ? TIMED_SECONDS : mode == Mode.DUEL ? DUEL_SECONDS : 0;
     }
 
@@ -394,6 +409,10 @@ public class GameActivity extends BaseActivity {
     private void onHintPressed() {
         if (finished || session == null || !roundLive) return;
         Sfx.play(Sfx.Id.UI_TAP);
+        if (mode == Mode.LAN) {
+            say("NO HINTS IN A RACE", PixelTheme.ROSE); // a hint stops the clock, which a race can't do
+            return;
+        }
         boolean hasToken = progress.hintTokens > 0;
         if (hasToken || progress.coins >= Scoring.HINT_COST_COINS) confirmHint(hasToken);
         else showOutOfHints();
@@ -547,6 +566,15 @@ public class GameActivity extends BaseActivity {
             o.previousBest = progress.bestTimed;
             progress.bestTimed = Math.max(progress.bestTimed, o.score);
         }
+        if (mode == Mode.LAN) {
+            o.mine = session.gridPoints() + session.bonusPoints();
+            race.finish(o.mine, solved);
+            progress.duelsPlayed++;
+            if (wonRace(o.mine)) {
+                o.coins += DUEL_WIN_COINS;
+                progress.duelWins++;
+            }
+        }
         if (mode == Mode.DUEL) {
             o.mine = session.gridPoints() + session.bonusPoints();
             o.bot = DuelBot.scoreAt(botScript, DUEL_SECONDS - secondsLeft);
@@ -621,6 +649,9 @@ public class GameActivity extends BaseActivity {
                 break;
             case TIMED:
                 showTimedResults(o);
+                break;
+            case LAN:
+                showRaceResults(o);
                 break;
             case DUEL:
                 showDuelResults(o);
@@ -731,6 +762,68 @@ public class GameActivity extends BaseActivity {
         m.primary("REMATCH", "swords", this::startRound).secondary("MENU", this::finish).show();
     }
 
+    /** Connects this screen to the race the lobby started. False if there's no race to join. */
+    private boolean joinRace() {
+        race = LanSession.get();
+        if (race == null) {
+            finish();
+            return false;
+        }
+        race.setListener(new LanMatch.Listener() {
+            @Override public void onPlayersChanged() { runOnUiThread(GameActivity.this::updateHud); }
+            @Override public void onRaceStarted() {}
+            @Override public void onScoresChanged() { runOnUiThread(GameActivity.this::updateHud); }
+            @Override public void onRaceEnded() { runOnUiThread(GameActivity.this::endRaceNow); }
+            @Override public void onDisconnected(String reason) {
+                runOnUiThread(() -> {
+                    say(reason, PixelTheme.ROSE);
+                    endRaceNow();
+                });
+            }
+        });
+        return true;
+    }
+
+    /** Someone cleared the board, or time ran out for everyone. */
+    private void endRaceNow() {
+        if (session != null && !finished) endRound(false);
+    }
+
+    private void confirmLeaveRace() {
+        new PixelModal(this).title("LEAVE THE RACE?").icon("close").accent(PixelTheme.ROSE)
+                .body("The race carries on without you, and the clock is still running.")
+                .primary("KEEP RACING", "play", null)
+                .button("LEAVE", PixelTheme.ROSE, PixelTheme.INK, null, Sfx.Id.UI_BACK, this::finish)
+                .show();
+    }
+
+    private boolean wonRace(int mine) {
+        List<LanPlayer> players = race.players();
+        if (players.size() < 2) return false;
+        for (LanPlayer p : players) if (p.score >= mine && !isMe(p)) return false;
+        return true;
+    }
+
+    private boolean isMe(LanPlayer p) {
+        return p.id.equals(Settings.playerId());
+    }
+
+    private void showRaceResults(Outcome o) {
+        boolean won = wonRace(o.mine);
+        PixelModal m = new PixelModal(this).title(won ? "YOU WIN!" : "RACE OVER").icon("trophy")
+                .accent(won ? PixelTheme.MINT : PixelTheme.SKY).quiet().cancelable(false);
+        int place = 1;
+        for (LanPlayer p : LanPlayer.ranked(race.players())) {
+            m.stat(place == 1 ? "trophy" : "star", place + ". " + p.label(), String.valueOf(p.score),
+                    isMe(p) ? PixelTheme.GOLD : PixelTheme.TEXT);
+            place++;
+        }
+        if (o.coins > 0) m.countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
+        addAchievements(m, o);
+        addMissed(m);
+        m.primary("MENU", this::finish).show();
+    }
+
     private void addMissed(PixelModal m) {
         List<String> missed = new ArrayList<>();
         for (Level.Placement p : level.placements) {
@@ -763,6 +856,21 @@ public class GameActivity extends BaseActivity {
 
     private static String clock(int seconds) {
         return String.format(Locale.US, "%d:%02d", seconds / 60, seconds % 60);
+    }
+
+    /** Shares this phone's score as it changes, and shows the race so far, leader first. */
+    private void showRaceHud() {
+        int mine = session.gridPoints() + session.bonusPoints();
+        if (mine != lastRaceScore && !finished) {
+            lastRaceScore = mine;
+            race.sendScore(mine);
+        }
+        StringBuilder line = new StringBuilder();
+        for (LanPlayer p : LanPlayer.ranked(race.players())) {
+            if (line.length() > 0) line.append("   ");
+            line.append(isMe(p) ? "YOU" : p.name.toUpperCase(Locale.ROOT)).append(' ').append(p.score);
+        }
+        duelText.setText(line);
     }
 
     /** Level 1 shows the swipe with a ghost finger, one word at a time. Level 2 points out the two tools. */
@@ -799,6 +907,7 @@ public class GameActivity extends BaseActivity {
             timerText.setTextColor(secondsLeft <= URGENT_SECONDS ? PixelTheme.ROSE : PixelTheme.TEXT);
             timerBar.setValue(secondsLeft / (float) limit());
         }
+        if (mode == Mode.LAN && session != null) showRaceHud();
         if (mode == Mode.DUEL && session != null) {
             duelText.setText("YOU " + (session.gridPoints() + session.bonusPoints()) + "   VS   BOT " + botScore);
         }
