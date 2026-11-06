@@ -303,6 +303,7 @@ public final class GeneratorSelfTest {
         dropHost.finish(10, false);
         gone.close();
         check(heard(dropper.ended), "a dropped player can't hang the race");
+        check(dropHost.players().size() == 2, "someone who leaves a race stays in the results");
         dropHost.close();
 
         LanProbe timed = new LanProbe(), stalled = new LanProbe();
