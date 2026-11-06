@@ -185,6 +185,19 @@ public final class PixelIcons {
                 "..krfgyyfrk.",
                 "...krfgyrk..",
                 "....kkkkk..."});
+        ART.put("home", new String[]{
+                ".....kk.....",
+                "....krrk....",
+                "...krrrrk...",
+                "..krrrrrrk..",
+                ".krrrrrrrrk.",
+                "kkkkkkkkkkkk",
+                ".kwwwwwwwwk.",
+                ".kwkkwwkkwk.",
+                ".kwkkwwkkwk.",
+                ".kwwwwwkkwk.",
+                ".kwwwwwkkwk.",
+                ".kkkkkkkkkk."});
         ART.put("music", new String[]{
                 "...kkkkkkkk.",
                 "...kggggggk.",
