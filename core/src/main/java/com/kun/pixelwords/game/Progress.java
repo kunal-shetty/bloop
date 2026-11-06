@@ -25,6 +25,8 @@ public final class Progress {
     public int duelsPlayed = 0;
     /** Shop items bought, as a bit per Shop.Item id. */
     public long ownedItems = 0;
+    /** Achievement rewards already paid, as a bit per Achievement id. */
+    public long claimedAchievements = 0;
     /** Shop.Item id worn in each slot; 0 = nothing. */
     public int wearHead = 0;
     public int wearFace = 0;
@@ -46,6 +48,7 @@ public final class Progress {
         put(sb, "duelWins", duelWins);
         put(sb, "duelsPlayed", duelsPlayed);
         put(sb, "owned", ownedItems);
+        put(sb, "claimed", claimedAchievements);
         put(sb, "wearHead", wearHead);
         put(sb, "wearFace", wearFace);
         put(sb, "wearNeck", wearNeck);
@@ -80,6 +83,7 @@ public final class Progress {
         p.duelWins = (int) Math.max(0, get(m, "duelWins", 0));
         p.duelsPlayed = (int) Math.max(0, get(m, "duelsPlayed", 0));
         p.ownedItems = get(m, "owned", 0);
+        p.claimedAchievements = get(m, "claimed", 0);
         p.wearHead = (int) get(m, "wearHead", 0);
         p.wearFace = (int) get(m, "wearFace", 0);
         p.wearNeck = (int) get(m, "wearNeck", 0);
@@ -108,6 +112,7 @@ public final class Progress {
         out.duelWins = Math.max(a.duelWins, b.duelWins);
         out.duelsPlayed = Math.max(a.duelsPlayed, b.duelsPlayed);
         out.ownedItems = a.ownedItems | b.ownedItems; // a purchase on any device is kept
+        out.claimedAchievements = a.claimedAchievements | b.claimedAchievements; // a reward is only ever paid once
         out.wearHead = newer.wearHead;
         out.wearFace = newer.wearFace;
         out.wearNeck = newer.wearNeck;
