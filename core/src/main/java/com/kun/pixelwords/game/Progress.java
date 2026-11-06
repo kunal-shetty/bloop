@@ -44,6 +44,9 @@ public final class Progress {
     public int questBaseDailies = 0;
     /** This week's quest rewards already paid, as a bit per quest. */
     public int questClaimed = 0;
+    /** The day of the cat's last coin gift, and how many it gave that day. */
+    public long catGiftDay = 0;
+    public int catGiftsToday = 0;
     /** Best stars per level, indexed by level - 1. */
     private byte[] levelStars = new byte[0];
     /** Shop.Item id worn in each slot; 0 = nothing. */
@@ -114,6 +117,8 @@ public final class Progress {
         put(sb, "qDuels", questBaseDuels);
         put(sb, "qDailies", questBaseDailies);
         put(sb, "qClaimed", questClaimed);
+        put(sb, "giftDay", catGiftDay);
+        put(sb, "gifts", catGiftsToday);
         putStars(sb);
         put(sb, "wearHead", wearHead);
         put(sb, "wearFace", wearFace);
@@ -157,6 +162,8 @@ public final class Progress {
         p.questBaseDuels = (int) get(m, "qDuels", 0);
         p.questBaseDailies = (int) get(m, "qDailies", 0);
         p.questClaimed = (int) get(m, "qClaimed", 0);
+        p.catGiftDay = get(m, "giftDay", 0);
+        p.catGiftsToday = (int) Math.max(0, get(m, "gifts", 0));
         p.readStars(m);
         p.wearHead = (int) get(m, "wearHead", 0);
         p.wearFace = (int) get(m, "wearFace", 0);
@@ -188,6 +195,9 @@ public final class Progress {
         out.ownedItems = a.ownedItems | b.ownedItems; // a purchase on any device is kept
         out.claimedAchievements = a.claimedAchievements | b.claimedAchievements; // a reward is only ever paid once
         out.chaptersRewarded = Math.max(a.chaptersRewarded, b.chaptersRewarded);
+        out.catGiftDay = Math.max(a.catGiftDay, b.catGiftDay);
+        out.catGiftsToday = Math.max(a.catGiftDay == out.catGiftDay ? a.catGiftsToday : 0,
+                b.catGiftDay == out.catGiftDay ? b.catGiftsToday : 0);
         Progress quests = a.questWeek != b.questWeek ? (a.questWeek > b.questWeek ? a : b) : newer;
         out.questWeek = quests.questWeek;
         out.questBaseWords = quests.questBaseWords;
