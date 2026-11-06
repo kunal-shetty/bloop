@@ -858,9 +858,9 @@ public final class GeneratorSelfTest {
         for (int i = 0; i < l.placements.size() && plain < TileMods.SPARK_WINDOW; i++) {
             if (i != mods.sparkWord() && missed.submit(l.placements.get(i).word) == GameSession.Result.FOUND_GRID) plain++;
         }
-        GameSession late = new GameSession(l, 1, mods);
-        late.restore(missed.foundMask());
-        check(plain < TileMods.SPARK_WINDOW || !late.sparkLive(), "leaving the board doesn't relight a missed spark");
+        GameSession returned = new GameSession(l, 1, mods);
+        returned.restore(missed.foundMask());
+        check(plain < TileMods.SPARK_WINDOW || !returned.sparkLive(), "leaving the board doesn't relight a missed spark");
 
         long friday = 20763, saturday = 20764; // 2026-11-06 and 07
         check(!MegaBoard.isOpen(friday) && MegaBoard.daysUntilOpen(friday) == 1, "shut on Friday");
