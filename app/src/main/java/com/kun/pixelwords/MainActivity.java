@@ -20,12 +20,20 @@ import com.kun.pixelwords.data.Days;
 import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
+import com.kun.pixelwords.game.Album;
 import com.kun.pixelwords.game.CatMood;
+import com.kun.pixelwords.game.DailySpin;
+import com.kun.pixelwords.game.Expedition;
+import com.kun.pixelwords.game.FishHunt;
 import com.kun.pixelwords.game.Journey;
+import com.kun.pixelwords.game.MegaBoard;
+import com.kun.pixelwords.game.PiggyJar;
 import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Quest;
 import com.kun.pixelwords.game.Scoring;
+import com.kun.pixelwords.game.Season;
 import com.kun.pixelwords.game.StreakLogic;
+import com.kun.pixelwords.game.TileMods;
 import com.kun.pixelwords.services.AdsService;
 import com.kun.pixelwords.services.PlayGamesService;
 import com.kun.pixelwords.services.Reminders;
@@ -33,6 +41,7 @@ import com.kun.pixelwords.ui.AmbientView;
 import com.kun.pixelwords.ui.CatView;
 import com.kun.pixelwords.ui.ModeCard;
 import com.kun.pixelwords.ui.PanelDrawable;
+import com.kun.pixelwords.ui.PixelBar;
 import com.kun.pixelwords.ui.PixelButton;
 import com.kun.pixelwords.ui.PixelModal;
 import com.kun.pixelwords.ui.PixelTheme;
@@ -52,7 +61,8 @@ public class MainActivity extends BaseActivity {
     private ProgressStore store;
     private Progress progress;
     private PixelButton playBtn, cloudBtn;
-    private ModeCard dailyCard, timedCard, duelCard, ranksCard;
+    private ModeCard dailyCard, timedCard, duelCard, ranksCard, livesCard, megaCard;
+    private PixelButton spinBtn, tripsBtn, passBtn, albumBtn, jarBtn;
     private StatChip coinChip, hintChip;
     private CatView cat;
     private TextView streakText, streakSub, claimBadge, catBubble;
@@ -81,7 +91,9 @@ public class MainActivity extends BaseActivity {
     protected void onResume() {
         super.onResume();
         progress = store.load();
-        if (Quest.rollOver(progress, Days.today())) store.save(progress);
+        boolean newWeek = Quest.rollOver(progress, Days.today());
+        boolean newSeason = Season.rollOver(progress, Days.today());
+        if (newWeek || newSeason) store.save(progress);
         refresh();
         if (!introduced) {
             introduced = true;
@@ -141,8 +153,14 @@ public class MainActivity extends BaseActivity {
         duelCard.setOnClickListener(v -> onDuel());
         ranksCard = new ModeCard(this, "trophy", "RANKS", 0xFFC9A6FF);
         ranksCard.setOnClickListener(v -> onLeaderboard());
+        livesCard = new ModeCard(this, "heart", "9 LIVES", 0xFFFF9A3C);
+        livesCard.setOnClickListener(v -> launch(GameActivity.Mode.LIVES));
+        megaCard = new ModeCard(this, "star", "MEGA", 0xFFFFD34D);
+        megaCard.setOnClickListener(v -> onMega());
 
+        column.addView(extrasRow(), matchWrap(10));
         column.addView(cardRow(dailyCard, timedCard), matchWrap(10));
+        column.addView(cardRow(livesCard, megaCard), matchWrap(10));
         column.addView(cardRow(duelCard, ranksCard), matchWrap(10));
 
         cloudBtn = new PixelButton(this, "SAVE TO CLOUD", PixelTheme.PANEL, PixelTheme.TEXT);
@@ -239,6 +257,93 @@ public class MainActivity extends BaseActivity {
         return row;
     }
 
+    /** The daily extras. A badge on one means something is waiting there. */
+    private View extrasRow() {
+        LinearLayout row = new LinearLayout(this);
+        spinBtn = extraButton("wheel", 0xFFC9A6FF);
+        spinBtn.setOnClickListener(v -> go(new Intent(this, SpinActivity.class)));
+        tripsBtn = extraButton("paw", PixelTheme.MINT);
+        tripsBtn.setOnClickListener(v -> go(new Intent(this, ExpeditionActivity.class)));
+        passBtn = extraButton("ticket", PixelTheme.ROSE);
+        passBtn.setOnClickListener(v -> go(new Intent(this, SeasonActivity.class)));
+        albumBtn = extraButton("sticker", PixelTheme.SKY);
+        albumBtn.setOnClickListener(v -> go(new Intent(this, AlbumActivity.class)));
+        jarBtn = extraButton("jar", PixelTheme.GOLD);
+        jarBtn.setOnClickListener(v -> showJar());
+        PixelButton[] all = {spinBtn, tripsBtn, passBtn, albumBtn, jarBtn};
+        String[] names = {"SPIN", "TRIPS", "PASS", "ALBUM", "JAR"};
+        for (int i = 0; i < all.length; i++) {
+            LinearLayout cell = new LinearLayout(this);
+            cell.setOrientation(LinearLayout.VERTICAL);
+            cell.addView(all[i], matchWrap(0));
+            android.widget.TextView caption = PixelTheme.display(this, names[i], 8, PixelTheme.TEXT);
+            caption.setGravity(Gravity.CENTER);
+            cell.addView(caption, matchWrap(4));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            if (i > 0) lp.leftMargin = dp(6);
+            row.addView(cell, lp);
+        }
+        return row;
+    }
+
+    private PixelButton extraButton(String icon, int fill) {
+        PixelButton b = new PixelButton(this, "", fill, PixelTheme.INK);
+        b.setIcon(icon);
+        b.setIconSize(24);
+        return b;
+    }
+
+    private void showJar() {
+        long today = Days.today();
+        PixelBar bar = new PixelBar(this);
+        bar.setSegments(20);
+        bar.setColor(PixelTheme.GOLD);
+        bar.setValue(progress.jarWords / (float) PiggyJar.CAPACITY);
+        bar.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(18)));
+        PixelModal m = new PixelModal(this).title("PIGGY JAR").icon("jar").accent(PixelTheme.GOLD)
+                .body("Every bonus word you find drops into the jar. Fill it to open it for coins.")
+                .custom(bar)
+                .stat("sparkle", "Words", progress.jarWords + " / " + PiggyJar.CAPACITY, PixelTheme.GOLD)
+                .stat("coin", "A full jar pays", String.valueOf(PiggyJar.COINS), PixelTheme.GOLD);
+        if (PiggyJar.canOpen(progress, today)) {
+            m.primary("OPEN THE JAR", "coin", this::openJar).secondary("LATER", null);
+        } else {
+            if (PiggyJar.isFull(progress)) m.note("That's today's jars opened. It stays full until tomorrow.");
+            m.primary("OK", null);
+        }
+        m.show();
+    }
+
+    private void openJar() {
+        if (!PiggyJar.open(progress, Days.today())) return;
+        store.save(progress);
+        PlayGamesService.saveProgress(this, progress.serialize());
+        Sfx.play(Sfx.Id.BUY);
+        Haptics.celebrate();
+        fx.play("ui_confetti", fx.getWidth() / 2f, fx.getHeight() * 0.3f, PixelTheme.dp(this, 2.4f), null);
+        refresh();
+    }
+
+    private void onMega() {
+        long today = Days.today();
+        if (MegaBoard.isSolved(progress, today)) {
+            new PixelModal(this).title("MEGA BOARD").icon("star").accent(PixelTheme.MINT)
+                    .body("You've solved this weekend's board. A new one opens next Saturday.")
+                    .primary("OK", null)
+                    .show();
+        } else if (!MegaBoard.isOpen(today)) {
+            int days = MegaBoard.daysUntilOpen(today);
+            new PixelModal(this).title("MEGA BOARD").icon("star").accent(PixelTheme.GOLD)
+                    .body("A giant board opens every weekend. Your progress is saved, so you can solve it over both days.")
+                    .stat("calendar", "Opens in", days + (days == 1 ? " day" : " days"), PixelTheme.GOLD)
+                    .stat("coin", "Reward", String.valueOf(MegaBoard.COINS), PixelTheme.GOLD)
+                    .primary("OK", null)
+                    .show();
+        } else {
+            launch(GameActivity.Mode.MEGA);
+        }
+    }
+
     private PixelButton sideButton(String label, String icon, int fill, Class<?> screen) {
         PixelButton b = new PixelButton(this, label, fill, PixelTheme.INK);
         b.setLabelSize(9);
@@ -292,6 +397,20 @@ public class MainActivity extends BaseActivity {
         timedCard.setStatus(progress.bestTimed > 0 ? "Best " + progress.bestTimed : "2:00 sprint");
         duelCard.setStatus(progress.duelsPlayed > 0 ? wins(progress.duelWins) : "Beat the bot");
         ranksCard.setStatus("Top players");
+        livesCard.setStatus(progress.bestLives > 0 ? "Best " + progress.bestLives : "Survive!");
+        boolean megaReady = MegaBoard.isOpen(today) && !MegaBoard.isSolved(progress, today);
+        megaCard.setStatus(MegaBoard.isSolved(progress, today) ? "Solved!" : megaReady ? "Open now"
+                : "In " + MegaBoard.daysUntilOpen(today) + (MegaBoard.daysUntilOpen(today) == 1 ? " day" : " days"));
+        megaCard.setBadge(megaReady ? "NEW" : "");
+
+        long now = System.currentTimeMillis();
+        spinBtn.setBadge(DailySpin.canSpin(progress, today) ? "!" : "");
+        tripsBtn.setBadge(Expedition.isBack(progress, now) ? "!" : "");
+        int passReady = Season.claimableCount(progress) + FishHunt.claimableCount(progress);
+        passBtn.setBadge(passReady > 0 ? String.valueOf(passReady) : "");
+        int albumReady = Album.claimableCount(progress);
+        albumBtn.setBadge(albumReady > 0 ? String.valueOf(albumReady) : "");
+        jarBtn.setBadge(PiggyJar.canOpen(progress, today) ? "!" : "");
 
         streakText.setText(streak == 0 ? "NO STREAK" : days(streak).toUpperCase(Locale.ROOT));
         streakSub.setText(doneToday ? "All done!" : streak > 0 ? "Play today!" : "Play daily");
@@ -571,11 +690,17 @@ public class MainActivity extends BaseActivity {
                 .heading("SOLVE")
                 .body("Words in the crossword fill it in. Find them all to clear the level.")
                 .heading("BONUS")
-                .body("A few other words are hidden bonuses that pay +" + Scoring.COINS_PER_BONUS_WORD + " coins each.")
+                .body("Any other real word is a bonus word. Each one drops into your jar, and a full jar opens for "
+                        + PiggyJar.COINS + " coins.")
                 .heading("HINTS")
                 .body("A hint reveals one letter. Spend a token, or " + Scoring.HINT_COST_COINS + " coins once you run out. You'll always be asked first.")
+                .heading("TWISTS")
+                .body("Hard boards have gold letters that pay coins, frozen words that a crossing word must thaw, "
+                        + "and orange spark words worth extra if you find them in your first " + TileMods.SPARK_WINDOW + " words.")
                 .heading("SHOP")
-                .body("Spend your coins on accessories for your cat.")
+                .body("Spend your coins on accessories, breeds and rooms for your cat.")
+                .heading("EVERY DAY")
+                .body("Spin the wheel, send your cat on a trip, collect stickers, and climb the Season Pass.")
                 .primary("LET'S GO", null)
                 .show();
     }
