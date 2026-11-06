@@ -8,6 +8,8 @@ import android.graphics.Typeface;
 import android.util.TypedValue;
 import android.widget.TextView;
 
+import com.kun.pixelwords.data.Settings;
+
 /** Shared palette, pixel fonts and drawing helpers for the blocky look. */
 public final class PixelTheme {
 
@@ -20,8 +22,9 @@ public final class PixelTheme {
     public static final int INK = 0xFF0B0820;
     public static final int GOLD = 0xFFFFD34D;
     public static final int GOLD_DARK = 0xFFC48A12;
-    public static final int MINT = 0xFF6BE3A8;
-    public static final int ROSE = 0xFFFF6B8B;
+    /** Right and wrong. Not final: applySettings swaps these for colours that colourblind players can tell apart. */
+    public static int MINT = 0xFF6BE3A8;
+    public static int ROSE = 0xFFFF6B8B;
     public static final int SKY = 0xFF62C6FF;
     public static final int CREAM = 0xFFFFF1D6;
     public static final int TEXT = 0xFFF4EFFF;
@@ -32,7 +35,25 @@ public final class PixelTheme {
     /** VT323: readable body copy. Drawn on a 16-pixel grid. */
     public static Typeface BODY = Typeface.MONOSPACE;
 
+    private static final int STANDARD_MINT = MINT;
+    private static final int STANDARD_ROSE = ROSE;
+    private static final int COLOURBLIND_BLUE = 0xFF7FB2FF;
+    private static final int COLOURBLIND_ORANGE = 0xFFE8862A;
+    private static final float LARGE_TEXT_SCALE = 1.2f;
+
+    private static float textScale = 1f;
+
+    /** Applies the accessibility settings. Screens already on show keep their old look until rebuilt. */
+    public static void applySettings() {
+        boolean colourblind = Settings.colourblind();
+        MINT = colourblind ? COLOURBLIND_BLUE : STANDARD_MINT;
+        ROSE = colourblind ? COLOURBLIND_ORANGE : STANDARD_ROSE;
+        textScale = Settings.largeText() ? LARGE_TEXT_SCALE : 1f;
+        PixelIcons.clearCache();
+    }
+
     public static void init(Context c) {
+        applySettings();
         try {
             DISPLAY = Typeface.createFromAsset(c.getAssets(), "fonts/PressStart2P.ttf");
             BODY = Typeface.createFromAsset(c.getAssets(), "fonts/VT323.ttf");
@@ -48,11 +69,11 @@ public final class PixelTheme {
 
     /** Nearest crisp size for the display font: pixel fonts only look sharp at whole multiples of their grid. */
     public static float displayPx(Context c, float targetDp) {
-        return Math.max(8f, Math.round(dp(c, targetDp) / 8f) * 8f);
+        return Math.max(8f, Math.round(dp(c, targetDp) * textScale / 8f) * 8f);
     }
 
     public static float bodyPx(Context c, float targetDp) {
-        return Math.max(16f, Math.round(dp(c, targetDp) / 16f) * 16f);
+        return Math.max(16f, Math.round(dp(c, targetDp) * textScale / 16f) * 16f);
     }
 
     public static void styleDisplay(Paint p, float px) {
