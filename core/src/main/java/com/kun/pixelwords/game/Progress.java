@@ -3,6 +3,7 @@ package com.kun.pixelwords.game;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Everything that is saved for a player, locally and in the cloud. Serialised as simple
@@ -16,6 +17,7 @@ public final class Progress {
 
     private static final String STARS_KEY = "stars";
     private static final String HOME_KEY = "home";
+    private static final String PAID_KEY = "paid";
     private static final int STARS_PER_CHUNK = 30;
     private static final int MAX_STARS_STORED = 3;
     /** Far beyond any real save; stops a corrupt key from allocating a huge array. */
@@ -48,6 +50,11 @@ public final class Progress {
     /** The day of the cat's last coin gift, and how many it gave that day. */
     public long catGiftDay = 0;
     public int catGiftsToday = 0;
+    /** The day of the last coin video, and how many were watched that day. */
+    public long coinVideoDay = 0;
+    public int coinVideosToday = 0;
+    /** Coins bought with real money, by purchase. See Purchases. */
+    public final Map<Long, Integer> paidCoins = new TreeMap<>();
     /** Furniture bought, as a bit per Home.Item id. */
     public long homeOwned = 0;
     /** What sits in each Home.Slot and where, packed by Home. */
@@ -101,6 +108,23 @@ public final class Progress {
         }
     }
 
+    private void putPaidCoins(StringBuilder sb) {
+        for (Map.Entry<Long, Integer> grant : paidCoins.entrySet()) {
+            put(sb, PAID_KEY + Long.toHexString(grant.getKey()), grant.getValue());
+        }
+    }
+
+    private void readPaidCoins(Map<String, Long> m) {
+        for (Map.Entry<String, Long> e : m.entrySet()) {
+            if (!e.getKey().startsWith(PAID_KEY) || e.getValue() <= 0) continue;
+            try {
+                paidCoins.put(Long.parseUnsignedLong(e.getKey().substring(PAID_KEY.length()), 16), e.getValue().intValue());
+            } catch (NumberFormatException ignored) {
+                // a corrupt key loses only its own ledger entry; the coins stay in the balance
+            }
+        }
+    }
+
     public String serialize() {
         StringBuilder sb = new StringBuilder();
         put(sb, "v", FORMAT_VERSION);
@@ -124,6 +148,9 @@ public final class Progress {
         put(sb, "qClaimed", questClaimed);
         put(sb, "giftDay", catGiftDay);
         put(sb, "gifts", catGiftsToday);
+        put(sb, "videoDay", coinVideoDay);
+        put(sb, "videos", coinVideosToday);
+        putPaidCoins(sb);
         put(sb, "homeOwned", homeOwned);
         for (int i = 0; i < homePlaced.length; i++) put(sb, HOME_KEY + i, homePlaced[i]);
         putStars(sb);
@@ -171,6 +198,9 @@ public final class Progress {
         p.questClaimed = (int) get(m, "qClaimed", 0);
         p.catGiftDay = get(m, "giftDay", 0);
         p.catGiftsToday = (int) Math.max(0, get(m, "gifts", 0));
+        p.coinVideoDay = get(m, "videoDay", 0);
+        p.coinVideosToday = (int) Math.max(0, get(m, "videos", 0));
+        p.readPaidCoins(m);
         p.homeOwned = get(m, "homeOwned", 0);
         for (int i = 0; i < p.homePlaced.length; i++) p.homePlaced[i] = (int) get(m, HOME_KEY + i, 0);
         p.readStars(m);
@@ -187,7 +217,8 @@ public final class Progress {
     /**
      * Conflict resolution between this device and the cloud copy. Monotonic stats take the maximum so
      * progress is never lost; the "current state" fields (coins, hints, streak) follow whichever save is newer.
-     * Purchases are sticky: once ads are removed on any device they stay removed.
+     * Purchases are sticky: once ads are removed on any device they stay removed, and coins bought on
+     * either device are added to the newer balance if it doesn't already include them.
      */
     public static Progress merge(Progress a, Progress b) {
         Progress newer = a.updatedAt >= b.updatedAt ? a : b;
@@ -209,6 +240,9 @@ public final class Progress {
         out.catGiftDay = Math.max(a.catGiftDay, b.catGiftDay);
         out.catGiftsToday = Math.max(a.catGiftDay == out.catGiftDay ? a.catGiftsToday : 0,
                 b.catGiftDay == out.catGiftDay ? b.catGiftsToday : 0);
+        out.coinVideoDay = Math.max(a.coinVideoDay, b.coinVideoDay);
+        out.coinVideosToday = Math.max(a.coinVideoDay == out.coinVideoDay ? a.coinVideosToday : 0,
+                b.coinVideoDay == out.coinVideoDay ? b.coinVideosToday : 0);
         Progress quests = a.questWeek != b.questWeek ? (a.questWeek > b.questWeek ? a : b) : newer;
         out.questWeek = quests.questWeek;
         out.questBaseWords = quests.questBaseWords;
@@ -223,6 +257,8 @@ public final class Progress {
         out.wearFace = newer.wearFace;
         out.wearNeck = newer.wearNeck;
         out.coins = newer.coins;
+        out.paidCoins.putAll(newer.paidCoins);
+        Purchases.absorb(out, older);
         out.hintTokens = newer.hintTokens;
 
         StreakLogic.State ns = newer.streak;
