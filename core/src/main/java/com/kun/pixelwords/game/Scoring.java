@@ -5,7 +5,6 @@ public final class Scoring {
 
     private Scoring() {}
 
-    public static final int COINS_PER_BONUS_WORD = 2;
     public static final int COINS_PER_LEVEL = 10;
     public static final int COINS_PER_HARD_LEVEL = 30;
     public static final int COINS_PER_DAILY = 25;
