@@ -3,8 +3,10 @@ package com.kun.pixelwords.generator;
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.GameSession;
+import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.Shop;
 import com.kun.pixelwords.game.Progress;
+import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.ShareCard;
 import com.kun.pixelwords.game.StreakLogic;
 
@@ -46,6 +48,7 @@ public final class GeneratorSelfTest {
         testShareCard();
         testAchievements();
         testAchievementRewards();
+        testJourney(gen, dict);
         testCurve(gen);
 
         System.out.println();
@@ -92,6 +95,64 @@ public final class GeneratorSelfTest {
         for (long day = 101; day < 107; day++) p.streak = StreakLogic.onDailyCompleted(p.streak, day);
         check(Achievement.STREAK_7.isUnlocked(p), "seven days in a row reaches the streak goal");
         check(Achievement.STREAK_7.isUnlocked(Progress.parse(p.serialize())), "achievements survive a save and load");
+    }
+
+    private static void testJourney(LevelGenerator gen, Dictionary dict) {
+        check(Journey.chapterOf(1) == 0 && Journey.chapterOf(20) == 0 && Journey.chapterOf(21) == 1, "chapters are 20 levels");
+        check(Journey.slotOf(1) == 1 && Journey.slotOf(20) == 20 && Journey.slotOf(21) == 1, "slots restart each chapter");
+        check(Journey.firstLevel(2) == 41 && Journey.lastLevel(2) == 60, "chapter bounds");
+
+        for (int chapter = 0; chapter < 40; chapter++) {
+            int hard = 0;
+            for (int level = Journey.firstLevel(chapter); level <= Journey.lastLevel(chapter); level++) {
+                if (!Journey.isHard(level)) continue;
+                hard++;
+                int slot = Journey.slotOf(level);
+                check(slot >= 6 && slot < 20, "hard levels avoid the start and end of a chapter");
+                Level h = gen.forHard(level), same = gen.forHard(level), normal = gen.forProgression(level);
+                check(h.fingerprint() == same.fingerprint(), "hard levels are deterministic");
+                check(h.letters.length() >= normal.letters.length(), "a hard level never has a smaller wheel");
+                int shortest = 99;
+                for (Level.Placement p : h.placements) {
+                    shortest = Math.min(shortest, p.word.length());
+                    check(dict.isCommon(p.word), "hard grid words are still common words");
+                }
+                check(shortest >= 4, "hard levels have no three-letter words");
+            }
+            check(hard >= 2 && hard <= 3, "each chapter has two or three hard levels");
+        }
+
+        Progress p = new Progress();
+        p.level = 41;
+        check(Journey.chaptersToReward(p) == 2, "two finished chapters are owed");
+        int coinsBefore = p.coins, hintsBefore = p.hintTokens;
+        check(Journey.payChapterRewards(p) == 2, "both chapters are paid");
+        check(p.coins == coinsBefore + 2 * Scoring.COINS_PER_CHAPTER, "chapter rewards pay coins");
+        check(p.hintTokens == hintsBefore + 2 * Scoring.HINTS_PER_CHAPTER, "chapter rewards pay hints");
+        check(Journey.payChapterRewards(p) == 0, "a chapter only pays once");
+
+        p.recordStars(3, 2);
+        p.recordStars(3, 1);
+        check(p.starsFor(3) == 2, "a worse replay keeps the better stars");
+        p.recordStars(3, 3);
+        check(p.starsFor(3) == 3, "a better replay improves the stars");
+        p.recordStars(31, 1);
+        p.recordStars(95, 3);
+        check(Journey.starsShown(p, 5) == 1, "a level cleared before stars existed shows one star");
+        check(Journey.starsShown(p, 41) == 0, "the current level has no stars yet");
+
+        Progress loaded = Progress.parse(p.serialize());
+        check(loaded.starsFor(3) == 3 && loaded.starsFor(31) == 1 && loaded.starsFor(95) == 3, "stars survive a save and load");
+        check(loaded.starsFor(4) == 0, "unplayed levels stay empty");
+        check(loaded.chaptersRewarded == 2, "chapter rewards survive a save and load");
+
+        Progress other = new Progress();
+        other.recordStars(3, 1);
+        other.recordStars(4, 2);
+        other.updatedAt = p.updatedAt + 1;
+        Progress merged = Progress.merge(p, other);
+        check(merged.starsFor(3) == 3 && merged.starsFor(4) == 2 && merged.starsFor(95) == 3, "a merge keeps the best stars from both");
+        check(merged.chaptersRewarded == 2, "a merge can't pay a chapter twice");
     }
 
     private static void testAchievementRewards() {
