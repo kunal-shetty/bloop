@@ -15,6 +15,7 @@ import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Quest;
+import com.kun.pixelwords.game.Season;
 import com.kun.pixelwords.services.PlayGamesService;
 import com.kun.pixelwords.ui.AmbientView;
 import com.kun.pixelwords.ui.GoalCard;
@@ -107,7 +108,11 @@ public class AchievementsActivity extends BaseActivity {
 
     private void addQuest(LinearLayout list, Quest q) {
         GoalCard card = new GoalCard(this, q.title(), q.icon(), PixelTheme.SKY, q.coins, q.goal);
-        addCard(list, card, () -> card.update(q.progress(progress), q.isClaimed(progress)), () -> q.claim(progress));
+        addCard(list, card, () -> card.update(q.progress(progress), q.isClaimed(progress)), () -> {
+            if (!q.claim(progress)) return false;
+            Season.addXp(progress, Days.today(), Season.XP_QUEST);
+            return true;
+        });
     }
 
     private void addAchievement(LinearLayout list, Achievement a) {
