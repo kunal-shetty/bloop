@@ -24,6 +24,7 @@ import com.kun.pixelwords.ui.PixelModal;
 import com.kun.pixelwords.ui.PixelTheme;
 import com.kun.pixelwords.ui.RoomView;
 import com.kun.pixelwords.ui.StatChip;
+import com.kun.pixelwords.ui.TabBar;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -75,6 +76,8 @@ public class HomeActivity extends BaseActivity {
         page.setPadding(dp(14), dp(12), dp(14), 0);
         page.addView(topBar(), matchWrap(0));
         page.addView(roomBox(), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, roomHeight()));
+        TabBar tabs = new TabBar(this);
+        page.addView(tabs, matchWrap(0));
 
         ScrollView scroll = new ScrollView(this);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -85,9 +88,12 @@ public class HomeActivity extends BaseActivity {
         TextView tip = PixelTheme.body(this, "Drag furniture around the room. Tap an item you own to put it away.", 16, PixelTheme.TEXT_DIM);
         tip.setPadding(0, dp(6), 0, 0);
         list.addView(tip);
-        addThemes(list);
-        for (Home.Slot slot : Home.Slot.values()) addSlot(list, slot);
+        addThemes(tabs.add("ROOMS", list));
+        addSlots(tabs.add("FLOOR", list), Home.Slot.BED, Home.Slot.RUG);
+        addSlots(tabs.add("WALLS", list), Home.Slot.WINDOW, Home.Slot.WALL, Home.Slot.SHELF);
+        addSlots(tabs.add("DECOR", list), Home.Slot.PLANT, Home.Slot.LAMP, Home.Slot.TOY);
         scroll.addView(list);
+        tabs.attach(scroll);
         page.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         contentLayer.addView(page, fill());
     }
@@ -141,6 +147,10 @@ public class HomeActivity extends BaseActivity {
         box.addView(cat, new FrameLayout.LayoutParams(size, size));
     }
 
+    private void addSlots(LinearLayout section, Home.Slot... slots) {
+        for (Home.Slot slot : slots) addSlot(section, slot);
+    }
+
     private void addSlot(LinearLayout list, Home.Slot slot) {
         TextView heading = PixelTheme.display(this, slot.title.toUpperCase(Locale.ROOT), 10, PixelTheme.CREAM);
         heading.setBackground(new PanelDrawable(0xE0251D4A, Math.max(2f, dp(1))));
@@ -173,13 +183,6 @@ public class HomeActivity extends BaseActivity {
     }
 
     private void addThemes(LinearLayout list) {
-        TextView heading = PixelTheme.display(this, "ROOMS", 10, PixelTheme.CREAM);
-        heading.setBackground(new PanelDrawable(0xE0251D4A, Math.max(2f, dp(1))));
-        heading.setPadding(dp(10), dp(8), dp(10), dp(9));
-        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        hp.topMargin = dp(10);
-        hp.bottomMargin = dp(6);
-        list.addView(heading, hp);
         for (Home.Theme theme : Home.Theme.values()) {
             PixelButton b = new PixelButton(this, theme.title.toUpperCase(Locale.ROOT), PixelTheme.PANEL, PixelTheme.TEXT);
             b.setLabelSize(11);
