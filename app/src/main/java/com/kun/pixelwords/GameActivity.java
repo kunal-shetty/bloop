@@ -607,7 +607,7 @@ public class GameActivity extends BaseActivity {
                 revealWord();
                 break;
             case PICK_LETTER:
-                say("TAP A HIDDEN LETTER", PixelTheme.GOLD);
+                holdBanner("TAP A HIDDEN LETTER", PixelTheme.GOLD);
                 grid.pickLetter(this::onLetterPicked);
                 break;
             default:
@@ -632,6 +632,7 @@ public class GameActivity extends BaseActivity {
         }
         PowerUps.spend(progress, PowerUps.Kind.PICK_LETTER);
         store.save(progress);
+        banner.setVisibility(View.INVISIBLE);
         burstAt(cell[0], cell[1]);
         afterReveal();
     }
@@ -1189,7 +1190,8 @@ public class GameActivity extends BaseActivity {
         }
         if (mode == Mode.LAN && session != null) showRaceHud();
         if (mode == Mode.LIVES && run != null) {
-            duelText.setText("LIVES " + run.lives() + "   SCORE " + (run.score() + (session == null ? 0 : session.score(0))));
+            int board = session == null || finished ? 0 : session.score(0); // a finished board is already in the run's score
+            duelText.setText("LIVES " + run.lives() + "   SCORE " + (run.score() + board));
         }
         if (mode == Mode.DUEL && session != null) {
             duelText.setText("YOU " + (session.gridPoints() + session.bonusPoints()) + "   VS   BOT " + botScore);
@@ -1209,6 +1211,18 @@ public class GameActivity extends BaseActivity {
         banner.animate().scaleX(1f).scaleY(1f).setDuration(150).setInterpolator(new OvershootInterpolator(2.5f))
                 .withEndAction(() -> banner.animate().alpha(0f).translationY(-PixelTheme.dp(this, 14))
                         .setStartDelay(650).setDuration(300).start()).start();
+    }
+
+    /** Keeps a callout up until the next one replaces it, for something the player has to do. */
+    private void holdBanner(String message, int color) {
+        banner.animate().cancel();
+        banner.setText(message);
+        banner.setTextColor(color);
+        banner.setVisibility(View.VISIBLE);
+        banner.setAlpha(1f);
+        banner.setTranslationY(0f);
+        banner.setScaleX(1f);
+        banner.setScaleY(1f);
     }
 
     private void shakeWheel() {
