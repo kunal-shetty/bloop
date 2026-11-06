@@ -20,12 +20,13 @@ tools/gen_sfx.py     Regenerate the sound pack (needs numpy)
 tools/gen_music.py   Regenerate the background music (needs numpy and soundfile)
 tools/gen_cat.py     Regenerate the cat and its accessories (needs Pillow)
 tools/gen_icon.py    Regenerate the launcher icon (needs Pillow)
+tools/gen_home.py    Regenerate the cat home art (needs Pillow)
 ```
 
 ## Running
 
 ```
-./gradlew :core:selfTest          # 32k checks: dictionary, generator, game rules, streaks, saves, duel bot
+./gradlew :core:selfTest          # 35k checks: dictionary, generator, game rules, saves, and real races over local sockets
 ./gradlew :app:assembleDebug      # needs the Android SDK (open the folder in Android Studio)
 ```
 
@@ -39,6 +40,8 @@ tools/gen_icon.py    Regenerate the launcher icon (needs Pillow)
 - **Shop:** `Shop` holds the catalogue and rules. Items are stored by id in the save, so add new ones with a new id, add their art to `tools/gen_cat.py`, and never renumber.
 - **Achievements:** `Achievement` works out unlocks from stats already in the save, and only stores which rewards were claimed. Add new ones with a new id, and never renumber.
 - **Accessibility:** `PixelTheme.applySettings` swaps the right-and-wrong colours and scales text. Keep `MINT` and `ROSE` non-final, and read them at draw time.
+- **Quests:** `Quest` picks three goals from the week number. Progress is lifetime stats minus a snapshot from the start of the week, so replays can't complete one.
+- **Cat home:** `Home` holds the furniture catalogue and rules. Items start in a slot and can be dragged. Art comes from `tools/gen_home.py`. Add new items with a new id, and never renumber.
 - **Saves:** `Progress` serialises to `key=value` lines (stars are packed, 30 levels to a line); `Progress.merge` resolves local-vs-cloud conflicts without losing progress.
 
 ## Before you can run it on a phone (setup checklist)
@@ -51,11 +54,13 @@ tools/gen_icon.py    Regenerate the launcher icon (needs Pillow)
 
 - **Tested:** everything in `core/` (run `selfTest`).
 - **Run on a real phone (Vivo V2143, Android 13):** the splash, menu, modals and core gameplay. Play Games sign-in, leaderboards and real ads have not been exercised, because they need the console setup above.
-- **Not built yet:** in-app purchases (`BillingService` is a stub with the planned product list); real multiplayer duels (see below); weekly quests, cat home.
+- **Not built yet:** in-app purchases (`BillingService` is a stub with the planned product list); online multiplayer (Wi-Fi races work, see below).
 
-## Duels: needs your own backend
+## Multiplayer: Wi-Fi now, online later
 
-Today a duel plays against a deterministic **bot** on a shared-seed board, which is enough to build and test the flow offline. Real opponents need a server. Play Games Services no longer provides multiplayer, so the plan is Firebase (Firestore or Realtime Database): a matchmaking doc holds the seed, each player writes their score timeline, and the client compares them. The board already comes from a shared seed, so the server only has to exchange seeds and scores.
+**Wi-Fi races** need no server. One phone hosts (`core/lan`, plain TCP sockets), `LanDiscovery` announces the room with Android network service discovery, and up to three others join. Everyone plays one board from a shared seed, with live scores. Once a race starts, a player who leaves stays in the results, and the host has a hard deadline so a stalled phone cannot hang a race. Hints are off in a race, because a hint stops the clock.
+
+The duel button still plays a deterministic **bot** when nobody is around. Opponents over the internet need a server. Play Games Services no longer provides multiplayer, so the plan is Firebase (Firestore or Realtime Database): a matchmaking doc holds the seed, each player writes their score timeline, and the client compares them. The board already comes from a shared seed, so the server only has to exchange seeds and scores.
 
 ## PixelFX art
 
