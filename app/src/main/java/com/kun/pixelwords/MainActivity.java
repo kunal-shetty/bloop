@@ -416,9 +416,31 @@ public class MainActivity extends BaseActivity {
                     else setReminders(false);
                 });
         m.button("REMINDER TIME", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "clock", Sfx.Id.UI_TAP, this::showReminderTimes);
+        m.button("ACCESSIBILITY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showAccessibility);
         m.button("HOW TO PLAY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showHowToPlay);
         m.button("CREDITS", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showCredits);
         m.show();
+    }
+
+    private void showAccessibility() {
+        boolean[] rebuild = {false}; // the menu is already drawn in the old colours and text size
+        new PixelModal(this).title("ACCESSIBILITY").icon("heart").accent(PixelTheme.SKY)
+                .toggle("sparkle", "COLOURBLIND", "Blue and orange for right and wrong", Settings.colourblind(), on -> {
+                    Settings.setColourblind(on);
+                    rebuild[0] = true;
+                })
+                .toggle("book", "LARGER TEXT", "Bigger words and labels", Settings.largeText(), on -> {
+                    Settings.setLargeText(on);
+                    rebuild[0] = true;
+                })
+                .toggle("bulb", "LEFT-HANDED", "Moves the hint button to the left", Settings.leftHanded(), Settings::setLeftHanded)
+                .primary("DONE", null)
+                .onDismiss(() -> {
+                    if (!rebuild[0]) return;
+                    PixelTheme.applySettings();
+                    contentLayer.post(this::recreate);
+                })
+                .show();
     }
 
     private void showReminderTimes() {
