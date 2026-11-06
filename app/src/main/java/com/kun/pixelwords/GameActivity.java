@@ -124,7 +124,7 @@ public class GameActivity extends BaseActivity {
         progress = store.load();
         buildUi();
         fx.preload("pickups_collect-burst", "ui_confetti", "ui_quest-complete", "pickups_coin-spin", "ui_achievement");
-        AdsService.get(this); // start loading a rewarded ad early
+        AdsService.get(this).load(); // start loading a rewarded ad early
         GameEngine.get().whenReady(this::startRound);
     }
 
@@ -682,9 +682,13 @@ public class GameActivity extends BaseActivity {
         } else if (o.chapterFinished) {
             m.primary("TO THE MAP", this::finish); // the chapter's reward is waiting there
         } else {
-            m.primary("NEXT LEVEL", "play", this::startRound).secondary("MAP", this::finish);
+            m.primary("NEXT LEVEL", "play", this::nextLevel).secondary("MAP", this::finish);
         }
         m.show();
+    }
+
+    private void nextLevel() {
+        AdsService.get(this).betweenLevels(this, progress, this::startRound);
     }
 
     private View cheeringCat() {
