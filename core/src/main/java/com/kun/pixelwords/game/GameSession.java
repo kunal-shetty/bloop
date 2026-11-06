@@ -14,6 +14,9 @@ public final class GameSession {
 
     public enum Result { FOUND_GRID, FOUND_BONUS, ALREADY_FOUND, FROZEN, NOT_A_WORD, TOO_SHORT }
 
+    /** The top bit of {@link #foundMask()} says the spark was won, so its coins survive leaving a big board. */
+    private static final long SPARK_BIT = 1L << 63;
+
     private final Level level;
     private final TileMods mods;
     private final Set<String> foundGrid = new LinkedHashSet<>();
@@ -84,7 +87,7 @@ public final class GameSession {
         for (int i = 0; i < level.placements.size(); i++) {
             if (foundGrid.contains(level.placements.get(i).word)) mask |= 1L << i;
         }
-        return mask;
+        return sparkWon ? mask | SPARK_BIT : mask;
     }
 
     /** Puts back grid words from {@link #foundMask()}. */
@@ -93,6 +96,8 @@ public final class GameSession {
             Level.Placement p = level.placements.get(i);
             if ((mask & 1L << i) != 0 && !foundGrid.contains(p.word)) markFound(p);
         }
+        sparkWon |= (mask & SPARK_BIT) != 0;
+        wordsSubmitted = Math.max(wordsSubmitted, foundGrid.size()); // found words still use up the spark's window
     }
 
     public int score(int secondsLeft) {
