@@ -17,6 +17,7 @@ import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.PurchasesUpdatedListener;
 import com.android.billingclient.api.QueryProductDetailsParams;
 import com.android.billingclient.api.QueryPurchasesParams;
+import com.kun.pixelwords.Features;
 import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Purchases;
@@ -79,6 +80,7 @@ public final class BillingService implements PurchasesUpdatedListener {
 
     /** Connects if needed, then collects anything paid while the app wasn't looking. */
     public void refresh() {
+        if (!Features.MONETIZATION) return;
         if (client.isReady()) {
             queryProducts();
             queryPurchases();
