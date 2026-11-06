@@ -4,6 +4,7 @@ import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.CatMood;
 import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.GameSession;
+import com.kun.pixelwords.game.Home;
 import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.Shop;
 import com.kun.pixelwords.game.Progress;
@@ -54,6 +55,7 @@ public final class GeneratorSelfTest {
         testJourney(gen, dict);
         testQuests();
         testCatMood();
+        testHome();
         testCurve(gen);
 
         System.out.println();
@@ -158,6 +160,51 @@ public final class GeneratorSelfTest {
         Progress merged = Progress.merge(p, other);
         check(merged.starsFor(3) == 3 && merged.starsFor(4) == 2 && merged.starsFor(95) == 3, "a merge keeps the best stars from both");
         check(merged.chaptersRewarded == 2, "a merge can't pay a chapter twice");
+    }
+
+    private static void testHome() {
+        Progress p = new Progress();
+        for (Home.Slot slot : Home.Slot.values()) {
+            check(Home.itemsIn(slot).size() == 3, "every slot has three items to choose from");
+            check(Home.placed(p, slot) == null, "a new room is empty");
+            check(slot.x + slot.width <= Home.ROOM_SIZE && slot.y + slot.height <= Home.ROOM_SIZE, "slots start inside the room");
+        }
+        check(!Home.buy(p, Home.Item.BALL), "furniture costs coins");
+
+        p.coins = 1000;
+        check(Home.buy(p, Home.Item.BALL), "buying works with enough coins");
+        check(p.coins == 1000 - Home.Item.BALL.price, "buying spends the price");
+        check(Home.placed(p, Home.Slot.TOY) == Home.Item.BALL, "a new item goes straight in the room");
+        check(Home.x(p, Home.Slot.TOY) == Home.Slot.TOY.x && Home.y(p, Home.Slot.TOY) == Home.Slot.TOY.y, "it starts in its slot's spot");
+        check(!Home.buy(p, Home.Item.BALL), "an item can't be bought twice");
+        check(p.coins == 1000 - Home.Item.BALL.price, "a refused purchase spends nothing");
+
+        Home.move(p, Home.Slot.TOY, 30, 40);
+        check(Home.x(p, Home.Slot.TOY) == 30 && Home.y(p, Home.Slot.TOY) == 40, "dragging moves an item");
+        Home.move(p, Home.Slot.TOY, -50, 500);
+        check(Home.x(p, Home.Slot.TOY) == 0, "items stop at the left wall");
+        check(Home.y(p, Home.Slot.TOY) == Home.ROOM_SIZE - Home.Slot.TOY.height, "items stop at the floor's edge");
+
+        Home.move(p, Home.Slot.TOY, 100, 3);
+        Progress loaded = Progress.parse(p.serialize());
+        check(Home.owns(loaded, Home.Item.BALL), "furniture survives a save and load");
+        check(Home.placed(loaded, Home.Slot.TOY) == Home.Item.BALL, "placement survives a save and load");
+        check(Home.x(loaded, Home.Slot.TOY) == 100 && Home.y(loaded, Home.Slot.TOY) == 3, "position survives a save and load");
+
+        Home.remove(p, Home.Slot.TOY);
+        check(Home.placed(p, Home.Slot.TOY) == null && Home.owns(p, Home.Item.BALL), "taking an item out keeps it owned");
+        Home.place(p, Home.Item.BALL);
+        check(Home.x(p, Home.Slot.TOY) == Home.Slot.TOY.x, "putting it back returns it to its spot");
+        Home.place(p, Home.Item.FISH);
+        check(Home.placed(p, Home.Slot.TOY) == Home.Item.BALL, "unowned furniture can't be placed");
+
+        Progress other = new Progress();
+        other.coins = 1000;
+        Home.buy(other, Home.Item.FERN);
+        other.updatedAt = p.updatedAt + 1;
+        Progress merged = Progress.merge(p, other);
+        check(Home.owns(merged, Home.Item.BALL) && Home.owns(merged, Home.Item.FERN), "purchases on both devices survive a merge");
+        check(Home.placed(merged, Home.Slot.PLANT) == Home.Item.FERN, "a merge keeps the newer room layout");
     }
 
     private static void testCatMood() {
