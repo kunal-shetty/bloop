@@ -14,6 +14,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.kun.pixelwords.audio.Haptics;
+import com.kun.pixelwords.audio.Music;
 import com.kun.pixelwords.audio.Sfx;
 import com.kun.pixelwords.data.Days;
 import com.kun.pixelwords.data.ProgressStore;
@@ -400,6 +401,10 @@ public class MainActivity extends BaseActivity {
 
     private void showSettings() {
         PixelModal m = new PixelModal(this).title("SETTINGS").icon("gear").accent(PixelTheme.TEXT_DIM);
+        m.toggle("music", "MUSIC", "Gentle tunes while you play", Settings.music(), on -> {
+            Settings.setMusic(on);
+            Music.refresh();
+        });
         m.toggle("sound", "SOUND FX", "Clicks, chimes and fanfares", Settings.sound(), Settings::setSound);
         m.toggle("buzz", "HAPTICS", "Vibration on every action", Settings.haptics(), on -> {
             Settings.setHaptics(on);
