@@ -8,6 +8,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -17,6 +18,7 @@ import com.kun.pixelwords.audio.Sfx;
 import com.kun.pixelwords.data.Days;
 import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.data.Settings;
+import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.StreakLogic;
@@ -47,7 +49,7 @@ public class MainActivity extends BaseActivity {
     private ModeCard dailyCard, timedCard, duelCard, ranksCard;
     private StatChip coinChip, hintChip;
     private CatView cat;
-    private TextView streakText, streakSub;
+    private TextView streakText, streakSub, claimBadge;
     private LinearLayout column;
     private boolean introduced;
 
@@ -142,9 +144,21 @@ public class MainActivity extends BaseActivity {
         bar.addView(hintChip, hp);
         bar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
 
+        PixelButton trophy = iconButton("trophy");
+        trophy.setOnClickListener(v -> go(new Intent(this, AchievementsActivity.class)));
+        FrameLayout trophyBox = new FrameLayout(this);
+        trophyBox.addView(trophy, fill());
+        claimBadge = PixelTheme.display(this, "", 8, PixelTheme.INK);
+        claimBadge.setBackground(new PanelDrawable(PixelTheme.ROSE, Math.max(2f, dp(1))));
+        claimBadge.setPadding(dp(4), dp(3), dp(4), dp(3));
+        trophyBox.addView(claimBadge, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END));
+        bar.addView(trophyBox, new LinearLayout.LayoutParams(dp(46), dp(46)));
         PixelButton help = iconButton("book");
         help.setOnClickListener(v -> showHowToPlay());
-        bar.addView(help, new LinearLayout.LayoutParams(dp(46), dp(46)));
+        LinearLayout.LayoutParams helpLp = new LinearLayout.LayoutParams(dp(46), dp(46));
+        helpLp.leftMargin = dp(8);
+        bar.addView(help, helpLp);
         PixelButton gear = iconButton("gear");
         gear.setOnClickListener(v -> showSettings());
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(dp(46), dp(46));
@@ -231,8 +245,11 @@ public class MainActivity extends BaseActivity {
         coinChip.setValue(progress.coins);
         hintChip.setValue(progress.hintTokens);
         cat.dress(progress);
+        int ready = Achievement.claimable(progress).size();
+        claimBadge.setText(String.valueOf(ready));
+        claimBadge.setVisibility(ready > 0 ? View.VISIBLE : View.GONE);
 
-        int chapter = (progress.level - 1) / LEVELS_PER_CHAPTER;
+        int chapter =(progress.level - 1) / LEVELS_PER_CHAPTER;
         int inChapter = (progress.level - 1) % LEVELS_PER_CHAPTER + 1;
         playBtn.setSubtitle(CHAPTERS[chapter % CHAPTERS.length] + " - LEVEL " + progress.level
                 + "  (" + inChapter + "/" + LEVELS_PER_CHAPTER + ")");
