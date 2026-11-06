@@ -17,6 +17,11 @@ import com.kun.pixelwords.generator.Level;
  */
 public class CrosswordView extends View {
 
+    /** Told which hidden cell the player tapped while picking a letter, or null for {row, col} if they missed. */
+    public interface PickListener {
+        void onPicked(int[] cell);
+    }
+
     /** Told about each letter as it lands, so sound and haptics stay in time with the animation. */
     public interface LetterListener {
         void onLetterShown(int order);
@@ -35,6 +40,8 @@ public class CrosswordView extends View {
     private boolean[][] reported;
     private int reportedCount;
     private LetterListener letterListener;
+    private PickListener pickListener;
+    private boolean[][] frozen, spark, fish;
 
     public CrosswordView(Context context) {
         this(context, null);
@@ -51,8 +58,66 @@ public class CrosswordView extends View {
         letterListener = l;
     }
 
+    /** Waits for the player to tap a hidden letter. Tapping anywhere else cancels. */
+    public void pickLetter(PickListener l) {
+        pickListener = l;
+        invalidate();
+    }
+
+    @Override
+    public boolean onTouchEvent(android.view.MotionEvent e) {
+        if (pickListener == null) return super.onTouchEvent(e);
+        if (e.getActionMasked() == android.view.MotionEvent.ACTION_UP) {
+            PickListener l = pickListener;
+            pickListener = null;
+            l.onPicked(cellAt(e.getX(), e.getY()));
+            invalidate();
+        }
+        return true;
+    }
+
+    private int[] cellAt(float x, float y) {
+        if (session == null || cell == 0) return null;
+        int col = (int) Math.floor((x - originX) / cell), row = (int) Math.floor((y - originY) / cell);
+        Level l = session.level();
+        return row >= 0 && col >= 0 && row < l.rows && col < l.cols ? new int[]{row, col} : null;
+    }
+
+    /** Marks the cells hiding fish. A fish shows once its letter is revealed. */
+    public void setFish(java.util.List<int[]> cells) {
+        Level l = session.level();
+        fish = new boolean[l.rows][l.cols];
+        for (int[] cell : cells) fish[cell[0]][cell[1]] = true;
+        invalidate();
+    }
+
+    /** Works out which cells are frozen or part of a lit spark word right now. */
+    private void markTwists(Level l) {
+        if (frozen == null || frozen.length != l.rows) {
+            frozen = new boolean[l.rows][l.cols];
+            spark = new boolean[l.rows][l.cols];
+        }
+        for (int r = 0; r < l.rows; r++) {
+            java.util.Arrays.fill(frozen[r], false);
+            java.util.Arrays.fill(spark[r], false);
+        }
+        for (int i = 0; i < l.placements.size(); i++) {
+            Level.Placement p = l.placements.get(i);
+            boolean ice = session.isFrozen(i);
+            boolean lit = i == session.mods().sparkWord() && session.sparkLive();
+            if (!ice && !lit) continue;
+            for (int j = 0; j < p.word.length(); j++) {
+                if (ice) frozen[p.rowAt(j)][p.colAt(j)] = true;
+                if (lit) spark[p.rowAt(j)][p.colAt(j)] = true;
+            }
+        }
+    }
+
     public void setSession(GameSession s) {
         session = s;
+        fish = null;
+        frozen = null;
+        pickListener = null;
         Level l = s.level();
         showAt = new long[l.rows][l.cols];
         dealAt = new long[l.rows][l.cols];
@@ -117,6 +182,7 @@ public class CrosswordView extends View {
         float cap = -textPaint.ascent() * 0.86f;
         long now = SystemClock.uptimeMillis();
         boolean animating = false;
+        markTwists(l);
 
         for (int r = 0; r < l.rows; r++) {
             for (int col = 0; col < l.cols; col++) {
@@ -139,7 +205,9 @@ public class CrosswordView extends View {
                 long since = at == 0 ? -1 : now - at;
                 if (at == 0 || since < 0) {
                     if (since < 0) animating = true;
-                    PixelTheme.drawSlot(c, paint, cx - half, cy - half, cx + half, cy + half, 0xF0251D4A, px);
+                    int slot = frozen[r][col] ? 0xF06FB6E6 : spark[r][col] ? 0xF0B85A1E
+                            : session.mods().isGold(l, r, col) ? 0xF07A5F14 : pickListener != null ? 0xF0705CBE : 0xF0251D4A;
+                    PixelTheme.drawSlot(c, paint, cx - half, cy - half, cx + half, cy + half, slot, px);
                     continue;
                 }
 
@@ -152,12 +220,13 @@ public class CrosswordView extends View {
                 if (k < 1f) animating = true;
                 float bump = k < 1f ? 1f + 0.28f * (1f - k) : 1f;
                 float s = half * bump;
-                int fill = k < 0.5f ? 0xFFFFFFFF : PixelTheme.CREAM;
+                int fill = k < 0.5f ? 0xFFFFFFFF : session.mods().isGold(l, r, col) ? PixelTheme.GOLD : PixelTheme.CREAM;
                 PixelTheme.drawTile(c, paint, cx - s, cy - s, cx + s, cy + s, fill, px, px * 2);
                 if (k >= 0.34f) {
                     textPaint.setColor(PixelTheme.INK);
                     c.drawText(String.valueOf(Character.toUpperCase(grid[r][col])), cx, cy - px + cap / 2f, textPaint);
                 }
+                if (fish != null && fish[r][col]) PixelIcons.draw(c, paint, "fish", cx, cy, half);
             }
         }
         if (animating) postInvalidateOnAnimation();
