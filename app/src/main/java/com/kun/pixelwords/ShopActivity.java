@@ -119,8 +119,10 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(0, dp(4), 0, dp(16));
-        addHeading(list, "GET COINS");
-        addStore(list);
+        if (Features.MONETIZATION) {
+            addHeading(list, "GET COINS");
+            addStore(list);
+        }
         for (Shop.Slot slot : Shop.Slot.values()) {
             addHeading(list, slot.title.toUpperCase(java.util.Locale.ROOT));
             addRows(list, Shop.itemsIn(slot));
@@ -193,6 +195,7 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
     }
 
     private void refreshStore() {
+        if (!Features.MONETIZATION) return;
         for (Map.Entry<Purchases.Pack, PixelButton> e : packButtons.entrySet()) {
             String price = billing.price(e.getKey().productId);
             e.getValue().setSubtitle(price != null ? price : "Store closed");
