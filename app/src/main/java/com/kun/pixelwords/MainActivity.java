@@ -25,7 +25,6 @@ import com.kun.pixelwords.game.CatMood;
 import com.kun.pixelwords.game.DailySpin;
 import com.kun.pixelwords.game.Expedition;
 import com.kun.pixelwords.game.FishHunt;
-import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.MegaBoard;
 import com.kun.pixelwords.game.PiggyJar;
 import com.kun.pixelwords.game.Progress;
@@ -39,7 +38,6 @@ import com.kun.pixelwords.services.PlayGamesService;
 import com.kun.pixelwords.services.Reminders;
 import com.kun.pixelwords.ui.AmbientView;
 import com.kun.pixelwords.ui.CatView;
-import com.kun.pixelwords.ui.ModeCard;
 import com.kun.pixelwords.ui.PanelDrawable;
 import com.kun.pixelwords.ui.PixelBar;
 import com.kun.pixelwords.ui.PixelButton;
@@ -60,8 +58,10 @@ public class MainActivity extends BaseActivity {
 
     private ProgressStore store;
     private Progress progress;
-    private PixelButton playBtn, cloudBtn;
-    private ModeCard dailyCard, timedCard, duelCard, ranksCard, livesCard, megaCard;
+    /** Players on these first levels skip the list of modes. */
+    private static final int NEW_PLAYER_LEVELS = 3;
+
+    private PixelButton playBtn;
     private PixelButton spinBtn, tripsBtn, passBtn, albumBtn, jarBtn;
     private StatChip coinChip, hintChip;
     private CatView cat;
@@ -121,7 +121,7 @@ public class MainActivity extends BaseActivity {
         column.addView(topBar(), matchWrap(0));
 
         // The cat takes all the spare height, sitting just above the panels below.
-        cat = new CatView(this, 132);
+        cat = new CatView(this, 184);
         cat.enableNaps();
         cat.setPetListener(this::onCatPetted);
         catBubble = PixelTheme.body(this, "", 16, PixelTheme.INK);
@@ -142,33 +142,10 @@ public class MainActivity extends BaseActivity {
         playBtn.setIcon("play");
         playBtn.setIconSize(30);
         playBtn.setShine(true);
-        playBtn.setOnClickListener(v -> go(new Intent(this, JourneyActivity.class)));
+        playBtn.setOnClickListener(v -> onPlay());
         column.addView(playBtn, matchWrap(10));
 
-        dailyCard = new ModeCard(this, "calendar", "DAILY", PixelTheme.MINT);
-        dailyCard.setOnClickListener(v -> onDaily());
-        timedCard = new ModeCard(this, "clock", "TIMED", PixelTheme.SKY);
-        timedCard.setOnClickListener(v -> onTimed());
-        duelCard = new ModeCard(this, "swords", "DUEL", PixelTheme.ROSE);
-        duelCard.setOnClickListener(v -> onDuel());
-        ranksCard = new ModeCard(this, "trophy", "RANKS", 0xFFC9A6FF);
-        ranksCard.setOnClickListener(v -> onLeaderboard());
-        livesCard = new ModeCard(this, "heart", "9 LIVES", 0xFFFF9A3C);
-        livesCard.setOnClickListener(v -> launch(GameActivity.Mode.LIVES));
-        megaCard = new ModeCard(this, "star", "MEGA", 0xFFFFD34D);
-        megaCard.setOnClickListener(v -> onMega());
-
         column.addView(extrasRow(), matchWrap(10));
-        column.addView(cardRow(dailyCard, timedCard), matchWrap(10));
-        column.addView(cardRow(livesCard, megaCard), matchWrap(10));
-        column.addView(cardRow(duelCard, ranksCard), matchWrap(10));
-
-        cloudBtn = new PixelButton(this, "SAVE TO CLOUD", PixelTheme.PANEL, PixelTheme.TEXT);
-        cloudBtn.setLabelSize(10);
-        cloudBtn.setIcon("cloud");
-        cloudBtn.setIconSize(18);
-        cloudBtn.setOnClickListener(v -> onCloud());
-        column.addView(cloudBtn, matchWrap(10));
 
         contentLayer.addView(scroll, fill());
     }
@@ -214,16 +191,6 @@ public class MainActivity extends BaseActivity {
         return b;
     }
 
-    private View cardRow(View a, View b) {
-        LinearLayout row = new LinearLayout(this);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        row.addView(a, lp);
-        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        rp.leftMargin = dp(10);
-        row.addView(b, rp);
-        return row;
-    }
-
     /** Streak summary on the left, the shop on the right. */
     private View streakAndShop() {
         LinearLayout row = new LinearLayout(this);
@@ -255,6 +222,15 @@ public class MainActivity extends BaseActivity {
         row.addView(sideButton("SHOP", "bag", 0xFFFF9A3C, ShopActivity.class), sideParams());
         row.addView(sideButton("HOME", "home", PixelTheme.SKY, HomeActivity.class), sideParams());
         return row;
+    }
+
+    /** A new player goes straight to the Journey, so the first thing they see is the first level. */
+    private boolean isNewPlayer() {
+        return progress.level <= NEW_PLAYER_LEVELS;
+    }
+
+    private void onPlay() {
+        go(new Intent(this, isNewPlayer() ? JourneyActivity.class : PlayActivity.class));
     }
 
     /** The daily extras. A badge on one means something is waiting there. */
@@ -325,26 +301,6 @@ public class MainActivity extends BaseActivity {
         refresh();
     }
 
-    private void onMega() {
-        long today = Days.today();
-        if (MegaBoard.isSolved(progress, today)) {
-            new PixelModal(this).title("MEGA BOARD").icon("star").accent(PixelTheme.MINT)
-                    .body("You've solved this weekend's board. A new one opens next Saturday.")
-                    .primary("OK", null)
-                    .show();
-        } else if (!MegaBoard.isOpen(today)) {
-            int days = MegaBoard.daysUntilOpen(today);
-            new PixelModal(this).title("MEGA BOARD").icon("star").accent(PixelTheme.GOLD)
-                    .body("A giant board opens every weekend. Your progress is saved, so you can solve it over both days.")
-                    .stat("calendar", "Opens in", days + (days == 1 ? " day" : " days"), PixelTheme.GOLD)
-                    .stat("coin", "Reward", String.valueOf(MegaBoard.COINS), PixelTheme.GOLD)
-                    .primary("OK", null)
-                    .show();
-        } else {
-            launch(GameActivity.Mode.MEGA);
-        }
-    }
-
     private PixelButton sideButton(String label, String icon, int fill, Class<?> screen) {
         PixelButton b = new PixelButton(this, label, fill, PixelTheme.INK);
         b.setLabelSize(9);
@@ -386,23 +342,13 @@ public class MainActivity extends BaseActivity {
         claimBadge.setText(String.valueOf(ready));
         claimBadge.setVisibility(ready > 0 ? View.VISIBLE : View.GONE);
 
-        playBtn.setSubtitle(Journey.chapterName(Journey.chapterOf(progress.level)) + " - LEVEL " + progress.level
-                + "  (" + Journey.slotOf(progress.level) + "/" + Journey.LEVELS_PER_CHAPTER + ")");
+        playBtn.setSubtitle(isNewPlayer() ? "Start your journey" : "Level " + progress.level + " and every game mode");
 
         long today = Days.today();
         int streak = StreakLogic.displayStreak(progress.streak, today);
         boolean doneToday = progress.streak.lastDay == today;
-        dailyCard.setStatus(doneToday ? "Solved!" : "New puzzle");
-        dailyCard.setBadge(doneToday ? "" : "NEW");
-        dailyCard.setFill(doneToday ? 0xFF4FB488 : PixelTheme.MINT);
-        timedCard.setStatus(progress.bestTimed > 0 ? "Best " + progress.bestTimed : "2:00 sprint");
-        duelCard.setStatus(progress.duelsPlayed > 0 ? wins(progress.duelWins) : "Beat the bot");
-        ranksCard.setStatus("Top players");
-        livesCard.setStatus(progress.bestLives > 0 ? "Best " + progress.bestLives : "Survive!");
         boolean megaReady = MegaBoard.isOpen(today) && !MegaBoard.isSolved(progress, today);
-        megaCard.setStatus(MegaBoard.isSolved(progress, today) ? "Solved!" : megaReady ? "Open now"
-                : "In " + MegaBoard.daysUntilOpen(today) + (MegaBoard.daysUntilOpen(today) == 1 ? " day" : " days"));
-        megaCard.setBadge(megaReady ? "NEW" : "");
+        playBtn.setBadge(!isNewPlayer() && (!doneToday || megaReady) ? "NEW" : "");
 
         long now = System.currentTimeMillis();
         spinBtn.setBadge(DailySpin.canSpin(progress, today) ? "!" : "");
@@ -415,10 +361,6 @@ public class MainActivity extends BaseActivity {
 
         streakText.setText(streak == 0 ? "NO STREAK" : days(streak).toUpperCase(Locale.ROOT));
         streakSub.setText(doneToday ? "All done!" : streak > 0 ? "Play today!" : "Play daily");
-
-        if (PlayGamesService.isConfigured(this)) {
-            PlayGamesService.isSignedIn(this, ok -> cloudBtn.setVisibility(ok ? View.GONE : View.VISIBLE));
-        }
     }
 
     static String wins(int n) {
@@ -440,70 +382,7 @@ public class MainActivity extends BaseActivity {
         });
     }
 
-    private void launch(GameActivity.Mode mode) {
-        Intent i = new Intent(this, GameActivity.class);
-        i.putExtra(GameActivity.EXTRA_MODE, mode.name());
-        go(i);
-    }
-
     // ------------------------------------------------------------------ modals
-
-    private void onDaily() {
-        long today = Days.today();
-        if (progress.streak.lastDay != today) {
-            launch(GameActivity.Mode.DAILY);
-            return;
-        }
-        new PixelModal(this).title("DAILY DONE").icon("calendar").accent(PixelTheme.MINT)
-                .body("You already solved today's puzzle. A new one arrives at midnight.")
-                .stat("flame", "Current streak", days(StreakLogic.displayStreak(progress.streak, today)), PixelTheme.ROSE)
-                .stat("freeze", "Streak freezes", progress.streak.freezes + " / " + StreakLogic.MAX_FREEZES, PixelTheme.SKY)
-                .note("You can replay it for fun, but it won't pay coins or count towards your streak again.")
-                .primary("REPLAY", "play", () -> launch(GameActivity.Mode.DAILY))
-                .secondary("CLOSE", null)
-                .show();
-    }
-
-    private void onTimed() {
-        new PixelModal(this).title("TIMED RUN").icon("clock").accent(PixelTheme.SKY)
-                .body("Two minutes on the clock. Find as many words as you can on a fresh board.")
-                .stat("clock", "Time limit", "2:00", PixelTheme.SKY)
-                .stat("trophy", "Your best", progress.bestTimed > 0 ? String.valueOf(progress.bestTimed) : "-", PixelTheme.GOLD)
-                .stat("sparkle", "Clear the board", "+2 / SEC LEFT", PixelTheme.MINT)
-                .primary("START", "play", () -> launch(GameActivity.Mode.TIMED))
-                .secondary("NOT NOW", null)
-                .show();
-    }
-
-    private void onDuel() {
-        new PixelModal(this).title("WORD DUEL").icon("swords").accent(PixelTheme.ROSE)
-                .body("You and the bot race on the same board for 90 seconds. Highest score when time runs out wins.")
-                .stat("clock", "Time limit", "1:30", PixelTheme.SKY)
-                .stat("coin", "Win reward", "+20", PixelTheme.GOLD)
-                .stat("trophy", "Your record", wins(progress.duelWins).toUpperCase(Locale.ROOT) + " / " + progress.duelsPlayed, PixelTheme.TEXT)
-                .note("Or race up to three friends on the same Wi-Fi.")
-                .primary("FIGHT THE BOT", "swords", () -> launch(GameActivity.Mode.DUEL))
-                .button("RACE ON WI-FI", PixelTheme.SKY, PixelTheme.INK, "cloud", Sfx.Id.UI_TAP,
-                        () -> go(new Intent(this, LanActivity.class)))
-                .secondary("NOT NOW", null)
-                .show();
-    }
-
-    private void onLeaderboard() {
-        if (PlayGamesService.isConfigured(this) && PlayGamesService.hasLeaderboards(this)) {
-            PlayGamesService.showLeaderboard(this, getString(R.string.leaderboard_daily));
-            return;
-        }
-        new PixelModal(this).title("RANKS").icon("trophy").accent(0xFFC9A6FF)
-                .body("Global leaderboards need Google Play Games, which isn't connected in this build yet.")
-                .heading("YOUR BEST SO FAR")
-                .stat("clock", "Timed score", progress.bestTimed > 0 ? String.valueOf(progress.bestTimed) : "-", PixelTheme.GOLD)
-                .stat("swords", "Duels won", String.valueOf(progress.duelWins), PixelTheme.ROSE)
-                .stat("flame", "Best streak", days(progress.streak.best), PixelTheme.ROSE)
-                .stat("book", "Words found", String.valueOf(progress.totalWordsFound), PixelTheme.MINT)
-                .primary("GOT IT", null)
-                .show();
-    }
 
     private void onCloud() {
         if (!PlayGamesService.isConfigured(this)) {
@@ -518,7 +397,6 @@ public class MainActivity extends BaseActivity {
         }
         PlayGamesService.signIn(this, ok -> {
             if (ok) {
-                cloudBtn.setVisibility(View.GONE);
                 syncWithCloud();
                 new PixelModal(this).title("SIGNED IN").icon("check").accent(PixelTheme.MINT)
                         .body("You're connected. Progress now backs up to your Google account automatically.")
@@ -576,7 +454,8 @@ public class MainActivity extends BaseActivity {
                 .stat("freeze", "Streak freezes", progress.streak.freezes + " / " + StreakLogic.MAX_FREEZES, PixelTheme.SKY)
                 .note("You earn a freeze every " + StreakLogic.FREEZE_EVERY_DAYS + " days. A freeze saves your streak if you miss one day.");
         if (progress.streak.lastDay != today) {
-            m.primary("PLAY DAILY", "calendar", () -> launch(GameActivity.Mode.DAILY));
+            m.primary("PLAY DAILY", "calendar", () -> go(new Intent(this, GameActivity.class)
+                    .putExtra(GameActivity.EXTRA_MODE, GameActivity.Mode.DAILY.name())));
         }
         m.secondary("CLOSE", null).show();
     }
@@ -599,6 +478,7 @@ public class MainActivity extends BaseActivity {
                 });
         m.button("REMINDER TIME", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "clock", Sfx.Id.UI_TAP, this::showReminderTimes);
         m.button("ACCESSIBILITY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showAccessibility);
+        m.button("CLOUD SAVE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "cloud", Sfx.Id.UI_TAP, this::onCloud);
         m.button("HOW TO PLAY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showHowToPlay);
         m.button("CREDITS", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showCredits);
         AdsService ads = AdsService.get(this);
