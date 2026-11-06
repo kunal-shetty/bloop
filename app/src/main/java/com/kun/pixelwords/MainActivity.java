@@ -20,6 +20,7 @@ import com.kun.pixelwords.data.Days;
 import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
+import com.kun.pixelwords.game.CatMood;
 import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Quest;
@@ -37,12 +38,15 @@ import com.kun.pixelwords.ui.PixelTheme;
 import com.kun.pixelwords.ui.StatChip;
 
 import java.util.Locale;
+import java.util.Random;
 
 /** Main menu: your cat, the streak and shop, the big PLAY button, and a card for each game mode. */
 public class MainActivity extends BaseActivity {
 
     private static final int[] REMINDER_HOURS = {9, 13, 19, 21};
     private static final int REQUEST_NOTIFICATIONS = 1;
+    private static final long CAT_SPEAKS_AFTER_MS = 900;
+    private static final long CAT_BUBBLE_MS = 3500;
 
     private ProgressStore store;
     private Progress progress;
@@ -50,7 +54,9 @@ public class MainActivity extends BaseActivity {
     private ModeCard dailyCard, timedCard, duelCard, ranksCard;
     private StatChip coinChip, hintChip;
     private CatView cat;
-    private TextView streakText, streakSub, claimBadge;
+    private TextView streakText, streakSub, claimBadge, catBubble;
+    private int catGift;
+    private final Random catRandom = new Random();
     private LinearLayout column;
     private boolean introduced;
 
@@ -80,6 +86,7 @@ public class MainActivity extends BaseActivity {
             playIntro();
         }
         offerReminders();
+        updateCat();
     }
 
     private int dp(float v) {
@@ -101,7 +108,18 @@ public class MainActivity extends BaseActivity {
 
         // The cat takes all the spare height, sitting just above the panels below.
         cat = new CatView(this, 132);
-        column.addView(cat, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(136), 1f));
+        cat.enableNaps();
+        cat.setPetListener(this::onCatPetted);
+        catBubble = PixelTheme.body(this, "", 16, PixelTheme.INK);
+        catBubble.setBackground(new PanelDrawable(PixelTheme.CREAM, Math.max(2f, dp(1))));
+        catBubble.setPadding(dp(10), dp(6), dp(10), dp(8));
+        catBubble.setGravity(Gravity.CENTER);
+        catBubble.setVisibility(View.INVISIBLE);
+        FrameLayout catBox = new FrameLayout(this);
+        catBox.addView(cat, fill());
+        catBox.addView(catBubble, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+        column.addView(catBox, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(136), 1f));
 
         column.addView(streakAndShop(), matchWrap(8));
 
@@ -382,6 +400,38 @@ public class MainActivity extends BaseActivity {
                         .show();
             }
         });
+    }
+
+    /** One gift at a time: an uncollected coin stays until it's tapped, however often the menu reopens. */
+    private void updateCat() {
+        if (catGift == 0) {
+            catGift = CatMood.rollGift(progress, Days.today(), catRandom);
+            cat.setGift(catGift > 0);
+        }
+        contentLayer.postDelayed(() -> catSays(CatMood.line(progress, Days.today(), catRandom)), CAT_SPEAKS_AFTER_MS);
+    }
+
+    private void onCatPetted() {
+        if (catGift == 0) {
+            if (catRandom.nextInt(3) == 0) catSays(CatMood.line(progress, Days.today(), catRandom));
+            return;
+        }
+        CatMood.collectGift(progress, Days.today(), catGift);
+        store.save(progress);
+        coinChip.animateTo(progress.coins);
+        Sfx.play(Sfx.Id.COIN);
+        Haptics.success();
+        catSays("+" + catGift + " coins! I found them for you.");
+        catGift = 0;
+        cat.setGift(false);
+    }
+
+    private void catSays(String line) {
+        catBubble.setText(line);
+        catBubble.setVisibility(View.VISIBLE);
+        catBubble.animate().cancel();
+        catBubble.setAlpha(1f);
+        catBubble.animate().alpha(0f).setStartDelay(CAT_BUBBLE_MS).setDuration(400).start();
     }
 
     private void showStreakDetails() {
