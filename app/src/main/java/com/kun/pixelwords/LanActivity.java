@@ -153,6 +153,7 @@ public class LanActivity extends BaseActivity {
         input.setSingleLine(true);
         input.setHint("Your name");
         input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(LanPlayer.MAX_NAME_LENGTH)});
+        input.setTypeface(PixelTheme.BODY);
         input.setTextColor(PixelTheme.TEXT);
         input.setHintTextColor(PixelTheme.TEXT_DIM);
         new PixelModal(this).title("YOUR NAME").icon("heart").accent(PixelTheme.GOLD)
