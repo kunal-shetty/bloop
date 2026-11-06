@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Draws the pixel cat and its shop accessories into app/src/main/assets/cat/*.png.
+"""Draws the pixel cat, its breeds and its accessories into app/src/main/assets/cat/*.png.
 
 Every layer is a transparent 32x32 image in the same position, so the game stacks them directly:
-tail, body, eyes, then neck, face and head accessories. Change the text art below and re-run.
+tail, body, eyes, then neck, face and head accessories. Each breed is the same cat recoloured, saved
+as body_<breed>.png and tail_<n>_<breed>.png. Change the text art below and re-run.
 Run:  python tools/gen_cat.py      (needs Pillow)
       python tools/gen_cat.py sheet.png   also writes a preview sheet of every item on the cat
 """
@@ -35,6 +36,11 @@ PALETTE = {
     "m": (107, 227, 168),   # mint
     "M": (47, 168, 115),
     "e": (167, 155, 214),   # grey lilac
+    "c": (150, 98, 60),     # brown
+    "C": (98, 62, 40),      # dark brown
+    "i": (206, 240, 255),   # ice
+    "f": (255, 154, 60),    # flame orange
+    "F": (214, 84, 40),     # deep flame
 }
 
 BODY = [
@@ -299,6 +305,352 @@ ACCESSORIES = {
     ]),
 }
 
+ACCESSORIES.update({
+    # ---- coin hats
+    "tophat": sprite(8, 0, [
+        "...kkkkkkkkkk...",
+        "...knnnnnnnnk...",
+        "...knnnnnnnnk...",
+        "...knnnnnnnnk...",
+        "...knnnnnnnnk...",
+        "...knnnnnnnnk...",
+        "...krrrrrrrrk...",
+        "...kRRRRRRRRk...",
+        "kkkkkkkkkkkkkkkk",
+        "knnnnnnnnnnnnnnk",
+        "kkkkkkkkkkkkkkkk",
+    ]),
+    "pirate": sprite(5, 3, [
+        "........kkkkkk........",
+        "......kknnnnnnkk......",
+        "....kknnnnWWnnnnkk....",
+        "..kknnnnnWnnWnnnnnkk..",
+        ".knnnnnnnnWWnnnnnnnnk.",
+        "knnnnnnnWnnnnWnnnnnnnk",
+        "knnnnnnnnnnnnnnnnnnnnk",
+        "kggggggggggggggggggggk",
+        ".kkkkkkkkkkkkkkkkkkkk.",
+    ]),
+    "chef": sprite(8, 0, [
+        "...kkkk..kkkk...",
+        "..kWWWWkkWWWWk..",
+        ".kWWWWWWWWWWWWk.",
+        ".kWWWWWWWWWWWWk.",
+        ".kWWeWWWeWWWeWk.",
+        "..kWeWWWeWWWeWk.",
+        "..kWeWWWeWWWeWk.",
+        "..kWWWWWWWWWWk..",
+        "..keeeeeeeeeek..",
+        "..kkkkkkkkkkkk..",
+    ]),
+    "flowers": sprite(7, 7, [
+        "...rr....gg....rr...",
+        "..rgrr..mggm..rgrr..",
+        ".kMrrMkkMggMkkMrrMk.",
+        "kMMMMMMMMMMMMMMMMMMk",
+        ".kkkkkkkkkkkkkkkkkk.",
+    ]),
+    "cowboy": sprite(3, 2, [
+        ".........kkkkkkkk.........",
+        ".......kkccccccccKK.......".replace("K", "k"),
+        "......kccccCCcccccck......",
+        "......kccccccccccccck.....",
+        "......kcccccccccccck......",
+        "......kCCCCCCCCCCCCk......",
+        "kk....kGGGGGGGGGGGGk....kk",
+        "kckkkkkkkkkkkkkkkkkkkkkkck",
+        ".kccccccccccccccccccccck..",
+        "..kkkkkkkkkkkkkkkkkkkkk...",
+    ]),
+    "santa": sprite(6, 2, [
+        "..............kWk.",
+        ".........kkkkkkk..",
+        "......kkkrrrrrk...",
+        "....kkrrrrrrrrrk..",
+        "...krrrrrrrrrrrk..",
+        "..krrrrrrrrrrrrrk.",
+        ".kWWWWWWWWWWWWWWWk",
+        ".kWWWWWWWWWWWWWWWk",
+        "..kkkkkkkkkkkkkkk.",
+    ]),
+    "halo": sprite(8, 2, [
+        "....kkkkkkkk....",
+        "..kkggggggggkk..",
+        ".kgg........ggk.",
+        ".kgg........ggk.",
+        "..kkggggggggkk..",
+        "....kkkkkkkk....",
+    ]),
+    # ---- coin glasses
+    "nerd": sprite(6, 14, [
+        "kkkkkkkkkkkkkkkkkk",
+        "k.....k....k.....k",
+        "k.....kkkkkk.....k",
+        "k.....k....k.....k",
+        "kkkkkkk....kkkkkkk",
+    ]),
+    "stars": sprite(6, 13, [
+        "...kg.......kg....",
+        "..kggk.....kggk...",
+        "kkggggkkkkkggggkk.",
+        ".kggggk...kggggk..",
+        "..kggk.....kggk...",
+        "..k..k.....k..k...",
+    ]),
+    "patch": sprite(5, 12, [
+        "kk.................",
+        "..kk...............",
+        "....kkkk...........",
+        "...knnnnk..........",
+        "...knnnnkkkkkkkkkkk",
+        "...knnnnk..........",
+        "....kkkk...........",
+    ]),
+    "visor": sprite(5, 14, [
+        ".kkkkkkkkkkkkkkkkkkk",
+        "kssssssssssssssssssk",
+        "kiiissssssssssiiiisk",
+        "kSSSSSSSSSSSSSSSSSSk",
+        ".kkkkkkkkkkkkkkkkkk.",
+    ]),
+    "mask": sprite(5, 13, [
+        ".kkkkkkkkkkkkkkkkkk.",
+        "krrrrrrrrrrrrrrrrrrk",
+        "krrk....krrk....krrk",
+        "krrk....krrk....krrk",
+        "krrrrrrrrkkrrrrrrrrk",
+        ".kkkkkkkkkkkkkkkkkk.",
+    ]),
+    # ---- coin neckwear
+    "pearls": sprite(7, 23, [
+        "kWkWkWkWkWkWkWkWkk",
+        "kWWkkkkkkkkkkkWWk.",
+        ".kWWkWkWkWkWkWWk..",
+        "..kkWWWeWeWWWkk...",
+        "....kkkkkkkkk.....",
+    ]),
+    "bandana": sprite(6, 22, [
+        "..kkkkkkkkkkkkkkkk..",
+        ".krrWrrWrrWrrWrrWrk.",
+        "..krrWrrWrrWrrWrrk..",
+        "...krrrWrrWrrWrrk...",
+        ".....krrWrrWrrk.....",
+        ".......krrWrk.......",
+        ".........kk.........",
+    ]),
+    "medal": sprite(11, 22, [
+        "kss.....sk",
+        ".ksr...rk.",
+        "..ksr.rk..",
+        "...kggk...",
+        "..kgyggk..",
+        "..kgggGk..",
+        "...kkkk...",
+    ]),
+    "tie": sprite(12, 23, [
+        ".kkkkkk.",
+        ".krrrrk.",
+        "..krrk..",
+        "..krRk..",
+        "..krrk..",
+        ".krRrrk.",
+        ".krrrRk.",
+        "..krrk..",
+    ]),
+    "lei": sprite(6, 23, [
+        "kkkkkkkkkkkkkkkkkkkkk",
+        "krrrkgggkrrrkmmmkrrrk",
+        "krgrkgygkrgrkmgmkrgrk",
+        "krrrkgggkrrrkmmmkrrrk",
+        ".kkkkrrrkgggkrrrkkkk.",
+        "....krgrkgygkrgrk....",
+        "....kkkkkkkkkkkkk....",
+    ]),
+    "wings": sprite(0, 14, [
+        "kk..........................kk..",
+        "kWkk......................kkWk..",
+        "kWWWkk..................kkWWWk..",
+        "kWeWWWk................kWWWeWk..",
+        "kWWeWWk................kWWeWWk..",
+        ".kWWeWk................kWeWWk...",
+        ".kWeWWk................kWWeWk...",
+        "..kWWk..................kWWk....",
+        "...kk....................kk.....",
+    ]),
+    # ---- spin legendaries
+    "galaxycrown": sprite(8, 2, [
+        "..g....s....r...",
+        "..k....k....k...",
+        "k.kv.k.vk.k.vk.k",
+        "kvkvkvvvkvkvvkvk",
+        "kvvvvvvvvvvvvvvk",
+        "kvgvsvvgvvsvgvvk",
+        "kVVVVVVVVVVVVVVk",
+        "kVsVVgVVsVVgVVsk",
+        "kkkkkkkkkkkkkkkk",
+    ]),
+    "goldshades": sprite(6, 14, [
+        "gggggggggggggggggg",
+        ".gkkkkkg..gkkkkkg.",
+        ".gkykkkggggkykkkg.",
+        ".gkkkkkg..gkkkkkg.",
+        "..ggggg....ggggg..",
+    ]),
+    "phoenix": sprite(0, 15, [
+        "..g..........................g",
+        ".gF..........................Fg",
+        ".fFf........................fFf",
+        "kffFk......................kFffk",
+        "kfFffk....................kffFfk",
+        ".kffFk...................kFffk.",
+        ".kfgffk..................kffgfk",
+        "..kffffk................kffffk.",
+        "..kFfgfk...krrrrrrrrk...kfgfFk.",
+        "...kffffkkkrRRRRRRRRrkkkffffk..",
+        "....kkFffffffffffffffffffFkk...",
+        "......kkkkkkkkkkkkkkkkkkkk.....",
+    ]),
+    # ---- season rewards
+    "icecrown": sprite(9, 3, [
+        "..i...i..i...i",
+        ".kik.kikkik.ki",
+        ".kiikiiiiiikik",
+        "kiiiiiiiiiiiik",
+        "kisiiisiiisiik",
+        "kSSSSSSSSSSSSk",
+        "kkkkkkkkkkkkkk",
+    ]),
+    "blossom": sprite(5, 4, [
+        ".....rrr..........rr.",
+        "....rgrrr..kkkkk.rgrr",
+        "..kkrrrkkkkyyyykkkrr.",
+        ".kyyyyyyyyyyyyyyyyyk.",
+        "kyyyyyyrrrrrrrryyyyyk",
+        "kyyyyyyyyyyyyyyyyyyyk",
+        ".kkkkkkkkkkkkkkkkkkk.",
+    ]),
+    "sunhat": sprite(3, 4, [
+        ".........kkkkkkkk.........",
+        ".......kkyyyyyyyykk.......",
+        "......kyyyyyyyyyyyyk......",
+        "......krrrrrrrrrrrrk......",
+        "...kkkkRRRRRRRRRRRRkkkk...",
+        ".kkyyyyyyyyyyyyyyyyyyyykk.",
+        "kyyyyyyyyyyyyyyyyyyyyyyyyk",
+        ".kkkkkkkkkkkkkkkkkkkkkkkk.",
+    ]),
+    "bolt": sprite(6, 13, [
+        "kkkkkkkk..kkkkkkkk",
+        "kvvvgvvk..kvvvgvvk",
+        "kvvggvvkkkkvvggvvk",
+        "kvggggvk..kvggggvk",
+        "kvvvggvk..kvvvggvk",
+        ".kvvgvk....kvvgvk.",
+        "..kkkk......kkkk..",
+    ]),
+    "pumpkin": sprite(7, 1, [
+        ".........Mk.........",
+        "........kMMk........",
+        "....kkkkkkkkkkkk....",
+        "..kkffFffFffFffFkk..",
+        ".kfffFffFffFffFfffk.",
+        "kffffFffFffFffFffffk",
+        "kffkkFffFffFffFkkffk",
+        "kfffFfkkkkkkkkfFfffk",
+        ".kFFFFFFFFFFFFFFFFk.",
+        "..kkkkkkkkkkkkkkkk..",
+    ]),
+    "cloak": sprite(2, 22, [
+        "....kgkkkkkkkkkkkkkkkkgk....",
+        "...knnngnnnnnnnnnnnnnnnnk...",
+        "..knnnnk............knnnnk..",
+        "..knsnnk............knngnk..",
+        ".knnnngk............knnnnnk.",
+        ".knnnnnk............ksnnnnk.",
+        ".kngnnnk............knnnnnk.",
+        ".kkkkkkk............kkkkkkk.",
+    ]),
+    # ---- event and album rewards
+    "fishhat": sprite(6, 2, [
+        "kk...............k",
+        "ksk...kkkkkkkk..k.",
+        "kssk.kssssssssskk.",
+        "kSsskssSsSsSsssWsk",
+        "kSsskssSsSsSsssnsk",
+        "kssk.kssssssssssk.",
+        "ksk...kkkkkkkkkk..",
+        "kk................",
+        ".kkkkkkkkkkkkkkkkk",
+    ]),
+    "explorer": sprite(5, 5, [
+        ".......kkkkkkkk......",
+        ".....kkccccccccck....",
+        "....kccccccccccccck..",
+        "....kCCCCCCCCCCCCCk..",
+        "kkkkkkkkkkkkkkkkkkkkk",
+        "kcccccccccccccccccccc",
+        ".kkkkkkkkkkkkkkkkkkk.",
+    ]),
+    "scholar": sprite(6, 14, [
+        "..ggggg....ggggg..",
+        ".g.....g..g.....g.",
+        ".g.....gggg.....g.",
+        ".g.....g..g.....g.",
+        "..ggggg....ggggg..",
+    ]),
+})
+
+
+def recolor(im, shade):
+    """A copy of a layer with each pixel passed through shade(x, y, rgb)."""
+    out = im.copy()
+    px = out.load()
+    for y in range(out.height):
+        for x in range(out.width):
+            r, g, b, a = px[x, y]
+            if a:
+                px[x, y] = shade(x, y, (r, g, b)) + (a,)
+    return out
+
+
+FUR, STRIPE, LIT, MUZZLE, NOSE = (PALETTE[c] for c in "odhwp")
+
+
+def swap(colors):
+    def shade(x, y, rgb):
+        return colors.get(rgb, rgb)
+    return shade
+
+
+def calico(x, y, rgb):
+    if rgb in (STRIPE, FUR, LIT):
+        patch = (x // 6 + y // 5) % 3
+        return {0: (245, 236, 224), 1: (232, 142, 68), 2: (62, 50, 58)}[patch]
+    return rgb
+
+
+def galaxy(x, y, rgb):
+    if rgb in (FUR, STRIPE, LIT):
+        star = (x * 7 + y * 13) % 37
+        if star == 0:
+            return (255, 255, 255)
+        if star == 19:
+            return PALETTE["g"]
+        return (58, 40, 132) if (x + y) % 9 < 5 else (40, 26, 100)
+    return {MUZZLE: (150, 130, 235), NOSE: (98, 198, 255)}.get(rgb, rgb)
+
+
+BREEDS = {
+    "tuxedo": swap({FUR: (46, 44, 64), STRIPE: (34, 32, 50), LIT: (74, 72, 98)}),
+    "snow": swap({FUR: (248, 244, 240), STRIPE: (224, 218, 216), LIT: (255, 255, 255), MUZZLE: (255, 255, 255)}),
+    "black": swap({FUR: (42, 36, 66), STRIPE: (28, 24, 48), LIT: (72, 64, 106), MUZZLE: (84, 76, 120)}),
+    "grey": swap({FUR: (152, 158, 178), STRIPE: (104, 110, 132), LIT: (194, 200, 214)}),
+    "siamese": swap({FUR: (240, 222, 190), STRIPE: (116, 82, 60), LIT: (250, 238, 214)}),
+    "calico": calico,
+    "galaxy": galaxy,
+}
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     body = over(from_art(BODY), FACE_DETAIL)
@@ -307,17 +659,23 @@ def main():
         im.save(os.path.join(OUT, name + ".png"))
     for key, im in ACCESSORIES.items():
         im.save(os.path.join(OUT, "acc_" + key + ".png"))
+    for breed, shade in BREEDS.items():
+        recolor(body, shade).save(os.path.join(OUT, "body_" + breed + ".png"))
+        for name, im in TAIL.items():
+            recolor(im, shade).save(os.path.join(OUT, name + "_" + breed + ".png"))
     print(len(os.listdir(OUT)), "cat layers written")
 
     if len(sys.argv) > 1:
         keys = [None] + list(ACCESSORIES)
-        scale, cols = 8, 5
-        rows = (len(keys) + 2) // cols + 1
+        scale, cols = 6, 8
+        rows = (len(keys) + 2 + len(BREEDS)) // cols + 1
         sheet = Image.new("RGB", (cols * 32 * scale, rows * 32 * scale), (58, 46, 110))
         base = over(TAIL["tail_0"], body, EYES["eyes_open"])
         cells = [base if k is None else over(base, ACCESSORIES[k]) for k in keys]
         cells.append(over(TAIL["tail_1"], body, EYES["eyes_happy"]))
         cells.append(over(TAIL["tail_2"], body, EYES["eyes_closed"], ACCESSORIES["crown"], ACCESSORIES["hearts"], ACCESSORIES["scarf"]))
+        for shade in BREEDS.values():
+            cells.append(over(recolor(TAIL["tail_0"], shade), recolor(body, shade), EYES["eyes_open"]))
         for i, cell in enumerate(cells):
             big = cell.resize((32 * scale, 32 * scale), Image.NEAREST)
             sheet.paste(big, ((i % cols) * 32 * scale, (i // cols) * 32 * scale), big)
