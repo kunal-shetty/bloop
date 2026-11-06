@@ -135,7 +135,7 @@ public class SeasonActivity extends PageActivity {
 
     /** Tier buttons are narrow, so long names lose their count. */
     private static String shortLabel(Reward reward) {
-        String label = reward.label().toUpperCase(Locale.ROOT).replace("1 X ", "");
+        String label = reward.label().toUpperCase(Locale.ROOT).replace("1 X ", "").replace("PICK A LETTER", "PICK LETTER");
         return label.length() <= 12 ? label : label.substring(0, 11).trim() + ".";
     }
 
