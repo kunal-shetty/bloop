@@ -17,6 +17,10 @@ public final class LevelGenerator {
 
     private static final long PROGRESSION_SALT = 0x5057_4F52_4453_0001L;
     private static final long DAILY_SALT = 0x5057_4441_494C_0002L;
+    private static final long HARD_SALT = 0x5057_4841_5244_0003L;
+    private static final int MAX_WHEEL_LETTERS = 8;
+    /** Few wheels spell more long common words than this, and chasing more wastes every generation attempt. */
+    private static final int MAX_HARD_WORDS = 9;
 
     public static final int MAX_ROWS = 10;
     public static final int MAX_COLS = 10;
@@ -29,11 +33,18 @@ public final class LevelGenerator {
         public final int targetWords;
         /** The grid may not grow beyond this; bigger levels get a roomier limit. */
         public final int maxGrid;
+        /** Shortest word allowed in the grid. */
+        public final int minWordLength;
 
         public Spec(int letterCount, int targetWords, int maxGrid) {
+            this(letterCount, targetWords, maxGrid, Dictionary.MIN_LEN);
+        }
+
+        public Spec(int letterCount, int targetWords, int maxGrid, int minWordLength) {
             this.letterCount = letterCount;
             this.targetWords = targetWords;
             this.maxGrid = maxGrid;
+            this.minWordLength = minWordLength;
         }
 
         /** Bonus words stay a rare treat: about one for every three words in the grid. */
@@ -66,6 +77,13 @@ public final class LevelGenerator {
         return generate("P" + levelNumber, Level.Kind.PROGRESSION, seed, specForLevel(levelNumber));
     }
 
+    /** A hard version of a campaign level: a bigger wheel, more words, and no short easy ones. */
+    public Level forHard(int levelNumber) {
+        if (levelNumber <= FixedLevels.COUNT) throw new IllegalArgumentException("Opening levels are never hard");
+        long seed = SeedUtil.mix(HARD_SALT, levelNumber);
+        return generate("H" + levelNumber, Level.Kind.PROGRESSION, seed, specForHard(levelNumber));
+    }
+
     /** Daily puzzle for a given day number (days since 1970-01-01; use LocalDate.toEpochDay()). Harder at weekends. */
     public Level forDaily(long epochDay) {
         int weekday = (int) Math.floorMod(epochDay + 3, 7L); // 0 = Monday (1970-01-01 was a Thursday)
@@ -94,6 +112,14 @@ public final class LevelGenerator {
         return new Spec(8, Math.min(16, 10 + (n - 171) / 25), 10);           // 8 letters, 10..16 words, 10x10
     }
 
+    /** One step past the normal curve at this level, so a hard level is tough but never out of reach. */
+    public static Spec specForHard(int n) {
+        Spec base = specForLevel(n);
+        int letters = Math.min(MAX_WHEEL_LETTERS, base.letterCount + 1);
+        int words = Math.min(base.targetWords + 2, MAX_HARD_WORDS);
+        return new Spec(letters, words, Math.min(MAX_ROWS, base.maxGrid + 1), letters >= 7 ? 5 : 4);
+    }
+
     // ---------------------------------------------------------------- core
 
     public Level generate(String id, Level.Kind kind, long seed, Spec spec) {
@@ -109,7 +135,7 @@ public final class LevelGenerator {
             List<String> subs = dict.subWords(seedWord);
 
             List<String> commonSubs = new ArrayList<>();
-            for (String w : subs) if (dict.isCommon(w)) commonSubs.add(w);
+            for (String w : subs) if (dict.isCommon(w) && w.length() >= spec.minWordLength) commonSubs.add(w);
             if (commonSubs.size() < minWords) continue;
 
             Level candidate = layout(id, kind, seedWord, subs, commonSubs, spec, rnd);
