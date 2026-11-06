@@ -23,8 +23,8 @@ import java.util.Calendar;
 
 /**
  * The once-a-day nudge to play. Each alarm books the next one, and app start and reboot book it again
- * because the system forgets alarms on reboot. Inexact on purpose: a reminder can be a few minutes
- * late, and exact alarms need a permission Play restricts.
+ * because the system forgets alarms on reboot. Inexact on purpose: Android may deliver it up to an
+ * hour late, and exact alarms need a permission Play restricts.
  */
 public final class Reminders {
 
