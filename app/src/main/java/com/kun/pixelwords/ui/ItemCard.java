@@ -86,6 +86,10 @@ public class ItemCard extends PressableView {
             String label = worn ? "WEARING" : "OWNED";
             price.setColor(worn ? PixelTheme.CREAM : PixelTheme.TEXT_DIM);
             c.drawText(label, (w - price.measureText(label)) / 2f, rowY, price);
+        } else if (item.source != Shop.Source.COINS) {
+            String label = "SPECIAL";
+            price.setColor(PixelTheme.SKY);
+            c.drawText(label, (w - price.measureText(label)) / 2f, rowY, price);
         } else {
             String label = String.valueOf(item.price);
             float icon = PixelTheme.dp(getContext(), 18), gap = PixelTheme.dp(getContext(), 5);
