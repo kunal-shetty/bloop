@@ -230,17 +230,26 @@ public class MainActivity extends BaseActivity {
         text.addView(streakText);
         text.addView(streakSub);
         streak.addView(text);
-        row.addView(streak, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1.45f));
+        row.addView(streak, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1.6f));
 
-        PixelButton shop = new PixelButton(this, "SHOP", 0xFFFF9A3C, PixelTheme.INK);
-        shop.setLabelSize(12);
-        shop.setIcon("bag");
-        shop.setIconSize(24);
-        shop.setOnClickListener(v -> go(new Intent(this, ShopActivity.class)));
-        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        sp.leftMargin = dp(10);
-        row.addView(shop, sp);
+        row.addView(sideButton("SHOP", "bag", 0xFFFF9A3C, ShopActivity.class), sideParams());
+        row.addView(sideButton("HOME", "home", PixelTheme.SKY, HomeActivity.class), sideParams());
         return row;
+    }
+
+    private PixelButton sideButton(String label, String icon, int fill, Class<?> screen) {
+        PixelButton b = new PixelButton(this, label, fill, PixelTheme.INK);
+        b.setLabelSize(9);
+        b.setIcon(icon);
+        b.setIconSize(20);
+        b.setOnClickListener(v -> go(new Intent(this, screen)));
+        return b;
+    }
+
+    private LinearLayout.LayoutParams sideParams() {
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        p.leftMargin = dp(8);
+        return p;
     }
 
     private LinearLayout.LayoutParams matchWrap(int top) {
