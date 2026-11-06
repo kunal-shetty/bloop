@@ -26,8 +26,10 @@ import com.kun.pixelwords.ui.RoomView;
 import com.kun.pixelwords.ui.StatChip;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /** Furnish the cat's room. Tap an item to buy it, or to put it in or take it out; drag it in the room. */
 public class HomeActivity extends BaseActivity {
@@ -43,6 +45,7 @@ public class HomeActivity extends BaseActivity {
     private CatView cat;
     private StatChip coins;
     private final List<HomeCard> cards = new ArrayList<>();
+    private final Map<Home.Theme, PixelButton> themeButtons = new EnumMap<>(Home.Theme.class);
 
     @Override
     protected View createBackground() {
@@ -82,6 +85,7 @@ public class HomeActivity extends BaseActivity {
         TextView tip = PixelTheme.body(this, "Drag furniture around the room. Tap an item you own to put it away.", 16, PixelTheme.TEXT_DIM);
         tip.setPadding(0, dp(6), 0, 0);
         list.addView(tip);
+        addThemes(list);
         for (Home.Slot slot : Home.Slot.values()) addSlot(list, slot);
         scroll.addView(list);
         page.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -146,19 +150,75 @@ public class HomeActivity extends BaseActivity {
         hp.bottomMargin = dp(6);
         list.addView(heading, hp);
 
-        LinearLayout row = new LinearLayout(this);
-        boolean first = true;
-        for (Home.Item item : Home.itemsIn(slot)) {
-            HomeCard card = new HomeCard(this, item);
-            card.setClickSound(null);
-            card.setOnClickListener(v -> onItem(card.item));
-            cards.add(card);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            if (!first) lp.leftMargin = dp(8);
-            first = false;
-            row.addView(card, lp);
+        List<Home.Item> items = Home.itemsIn(slot);
+        for (int i = 0; i < items.size(); i += COLUMNS) {
+            LinearLayout row = new LinearLayout(this);
+            for (int c = 0; c < COLUMNS; c++) {
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+                if (c > 0) lp.leftMargin = dp(8);
+                if (i + c < items.size()) {
+                    HomeCard card = new HomeCard(this, items.get(i + c));
+                    card.setClickSound(null);
+                    card.setOnClickListener(v -> onItem(card.item));
+                    cards.add(card);
+                    row.addView(card, lp);
+                } else {
+                    row.addView(new View(this), lp); // keeps the last row's cards the same width
+                }
+            }
+            LinearLayout.LayoutParams rp = matchWrap(0);
+            rp.bottomMargin = dp(8);
+            list.addView(row, rp);
         }
-        list.addView(row);
+    }
+
+    private void addThemes(LinearLayout list) {
+        TextView heading = PixelTheme.display(this, "ROOMS", 10, PixelTheme.CREAM);
+        heading.setBackground(new PanelDrawable(0xE0251D4A, Math.max(2f, dp(1))));
+        heading.setPadding(dp(10), dp(8), dp(10), dp(9));
+        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        hp.topMargin = dp(10);
+        hp.bottomMargin = dp(6);
+        list.addView(heading, hp);
+        for (Home.Theme theme : Home.Theme.values()) {
+            PixelButton b = new PixelButton(this, theme.title.toUpperCase(Locale.ROOT), PixelTheme.PANEL, PixelTheme.TEXT);
+            b.setLabelSize(11);
+            b.setIcon("home");
+            b.setOnClickListener(v -> onTheme(theme));
+            themeButtons.put(theme, b);
+            LinearLayout.LayoutParams lp = matchWrap(0);
+            lp.bottomMargin = dp(8);
+            list.addView(b, lp);
+        }
+    }
+
+    private void onTheme(Home.Theme theme) {
+        Sfx.play(Sfx.Id.UI_TAP);
+        if (Home.owns(progress, theme)) {
+            Home.use(progress, theme);
+            save();
+            refresh();
+            cat.hop();
+            return;
+        }
+        if (!Home.canAfford(progress, theme)) {
+            new PixelModal(this).title(theme.title.toUpperCase(Locale.ROOT)).icon("coin").accent(PixelTheme.ROSE)
+                    .stat("coin", "Price", String.valueOf(theme.price), PixelTheme.GOLD)
+                    .stat("coin", "Your coins", String.valueOf(progress.coins), PixelTheme.ROSE)
+                    .primary("OK", null)
+                    .show();
+            return;
+        }
+        new PixelModal(this).title("MOVE IN?").icon("home").accent(PixelTheme.GOLD)
+                .body("The " + theme.title + " becomes your cat's room. Your furniture comes too.")
+                .stat("coin", "Price", String.valueOf(theme.price), PixelTheme.GOLD)
+                .stat("coin", "Coins left after", String.valueOf(progress.coins - theme.price), PixelTheme.TEXT)
+                .button("BUY FOR " + theme.price, PixelTheme.GOLD, PixelTheme.INK, "coin", null, () -> {
+                    if (!Home.buy(progress, theme)) return;
+                    celebrateBuy();
+                })
+                .secondary("NOT NOW", null)
+                .show();
     }
 
     private LinearLayout.LayoutParams matchWrap(int top) {
@@ -171,6 +231,13 @@ public class HomeActivity extends BaseActivity {
         coins.animateTo(progress.coins);
         room.show(progress);
         for (HomeCard c : cards) c.update(progress);
+        Home.Theme current = Home.theme(progress);
+        for (Map.Entry<Home.Theme, PixelButton> e : themeButtons.entrySet()) {
+            Home.Theme theme = e.getKey();
+            boolean owned = Home.owns(progress, theme);
+            e.getValue().setFill(theme == current ? 0xFF2FA873 : owned ? PixelTheme.PANEL_LIGHT : PixelTheme.PANEL);
+            e.getValue().setSubtitle(theme == current ? "Your room" : owned ? "Owned" : theme.price + " coins");
+        }
     }
 
     private void save() {
@@ -193,6 +260,13 @@ public class HomeActivity extends BaseActivity {
     }
 
     private void confirmBuy(Home.Item item) {
+        if (!Home.forSale(item)) {
+            new PixelModal(this).title(item.title.toUpperCase(Locale.ROOT)).icon("sparkle").accent(PixelTheme.SKY)
+                    .note("A Season Pass reward.")
+                    .primary("OK", null)
+                    .show();
+            return;
+        }
         if (!Home.canAfford(progress, item)) {
             new PixelModal(this).title(item.title.toUpperCase(Locale.ROOT)).icon("coin").accent(PixelTheme.ROSE)
                     .stat("coin", "Price", String.valueOf(item.price), PixelTheme.GOLD)
@@ -214,6 +288,10 @@ public class HomeActivity extends BaseActivity {
 
     private void buy(Home.Item item) {
         if (!Home.buy(progress, item)) return;
+        celebrateBuy();
+    }
+
+    private void celebrateBuy() {
         save();
         refresh();
         Sfx.play(Sfx.Id.BUY);
