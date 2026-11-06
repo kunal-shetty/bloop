@@ -1,5 +1,6 @@
 package com.kun.pixelwords.generator;
 
+import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.GameSession;
 import com.kun.pixelwords.game.Shop;
@@ -43,6 +44,8 @@ public final class GeneratorSelfTest {
         testDuelBot(gen);
         testShop();
         testShareCard();
+        testAchievements();
+        testAchievementRewards();
         testCurve(gen);
 
         System.out.println();
@@ -58,6 +61,82 @@ public final class GeneratorSelfTest {
     }
 
     // ------------------------------------------------------------------ tests
+
+    private static void testAchievements() {
+        Progress p = new Progress();
+        check(Achievement.unlocked(p).isEmpty(), "a new player has no achievements");
+
+        Set<Achievement> before = Achievement.unlocked(p);
+        p.level = 11;
+        p.duelWins = 1;
+        List<Achievement> fresh = Achievement.newlyUnlocked(before, p);
+        check(fresh.size() == 2 && fresh.contains(Achievement.LEVELS_10) && fresh.contains(Achievement.DUEL_1),
+                "clearing level 10 and a first duel win unlock exactly those two");
+        check(Achievement.newlyUnlocked(Achievement.unlocked(p), p).isEmpty(), "nothing is announced twice");
+
+        p.level = 10;
+        check(!Achievement.LEVELS_10.isUnlocked(p), "being on level 10 has only cleared 9");
+        check(Achievement.LEVELS_10.progress(p) == 9, "progress counts cleared levels");
+        p.level = 500;
+        check(Achievement.LEVELS_10.progress(p) == 10, "progress is capped at the goal");
+
+        check(!Achievement.ALL_ITEMS.isUnlocked(p), "no accessories owned yet");
+        p.coins = 100_000;
+        for (Shop.Item item : Shop.Item.values()) {
+            check(!Achievement.ALL_ITEMS.isUnlocked(p), "the last accessory is still needed");
+            Shop.buy(p, item);
+        }
+        check(Achievement.ALL_ITEMS.isUnlocked(p), "owning every accessory unlocks the collector goal");
+
+        p.streak = StreakLogic.onDailyCompleted(StreakLogic.State.fresh(), 100);
+        for (long day = 101; day < 107; day++) p.streak = StreakLogic.onDailyCompleted(p.streak, day);
+        check(Achievement.STREAK_7.isUnlocked(p), "seven days in a row reaches the streak goal");
+        check(Achievement.STREAK_7.isUnlocked(Progress.parse(p.serialize())), "achievements survive a save and load");
+    }
+
+    private static void testAchievementRewards() {
+        Progress p = new Progress();
+        check(!Achievement.DUEL_1.claim(p), "a locked achievement pays nothing");
+        check(p.coins == 0, "a failed claim leaves coins alone");
+
+        p.duelWins = 1;
+        check(Achievement.claimable(p).size() == 1, "an unlocked achievement is ready to claim");
+        check(Achievement.DUEL_1.claim(p), "claiming an unlocked achievement works");
+        check(p.coins == Achievement.Tier.BRONZE.coins, "the reward matches the tier");
+        check(!Achievement.DUEL_1.claim(p), "a reward can't be claimed twice");
+        check(p.coins == Achievement.Tier.BRONZE.coins, "a second claim pays nothing");
+        check(Achievement.claimable(p).isEmpty(), "nothing is left to claim");
+
+        Progress loaded = Progress.parse(p.serialize());
+        check(Achievement.DUEL_1.isClaimed(loaded), "claims survive a save and load");
+        check(Achievement.claimable(loaded).isEmpty(), "a reloaded save can't claim again");
+
+        Progress old = Progress.parse("level=40\nduels=0\n");
+        check(old.claimedAchievements == 0, "a save from before rewards has nothing claimed");
+        check(Achievement.LEVELS_10.isClaimable(old), "old saves can still claim what they earned");
+
+        Progress other = new Progress();
+        other.duelWins = 1;
+        other.updatedAt = p.updatedAt + 1;
+        Progress merged = Progress.merge(p, other);
+        check(Achievement.DUEL_1.isClaimed(merged), "a claim on either device survives a cloud merge");
+
+        Set<Integer> bits = new HashSet<>();
+        Progress every = new Progress();
+        every.level = 1000;
+        every.totalWordsFound = 100_000;
+        every.dailiesCompleted = 1000;
+        every.bestTimed = 100_000;
+        every.duelWins = 1000;
+        every.streak = new StreakLogic.State(1000, 1000, 0, 0);
+        every.coins = 100_000;
+        for (Shop.Item item : Shop.Item.values()) Shop.buy(every, item);
+        for (Achievement a : Achievement.values()) {
+            long before = every.claimedAchievements;
+            check(a.claim(every), a + " can be claimed");
+            check(bits.add(Long.numberOfTrailingZeros(every.claimedAchievements ^ before)), a + " has its own id");
+        }
+    }
 
     private static void testShareCard() {
         check(ShareCard.dailyNumber(20763) == 1, "launch day is daily #1");
