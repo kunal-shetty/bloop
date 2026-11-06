@@ -56,6 +56,7 @@ public class GameActivity extends BaseActivity {
     private static final int DUEL_SECONDS = 90;
     private static final int URGENT_SECONDS = 10;
     private static final int DUEL_WIN_COINS = 20;
+    private static final int LAST_COACHED_LEVEL = 2;
 
     private Mode mode = Mode.CAMPAIGN;
     private ProgressStore store;
@@ -68,7 +69,7 @@ public class GameActivity extends BaseActivity {
     private CrosswordView grid;
     private WheelView wheel;
     private WordPreview preview;
-    private TextView titleText, subText, timerText, duelText, banner, countdownText;
+    private TextView titleText, subText, timerText, duelText, coachText, banner, countdownText;
     private PixelBar timerBar;
     private View timerRow;
     private StatChip coinChip;
@@ -83,6 +84,7 @@ public class GameActivity extends BaseActivity {
     private boolean resumed;
     private boolean startPending;   // the countdown ended while the app was in the background
     private int combo;
+    private int coachLevel;         // the opening level being taught this round, or 0
     private List<DuelBot.Event> botScript;
     private boolean firstDailyToday;
     private final Random rnd = new Random();
@@ -191,6 +193,8 @@ public class GameActivity extends BaseActivity {
         }
 
         session = new GameSession(level, level.fingerprint());
+        coachLevel = mode == Mode.CAMPAIGN && progress.level <= LAST_COACHED_LEVEL ? progress.level : 0;
+        coachText.setVisibility(coachLevel > 0 ? View.VISIBLE : View.GONE);
         grid.setSession(session);
         wheel.setLetters(level.letters);
         preview.clear();
@@ -702,7 +706,26 @@ public class GameActivity extends BaseActivity {
         return String.format(Locale.US, "%d:%02d", seconds / 60, seconds % 60);
     }
 
+    /** Level 1 shows the swipe with a ghost finger, one word at a time. Level 2 points out the two tools. */
+    private void updateCoach() {
+        if (session == null) return;
+        wheel.setGuide(coachLevel == 1 ? nextWord() : null);
+        if (coachLevel == 0) return;
+        coachText.setText(coachLevel == 2 ? "STUCK? SHUFFLE OR USE A HINT"
+                : session.foundGridWords().isEmpty() ? "SWIPE THE LETTERS TO SPELL A WORD"
+                : "NICE! NOW SPELL THE LAST WORD");
+    }
+
+    /** The first grid word still to find, or null once the board is solved. */
+    private String nextWord() {
+        for (Level.Placement p : level.placements) {
+            if (!session.foundGridWords().contains(p.word)) return p.word;
+        }
+        return null;
+    }
+
     private void updateHud() {
+        updateCoach();
         int earned = session == null || finished ? 0 : session.coinsEarned();
         coinChip.animateTo(progress.coins + earned);
         if (progress.hintTokens > 0) hintBtn.setBadge("x" + progress.hintTokens);
@@ -811,6 +834,14 @@ public class GameActivity extends BaseActivity {
         duelText.setBackground(new PanelDrawable(0xE03A2E6E, Math.max(2f, dp(1))));
         duelText.setPadding(dp(8), dp(8), dp(8), dp(8));
         col.addView(duelText, wrapWidth(8));
+
+        coachText = PixelTheme.display(this, "", 10, PixelTheme.GOLD);
+        coachText.setGravity(Gravity.CENTER);
+        coachText.setLineSpacing(dp(4), 1f);
+        coachText.setBackground(new PanelDrawable(0xE03A2E6E, Math.max(2f, dp(1))));
+        coachText.setPadding(dp(8), dp(8), dp(8), dp(8));
+        coachText.setVisibility(View.GONE);
+        col.addView(coachText, wrapWidth(8));
 
         // Board, with the callout banner floating over its lower edge
         FrameLayout boardBox = new FrameLayout(this);
