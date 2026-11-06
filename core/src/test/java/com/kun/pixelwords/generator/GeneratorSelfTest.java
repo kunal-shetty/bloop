@@ -6,6 +6,7 @@ import com.kun.pixelwords.game.GameSession;
 import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.Shop;
 import com.kun.pixelwords.game.Progress;
+import com.kun.pixelwords.game.Quest;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.ShareCard;
 import com.kun.pixelwords.game.StreakLogic;
@@ -49,6 +50,7 @@ public final class GeneratorSelfTest {
         testAchievements();
         testAchievementRewards();
         testJourney(gen, dict);
+        testQuests();
         testCurve(gen);
 
         System.out.println();
@@ -153,6 +155,62 @@ public final class GeneratorSelfTest {
         Progress merged = Progress.merge(p, other);
         check(merged.starsFor(3) == 3 && merged.starsFor(4) == 2 && merged.starsFor(95) == 3, "a merge keeps the best stars from both");
         check(merged.chaptersRewarded == 2, "a merge can't pay a chapter twice");
+    }
+
+    private static void testQuests() {
+        check(Quest.weekOf(20759) == Quest.weekOf(20765), "Monday to Sunday is one week"); // 2026-11-02 to 11-08
+        check(Quest.weekOf(20766) == Quest.weekOf(20765) + 1, "a new week starts on Monday");
+        check(Quest.daysLeft(20759) == 7 && Quest.daysLeft(20765) == 1, "days left counts today");
+
+        for (long week = 2000; week < 2300; week++) {
+            List<Quest> quests = Quest.forWeek(week);
+            Set<Quest.Kind> kinds = new HashSet<>();
+            for (Quest q : quests) kinds.add(q.kind);
+            check(quests.size() == 3 && kinds.size() == 3, "three different quests each week");
+            check(quests.get(0).title().equals(Quest.forWeek(week).get(0).title()), "quests are deterministic");
+        }
+
+        Progress p = new Progress();
+        p.level = 10;
+        p.totalWordsFound = 500;
+        p.duelWins = 7;
+        p.dailiesCompleted = 9;
+        long monday = 20759, week = Quest.weekOf(monday);
+        check(Quest.rollOver(p, monday), "a new week rolls over");
+        check(!Quest.rollOver(p, monday + 3), "the same week doesn't");
+        for (Quest q : Quest.forWeek(week)) check(q.progress(p) == 0, "every quest starts the week at zero");
+        check(Quest.claimable(p).isEmpty(), "nothing to claim yet");
+
+        Quest first = Quest.forWeek(week).get(0);
+        check(!first.claim(p), "an unfinished quest pays nothing");
+        p.level += 100;
+        p.totalWordsFound += 1000;
+        p.duelWins += 100;
+        p.dailiesCompleted += 100;
+        check(first.progress(p) == first.goal, "quest progress is capped at the goal");
+        check(Quest.claimable(p).size() == 3, "all three are ready");
+        int before = p.coins;
+        check(first.claim(p), "a finished quest can be claimed");
+        check(p.coins == before + first.coins, "the reward is paid");
+        check(!first.claim(p), "a quest can't be claimed twice");
+
+        Progress loaded = Progress.parse(p.serialize());
+        check(first.isClaimed(loaded) && loaded.questWeek == week, "quests survive a save and load");
+        check(first.progress(loaded) == first.goal, "quest progress survives a save and load");
+
+        Progress otherDevice = Progress.parse(p.serialize());
+        otherDevice.questClaimed = 0;
+        Quest.forWeek(week).get(1).claim(otherDevice);
+        otherDevice.updatedAt = p.updatedAt + 1;
+        Progress merged = Progress.merge(p, otherDevice);
+        check(first.isClaimed(merged) && Quest.forWeek(week).get(1).isClaimed(merged), "claims on both devices survive a merge");
+
+        Progress lastWeek = Progress.parse(p.serialize());
+        Quest.rollOver(p, monday + 7);
+        check(Quest.claimable(p).isEmpty() && p.questClaimed == 0, "a new week starts fresh");
+        p.updatedAt = 1;
+        lastWeek.updatedAt = 2;
+        check(Progress.merge(p, lastWeek).questWeek == week + 1, "a merge keeps the later week, even from an older save");
     }
 
     private static void testAchievementRewards() {
