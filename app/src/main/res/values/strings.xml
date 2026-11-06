@@ -11,6 +11,7 @@
     <string name="play_games_app_id" translatable="false">000000000000</string>
     <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
     <string name="admob_rewarded_unit" translatable="false">ca-app-pub-3940256099942544/5224354917</string>
+    <string name="admob_interstitial_unit" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
 
     <string name="leaderboard_daily" translatable="false">REPLACE_ME</string>
     <string name="leaderboard_timed" translatable="false">REPLACE_ME</string>
