@@ -1,5 +1,6 @@
 package com.kun.pixelwords;
 
+import android.content.Intent;
 import android.graphics.PointF;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -22,6 +23,7 @@ import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.GameSession;
 import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Scoring;
+import com.kun.pixelwords.game.ShareCard;
 import com.kun.pixelwords.game.StreakLogic;
 import com.kun.pixelwords.generator.Level;
 import com.kun.pixelwords.generator.LevelGenerator;
@@ -637,7 +639,17 @@ public class GameActivity extends BaseActivity {
         } else {
             m.note("You'd already solved today's puzzle, so this replay pays no coins and doesn't change your streak.");
         }
-        m.primary("MENU", this::finish).show();
+        if (o.streakGrew) m.primary("SHARE", "share", () -> shareDaily(o)).secondary("MENU", this::finish);
+        else m.primary("MENU", this::finish);
+        m.show();
+    }
+
+    /** Back at the menu after sharing: the results modal closes with its button, so nothing is left to return to. */
+    private void shareDaily(Outcome o) {
+        Intent send = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT,
+                ShareCard.daily(Days.today(), stars(o.hints), progress.streak.streak, o.hints, o.score));
+        startActivity(Intent.createChooser(send, "Share your result"));
+        finish();
     }
 
     private void showTimedResults(Outcome o) {
