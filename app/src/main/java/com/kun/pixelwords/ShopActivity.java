@@ -46,6 +46,7 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
     private StatChip coins;
     private final List<ItemCard> cards = new ArrayList<>();
     private final Map<Purchases.Pack, PixelButton> packButtons = new EnumMap<>(Purchases.Pack.class);
+    private final Map<Shop.Breed, PixelButton> breedButtons = new EnumMap<>(Shop.Breed.class);
     private PixelButton removeAdsButton;
     private PixelButton videoButton;
     private BillingService billing;
@@ -123,6 +124,8 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
             addHeading(list, "GET COINS");
             addStore(list);
         }
+        addHeading(list, "BREEDS");
+        addBreeds(list);
         for (Shop.Slot slot : Shop.Slot.values()) {
             addHeading(list, slot.title.toUpperCase(java.util.Locale.ROOT));
             addRows(list, Shop.itemsIn(slot));
@@ -141,6 +144,66 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
         hp.topMargin = dp(10);
         hp.bottomMargin = dp(6);
         list.addView(heading, hp);
+    }
+
+    private void addBreeds(LinearLayout list) {
+        for (Shop.Breed breed : Shop.Breed.values()) {
+            PixelButton b = new PixelButton(this, breed.title.toUpperCase(java.util.Locale.ROOT), PixelTheme.PANEL, PixelTheme.TEXT);
+            b.setLabelSize(11);
+            b.setIcon("heart");
+            b.setOnClickListener(v -> onBreed(breed));
+            breedButtons.put(breed, b);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.bottomMargin = dp(8);
+            list.addView(b, lp);
+        }
+    }
+
+    private void refreshBreeds() {
+        Shop.Breed current = Shop.breed(progress);
+        for (Map.Entry<Shop.Breed, PixelButton> e : breedButtons.entrySet()) {
+            Shop.Breed breed = e.getKey();
+            boolean owned = Shop.owns(progress, breed);
+            e.getValue().setFill(breed == current ? 0xFF2FA873 : owned ? PixelTheme.PANEL_LIGHT : PixelTheme.PANEL);
+            e.getValue().setSubtitle(breed == current ? "Your cat" : owned ? "Owned"
+                    : breed.source != Shop.Source.COINS ? breed.source.how : breed.price + " coins");
+        }
+    }
+
+    private void onBreed(Shop.Breed breed) {
+        Sfx.play(Sfx.Id.UI_TAP);
+        if (Shop.owns(progress, breed)) {
+            Shop.use(progress, breed);
+            save();
+            refresh();
+            cat.hop();
+            return;
+        }
+        CatView preview = new CatView(this, 128);
+        preview.dress(progress);
+        preview.tryOn(breed);
+        preview.setClickable(false);
+        PixelModal m = new PixelModal(this).title(breed.title.toUpperCase(java.util.Locale.ROOT)).icon("heart")
+                .accent(PixelTheme.GOLD).custom(preview);
+        if (breed.source != Shop.Source.COINS) {
+            m.note(breed.source.how + ".").primary("OK", null).show();
+        } else if (Shop.canAfford(progress, breed)) {
+            m.stat("coin", "Price", String.valueOf(breed.price), PixelTheme.GOLD)
+                    .stat("coin", "Coins left after", String.valueOf(progress.coins - breed.price), PixelTheme.TEXT)
+                    .button("BUY FOR " + breed.price, PixelTheme.GOLD, PixelTheme.INK, "coin", null, () -> {
+                        if (!Shop.buy(progress, breed)) return;
+                        save();
+                        refresh();
+                        celebrate();
+                    })
+                    .secondary("NOT NOW", null)
+                    .show();
+        } else {
+            m.stat("coin", "Price", String.valueOf(breed.price), PixelTheme.GOLD)
+                    .stat("coin", "Your coins", String.valueOf(progress.coins), PixelTheme.ROSE)
+                    .primary("OK", null)
+                    .show();
+        }
     }
 
     private void addStore(LinearLayout list) {
@@ -191,6 +254,7 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
         coins.animateTo(progress.coins);
         cat.dress(progress);
         for (ItemCard c : cards) c.update(progress);
+        refreshBreeds();
         refreshStore();
     }
 
@@ -305,6 +369,14 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
     }
 
     private void confirmBuy(Shop.Item item) {
+        if (item.source != Shop.Source.COINS) {
+            new PixelModal(this).title(item.title.toUpperCase(java.util.Locale.ROOT)).icon("sparkle").accent(PixelTheme.SKY)
+                    .custom(tryOnCat(item))
+                    .note(item.source.how + ".")
+                    .primary("OK", null)
+                    .show();
+            return;
+        }
         if (!Shop.canAfford(progress, item)) {
             int shortBy = item.price - progress.coins;
             new PixelModal(this).title(item.title.toUpperCase(java.util.Locale.ROOT)).icon("coin").accent(PixelTheme.ROSE)
