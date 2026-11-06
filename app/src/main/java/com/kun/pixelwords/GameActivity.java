@@ -65,6 +65,8 @@ public class GameActivity extends BaseActivity {
     private static final int URGENT_SECONDS = 10;
     private static final int DUEL_WIN_COINS = 20;
     private static final int LAST_COACHED_LEVEL = 2;
+    /** The most of the wheel's width the cat can take without touching the tiles on the smallest wheel. */
+    private static final float WHEEL_CAT_SHARE = 0.24f;
 
     private Mode mode = Mode.CAMPAIGN;
     private ProgressStore store;
@@ -82,6 +84,7 @@ public class GameActivity extends BaseActivity {
     private View timerRow;
     private StatChip coinChip;
     private PixelButton hintBtn;
+    private CatView wheelCat;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private CountDownTimer timer;
@@ -337,6 +340,7 @@ public class GameActivity extends BaseActivity {
                 grid.refresh();
                 Sfx.play(Sfx.Id.WORD_FOUND, Math.min(1.5f, 1f + (combo - 1) * 0.08f));
                 Haptics.success();
+                wheelCat.hop();
                 String praise = praiseFor(word.length());
                 say((praise == null ? "" : praise + "  ") + "+" + Scoring.gridWordPoints(word.toLowerCase(Locale.ROOT)), PixelTheme.MINT);
                 if (session.isComplete()) endRound(true);
@@ -344,6 +348,7 @@ public class GameActivity extends BaseActivity {
             case FOUND_BONUS:
                 combo++;
                 preview.resolve(PixelTheme.GOLD, false);
+                wheelCat.hop();
                 say("BONUS WORD  +" + Scoring.COINS_PER_BONUS_WORD, PixelTheme.GOLD);
                 Sfx.play(Sfx.Id.WORD_BONUS);
                 handler.postDelayed(() -> Sfx.play(Sfx.Id.COIN), 220);
@@ -941,6 +946,13 @@ public class GameActivity extends BaseActivity {
         int screenH = getResources().getDisplayMetrics().heightPixels;
         int wheelSize = Math.min((int) (screenW * 0.8f), (int) (screenH * 0.38f));
         wheelBox.addView(wheel, new FrameLayout.LayoutParams(wheelSize, wheelSize, Gravity.CENTER));
+
+        // The empty middle of the wheel. Not clickable, so swipes pass straight through to the wheel.
+        int catSize = (int) (wheelSize * WHEEL_CAT_SHARE);
+        wheelCat = new CatView(this, catSize / getResources().getDisplayMetrics().density);
+        wheelCat.dress(progress);
+        wheelCat.setClickable(false);
+        wheelBox.addView(wheelCat, new FrameLayout.LayoutParams(catSize, catSize, Gravity.CENTER));
 
         PixelButton shuffle = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         shuffle.setIcon("shuffle");
