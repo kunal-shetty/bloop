@@ -32,6 +32,8 @@ public class CatView extends View {
     private static final long HOP_MS = 360;
     /** The cat keeps hopping if you spam it, but only mews this often. */
     private static final long MEW_GAP_MS = 1200;
+    private static final long NAP_AFTER_MS = 30_000;
+    private static final long SNORE_MS = 1500;
     private static final Map<String, Bitmap> CACHE = new HashMap<>();
 
     private static final class Heart {
@@ -47,9 +49,11 @@ public class CatView extends View {
     private final List<Heart> hearts = new ArrayList<>();
     private final float wantDp;
 
+    private final Paint snore = new Paint();
     private Shop.Item head, face, neck;
-    private long nextBlink, blinkUntil, hopAt, happyUntil, lastMew;
-    private boolean cheering;
+    private long nextBlink, blinkUntil, hopAt, happyUntil, lastMew, lastPet;
+    private boolean cheering, naps, gift;
+    private Runnable onPet;
 
     public CatView(Context context, float desiredSizeDp) {
         super(context);
@@ -77,6 +81,23 @@ public class CatView extends View {
         invalidate();
     }
 
+    /** Runs after every pet, on top of the hop and the mew. */
+    public void setPetListener(Runnable r) {
+        onPet = r;
+    }
+
+    /** Lets the cat doze off if nobody pets it for a while. */
+    public void enableNaps() {
+        naps = true;
+        lastPet = SystemClock.uptimeMillis();
+    }
+
+    /** Shows a coin bobbing over the cat's head, waiting to be collected. */
+    public void setGift(boolean on) {
+        gift = on;
+        invalidate();
+    }
+
     /** Keeps hopping happily; used when celebrating. */
     public void setCheering(boolean on) {
         cheering = on;
@@ -101,6 +122,17 @@ public class CatView extends View {
         h.y = getHeight() * 0.3f;
         h.born = hopAt;
         hearts.add(h);
+        lastPet = hopAt;
+        if (onPet != null) onPet.run();
+    }
+
+    /** A z that floats up and fades, one after another, while the cat sleeps. */
+    private void drawSnore(Canvas c, long now, int left, int top, int size) {
+        PixelTheme.styleDisplay(snore, Math.max(16f, size / 6f));
+        float k = (now % SNORE_MS) / (float) SNORE_MS;
+        snore.setColor(PixelTheme.TEXT);
+        snore.setAlpha((int) (255 * (1f - k)));
+        c.drawText("z", left + size * (0.72f + k * 0.12f), top + size * (0.3f - k * 0.2f), snore);
     }
 
     static Bitmap layer(Context c, String name) {
@@ -164,12 +196,19 @@ public class CatView extends View {
 
         dst.set(left, top - lift, left + size, top + size - lift);
         boolean happy = now < happyUntil;
+        boolean asleep = naps && !happy && now - lastPet > NAP_AFTER_MS;
         draw(c, "tail_" + (happy ? (now / 90) % 3 : (now / 340) % 3));
         draw(c, "body");
-        draw(c, happy ? "eyes_happy" : now < blinkUntil ? "eyes_closed" : "eyes_open");
+        draw(c, happy ? "eyes_happy" : asleep || now < blinkUntil ? "eyes_closed" : "eyes_open");
         wear(c, neck);
         wear(c, face);
         wear(c, head);
+        if (asleep) drawSnore(c, now, left, top - lift, size);
+        if (gift) {
+            float coin = scale * 9f;
+            float bob = (now / 300) % 2 == 0 ? 0 : scale;
+            PixelIcons.draw(c, paint, "coin", left + (size - coin) / 2f, top - lift - coin * 0.2f + bob, coin);
+        }
 
         float heartSize = Math.max(24f, scale * 4f);
         for (int i = hearts.size() - 1; i >= 0; i--) {
