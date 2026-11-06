@@ -7,7 +7,7 @@ import java.util.List;
 /** One puzzle: a wheel of letters, a crossword grid of target words, and a set of bonus words. */
 public final class Level {
 
-    public enum Kind { FIXED, PROGRESSION, DAILY, DUEL }
+    public enum Kind { FIXED, PROGRESSION, DAILY, DUEL, MEGA, LIVES }
 
     /** A word placed in the grid. Row/col are 0-based from the top-left of the grid. */
     public static final class Placement {
@@ -44,9 +44,9 @@ public final class Level {
     public final int rows;
     public final int cols;
     public final List<Placement> placements;
-    /** A small handful of common words outside the grid; finding one earns coins. */
+    /** A small handful of common words outside the grid; these also add to the score. */
     public final List<String> bonusWords;
-    /** Every other real word the letters can spell: accepted as a real word, but worth nothing. */
+    /** Every other real word the letters can spell. These fill the jar like any bonus word. */
     public final List<String> extraWords;
 
     public Level(String id, Kind kind, String letters, int rows, int cols,
