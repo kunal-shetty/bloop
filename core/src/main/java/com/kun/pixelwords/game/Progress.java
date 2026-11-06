@@ -18,6 +18,7 @@ public final class Progress {
     private static final String STARS_KEY = "stars";
     private static final String HOME_KEY = "home";
     private static final String PAID_KEY = "paid";
+    private static final String ALBUM_KEY = "page";
     private static final int STARS_PER_CHUNK = 30;
     private static final int MAX_STARS_STORED = 3;
     /** Far beyond any real save; stops a corrupt key from allocating a huge array. */
@@ -57,6 +58,47 @@ public final class Progress {
     public final Map<Long, Integer> paidCoins = new TreeMap<>();
     /** Furniture bought, as a bit per Home.Item id. */
     public long homeOwned = 0;
+    /** Room themes bought, as a bit per Home.Theme id, and the one on show. */
+    public long themesOwned = 0;
+    public int homeTheme = 0;
+    /** Bonus words waiting in the jar, and the day and count of its last openings. See PiggyJar. */
+    public int jarWords = 0;
+    public long jarDay = 0;
+    public int jarOpensToday = 0;
+    /** Power-ups held. See PowerUps. */
+    public int revealTokens = 0;
+    public int pickTokens = 0;
+    public int timeTokens = 0;
+    /** The weekend board in progress and its found words, and the last weekend one was paid. See MegaBoard. */
+    public long megaWeek = 0;
+    public long megaFound = 0;
+    public long megaSolvedWeek = 0;
+    /** Best score in Nine Lives. */
+    public int bestLives = 0;
+    /** Cat breeds owned, as a bit per Shop.Breed id, and the one in use. */
+    public long breedsOwned = 0;
+    public int breed = 0;
+    /** The last day spun, and spins since the last legendary. See DailySpin. */
+    public long spinDay = 0;
+    public int spinsDry = 0;
+    /** The trip under way, and the start of the last one paid. See Expedition. */
+    public int expPlace = 0;
+    public long expStart = 0;
+    public long expEnd = 0;
+    public long expClaimed = 0;
+    /** Stickers, one number per Album.Page with a bit per word, and pages paid. */
+    public final long[] album = new long[Album.Page.values().length];
+    public long albumClaimed = 0;
+    /** The season under way. See Season. */
+    public long seasonId = 0;
+    public int seasonXp = 0;
+    public long seasonClaimedFree = 0;
+    public long seasonClaimedPremium = 0;
+    public boolean seasonPremium = false;
+    /** The Fish Hunt the catch belongs to, the catch, and prizes paid. See FishHunt. */
+    public long fishEvent = 0;
+    public int fishCount = 0;
+    public int fishClaimed = 0;
     /** What sits in each Home.Slot and where, packed by Home. */
     public final int[] homePlaced = new int[Home.Slot.values().length];
     /** Best stars per level, indexed by level - 1. */
@@ -152,6 +194,36 @@ public final class Progress {
         put(sb, "videos", coinVideosToday);
         putPaidCoins(sb);
         put(sb, "homeOwned", homeOwned);
+        put(sb, "themes", themesOwned);
+        put(sb, "homeTheme", homeTheme);
+        put(sb, "jarWords", jarWords);
+        put(sb, "jarDay", jarDay);
+        put(sb, "jarOpens", jarOpensToday);
+        put(sb, "tokReveal", revealTokens);
+        put(sb, "tokPick", pickTokens);
+        put(sb, "tokTime", timeTokens);
+        put(sb, "megaWeek", megaWeek);
+        put(sb, "megaFound", megaFound);
+        put(sb, "megaSolved", megaSolvedWeek);
+        put(sb, "bestLives", bestLives);
+        put(sb, "breeds", breedsOwned);
+        put(sb, "breed", breed);
+        put(sb, "spinDay", spinDay);
+        put(sb, "spinsDry", spinsDry);
+        put(sb, "expPlace", expPlace);
+        put(sb, "expStart", expStart);
+        put(sb, "expEnd", expEnd);
+        put(sb, "expClaimed", expClaimed);
+        for (int i = 0; i < album.length; i++) put(sb, ALBUM_KEY + i, album[i]);
+        put(sb, "albumClaimed", albumClaimed);
+        put(sb, "seasonId", seasonId);
+        put(sb, "seasonXp", seasonXp);
+        put(sb, "seasonFree", seasonClaimedFree);
+        put(sb, "seasonPrem", seasonClaimedPremium);
+        put(sb, "seasonPass", seasonPremium ? 1 : 0);
+        put(sb, "fishEvent", fishEvent);
+        put(sb, "fishCount", fishCount);
+        put(sb, "fishClaimed", fishClaimed);
         for (int i = 0; i < homePlaced.length; i++) put(sb, HOME_KEY + i, homePlaced[i]);
         putStars(sb);
         put(sb, "wearHead", wearHead);
@@ -202,6 +274,36 @@ public final class Progress {
         p.coinVideosToday = (int) Math.max(0, get(m, "videos", 0));
         p.readPaidCoins(m);
         p.homeOwned = get(m, "homeOwned", 0);
+        p.themesOwned = get(m, "themes", 0);
+        p.homeTheme = (int) get(m, "homeTheme", 0);
+        p.jarWords = (int) Math.max(0, get(m, "jarWords", 0));
+        p.jarDay = get(m, "jarDay", 0);
+        p.jarOpensToday = (int) Math.max(0, get(m, "jarOpens", 0));
+        p.revealTokens = (int) Math.max(0, get(m, "tokReveal", 0));
+        p.pickTokens = (int) Math.max(0, get(m, "tokPick", 0));
+        p.timeTokens = (int) Math.max(0, get(m, "tokTime", 0));
+        p.megaWeek = get(m, "megaWeek", 0);
+        p.megaFound = get(m, "megaFound", 0);
+        p.megaSolvedWeek = get(m, "megaSolved", 0);
+        p.bestLives = (int) Math.max(0, get(m, "bestLives", 0));
+        p.breedsOwned = get(m, "breeds", 0);
+        p.breed = (int) get(m, "breed", 0);
+        p.spinDay = get(m, "spinDay", 0);
+        p.spinsDry = (int) Math.max(0, get(m, "spinsDry", 0));
+        p.expPlace = (int) get(m, "expPlace", 0);
+        p.expStart = get(m, "expStart", 0);
+        p.expEnd = get(m, "expEnd", 0);
+        p.expClaimed = get(m, "expClaimed", 0);
+        for (int i = 0; i < p.album.length; i++) p.album[i] = get(m, ALBUM_KEY + i, 0);
+        p.albumClaimed = get(m, "albumClaimed", 0);
+        p.seasonId = get(m, "seasonId", 0);
+        p.seasonXp = (int) Math.max(0, get(m, "seasonXp", 0));
+        p.seasonClaimedFree = get(m, "seasonFree", 0);
+        p.seasonClaimedPremium = get(m, "seasonPrem", 0);
+        p.seasonPremium = get(m, "seasonPass", 0) == 1;
+        p.fishEvent = get(m, "fishEvent", 0);
+        p.fishCount = (int) Math.max(0, get(m, "fishCount", 0));
+        p.fishClaimed = (int) get(m, "fishClaimed", 0);
         for (int i = 0; i < p.homePlaced.length; i++) p.homePlaced[i] = (int) get(m, HOME_KEY + i, 0);
         p.readStars(m);
         p.wearHead = (int) get(m, "wearHead", 0);
@@ -260,6 +362,7 @@ public final class Progress {
         out.paidCoins.putAll(newer.paidCoins);
         Purchases.absorb(out, older);
         out.hintTokens = newer.hintTokens;
+        mergeContentUpdate(out, a, b, newer);
 
         StreakLogic.State ns = newer.streak;
         StreakLogic.State os = older.streak;
@@ -267,6 +370,47 @@ public final class Progress {
         out.streak = new StreakLogic.State(pick.streak, Math.max(ns.best, os.best), pick.lastDay, pick.freezes);
         out.updatedAt = Math.max(a.updatedAt, b.updatedAt);
         return out;
+    }
+
+    /** The rule for each field: owned things and claims add up, counters take the highest, the rest follow the newer save. */
+    private static void mergeContentUpdate(Progress out, Progress a, Progress b, Progress newer) {
+        out.themesOwned = a.themesOwned | b.themesOwned;
+        out.homeTheme = newer.homeTheme;
+        out.jarWords = newer.jarWords;
+        out.jarDay = Math.max(a.jarDay, b.jarDay);
+        out.jarOpensToday = Math.max(a.jarDay == out.jarDay ? a.jarOpensToday : 0,
+                b.jarDay == out.jarDay ? b.jarOpensToday : 0);
+        out.revealTokens = newer.revealTokens;
+        out.pickTokens = newer.pickTokens;
+        out.timeTokens = newer.timeTokens;
+        Progress mega = a.megaWeek != b.megaWeek ? (a.megaWeek > b.megaWeek ? a : b) : newer;
+        out.megaWeek = mega.megaWeek;
+        out.megaFound = a.megaWeek == b.megaWeek ? a.megaFound | b.megaFound : mega.megaFound;
+        out.megaSolvedWeek = Math.max(a.megaSolvedWeek, b.megaSolvedWeek);
+        out.bestLives = Math.max(a.bestLives, b.bestLives);
+        out.breedsOwned = a.breedsOwned | b.breedsOwned;
+        out.breed = newer.breed;
+        out.spinDay = Math.max(a.spinDay, b.spinDay);
+        out.spinsDry = newer.spinsDry;
+        Progress trip = a.expStart != b.expStart ? (a.expStart > b.expStart ? a : b) : newer;
+        out.expClaimed = Math.max(a.expClaimed, b.expClaimed);
+        out.expStart = trip.expStart;
+        out.expEnd = a.expStart == b.expStart ? Math.min(a.expEnd, b.expEnd) : trip.expEnd;
+        out.expPlace = trip.expStart > out.expClaimed ? trip.expPlace : 0;
+        for (int i = 0; i < out.album.length; i++) out.album[i] = a.album[i] | b.album[i];
+        out.albumClaimed = a.albumClaimed | b.albumClaimed;
+        boolean sameSeason = a.seasonId == b.seasonId;
+        Progress season = !sameSeason ? (a.seasonId > b.seasonId ? a : b) : newer;
+        out.seasonId = season.seasonId;
+        out.seasonXp = sameSeason ? Math.max(a.seasonXp, b.seasonXp) : season.seasonXp;
+        out.seasonClaimedFree = sameSeason ? a.seasonClaimedFree | b.seasonClaimedFree : season.seasonClaimedFree;
+        out.seasonClaimedPremium = sameSeason ? a.seasonClaimedPremium | b.seasonClaimedPremium : season.seasonClaimedPremium;
+        out.seasonPremium = sameSeason ? a.seasonPremium || b.seasonPremium : season.seasonPremium;
+        boolean sameHunt = a.fishEvent == b.fishEvent;
+        Progress hunt = !sameHunt ? (a.fishEvent > b.fishEvent ? a : b) : newer;
+        out.fishEvent = hunt.fishEvent;
+        out.fishCount = sameHunt ? Math.max(a.fishCount, b.fishCount) : hunt.fishCount;
+        out.fishClaimed = sameHunt ? a.fishClaimed | b.fishClaimed : hunt.fishClaimed;
     }
 
     private static void put(StringBuilder sb, String k, long v) {
