@@ -359,8 +359,10 @@ public class MainActivity extends BaseActivity {
                 .stat("clock", "Time limit", "1:30", PixelTheme.SKY)
                 .stat("coin", "Win reward", "+20", PixelTheme.GOLD)
                 .stat("trophy", "Your record", wins(progress.duelWins).toUpperCase(Locale.ROOT) + " / " + progress.duelsPlayed, PixelTheme.TEXT)
-                .note("Online opponents aren't available yet, so this is practice against the bot.")
-                .primary("FIGHT!", "swords", () -> launch(GameActivity.Mode.DUEL))
+                .note("Or race up to three friends on the same Wi-Fi.")
+                .primary("FIGHT THE BOT", "swords", () -> launch(GameActivity.Mode.DUEL))
+                .button("RACE ON WI-FI", PixelTheme.SKY, PixelTheme.INK, "cloud", Sfx.Id.UI_TAP,
+                        () -> go(new Intent(this, LanActivity.class)))
                 .secondary("NOT NOW", null)
                 .show();
     }
