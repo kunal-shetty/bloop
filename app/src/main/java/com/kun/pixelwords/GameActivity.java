@@ -458,17 +458,21 @@ public class GameActivity extends BaseActivity {
         stopClock();
         wheel.setLocked(true);
         int needed = Scoring.HINT_COST_COINS - progress.coins;
-        new PixelModal(this).title("OUT OF HINTS").icon("bulb").accent(PixelTheme.GOLD)
+        PixelModal m = new PixelModal(this).title("OUT OF HINTS").icon("bulb").accent(PixelTheme.GOLD)
                 .body("You've used all your hint tokens, and don't have enough coins to buy one.")
                 .stat("bulb", "Hint tokens", "0", PixelTheme.ROSE)
                 .stat("coin", "Your coins", String.valueOf(progress.coins), PixelTheme.GOLD)
-                .stat("coin", "Hint price", String.valueOf(Scoring.HINT_COST_COINS), PixelTheme.TEXT)
-                .note("You're " + needed + " coins short. Bonus words pay +" + Scoring.COINS_PER_BONUS_WORD
-                        + " each, or watch a short video to reveal one letter for free.")
-                .primary("WATCH VIDEO", "film", this::watchVideo)
-                .secondary("KEEP PLAYING", null)
-                .onDismiss(this::afterModal)
-                .show();
+                .stat("coin", "Hint price", String.valueOf(Scoring.HINT_COST_COINS), PixelTheme.TEXT);
+        if (Features.MONETIZATION) {
+            m.note("You're " + needed + " coins short. Bonus words pay +" + Scoring.COINS_PER_BONUS_WORD
+                    + " each, or watch a short video to reveal one letter for free.")
+                    .primary("WATCH VIDEO", "film", this::watchVideo)
+                    .secondary("KEEP PLAYING", null);
+        } else {
+            m.note("You're " + needed + " coins short. Bonus words pay +" + Scoring.COINS_PER_BONUS_WORD + " each.")
+                    .primary("KEEP PLAYING", null);
+        }
+        m.onDismiss(this::afterModal).show();
     }
 
     private void watchVideo() {
@@ -901,7 +905,7 @@ public class GameActivity extends BaseActivity {
         coinChip.animateTo(progress.coins + earned);
         if (progress.hintTokens > 0) hintBtn.setBadge("x" + progress.hintTokens);
         else if (progress.coins >= Scoring.HINT_COST_COINS) hintBtn.setBadge(String.valueOf(Scoring.HINT_COST_COINS));
-        else hintBtn.setBadge("AD");
+        else hintBtn.setBadge(Features.MONETIZATION ? "AD" : "");
 
         if (session != null) {
             subText.setText(session.foundGridWords().size() + " of " + level.placements.size() + " words");
