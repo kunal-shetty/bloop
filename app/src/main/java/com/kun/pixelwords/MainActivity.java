@@ -299,10 +299,11 @@ public class MainActivity extends BaseActivity {
         bar.setSegments(20);
         bar.setColor(PixelTheme.GOLD);
         bar.setValue(progress.jarWords / (float) PiggyJar.CAPACITY);
-        bar.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(18)));
+        FrameLayout barBox = new FrameLayout(this); // the modal stretches a row's width but not its height
+        barBox.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(18)));
         PixelModal m = new PixelModal(this).title("PIGGY JAR").icon("jar").accent(PixelTheme.GOLD)
                 .body("Every bonus word you find drops into the jar. Fill it to open it for coins.")
-                .custom(bar)
+                .custom(barBox)
                 .stat("sparkle", "Words", progress.jarWords + " / " + PiggyJar.CAPACITY, PixelTheme.GOLD)
                 .stat("coin", "A full jar pays", String.valueOf(PiggyJar.COINS), PixelTheme.GOLD);
         if (PiggyJar.canOpen(progress, today)) {
