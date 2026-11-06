@@ -108,7 +108,10 @@ public class ExpeditionActivity extends PageActivity {
         cat.setVisibility(away && !back ? View.GONE : View.VISIBLE);
         action.setVisibility(back ? View.VISIBLE : View.GONE);
         rush.setVisibility(away && !back ? View.VISIBLE : View.GONE);
-        for (PixelButton b : placeButtons) b.setFill(away ? PixelTheme.PANEL : PixelTheme.SKY);
+        for (PixelButton b : placeButtons) {
+            b.setFill(away ? PixelTheme.PANEL : PixelTheme.SKY);
+            b.setTextColor(away ? PixelTheme.TEXT_DIM : PixelTheme.INK);
+        }
         if (!away) {
             status.setText("Your cat is ready for an adventure.");
         } else if (back) {
