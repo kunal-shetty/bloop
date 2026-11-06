@@ -15,6 +15,7 @@ public final class Progress {
     public static final int FORMAT_VERSION = 1;
 
     private static final String STARS_KEY = "stars";
+    private static final String HOME_KEY = "home";
     private static final int STARS_PER_CHUNK = 30;
     private static final int MAX_STARS_STORED = 3;
     /** Far beyond any real save; stops a corrupt key from allocating a huge array. */
@@ -47,6 +48,10 @@ public final class Progress {
     /** The day of the cat's last coin gift, and how many it gave that day. */
     public long catGiftDay = 0;
     public int catGiftsToday = 0;
+    /** Furniture bought, as a bit per Home.Item id. */
+    public long homeOwned = 0;
+    /** What sits in each Home.Slot and where, packed by Home. */
+    public final int[] homePlaced = new int[Home.Slot.values().length];
     /** Best stars per level, indexed by level - 1. */
     private byte[] levelStars = new byte[0];
     /** Shop.Item id worn in each slot; 0 = nothing. */
@@ -119,6 +124,8 @@ public final class Progress {
         put(sb, "qClaimed", questClaimed);
         put(sb, "giftDay", catGiftDay);
         put(sb, "gifts", catGiftsToday);
+        put(sb, "homeOwned", homeOwned);
+        for (int i = 0; i < homePlaced.length; i++) put(sb, HOME_KEY + i, homePlaced[i]);
         putStars(sb);
         put(sb, "wearHead", wearHead);
         put(sb, "wearFace", wearFace);
@@ -164,6 +171,8 @@ public final class Progress {
         p.questClaimed = (int) get(m, "qClaimed", 0);
         p.catGiftDay = get(m, "giftDay", 0);
         p.catGiftsToday = (int) Math.max(0, get(m, "gifts", 0));
+        p.homeOwned = get(m, "homeOwned", 0);
+        for (int i = 0; i < p.homePlaced.length; i++) p.homePlaced[i] = (int) get(m, HOME_KEY + i, 0);
         p.readStars(m);
         p.wearHead = (int) get(m, "wearHead", 0);
         p.wearFace = (int) get(m, "wearFace", 0);
@@ -195,6 +204,8 @@ public final class Progress {
         out.ownedItems = a.ownedItems | b.ownedItems; // a purchase on any device is kept
         out.claimedAchievements = a.claimedAchievements | b.claimedAchievements; // a reward is only ever paid once
         out.chaptersRewarded = Math.max(a.chaptersRewarded, b.chaptersRewarded);
+        out.homeOwned = a.homeOwned | b.homeOwned; // a purchase on any device is kept
+        System.arraycopy(newer.homePlaced, 0, out.homePlaced, 0, out.homePlaced.length);
         out.catGiftDay = Math.max(a.catGiftDay, b.catGiftDay);
         out.catGiftsToday = Math.max(a.catGiftDay == out.catGiftDay ? a.catGiftsToday : 0,
                 b.catGiftDay == out.catGiftDay ? b.catGiftsToday : 0);
