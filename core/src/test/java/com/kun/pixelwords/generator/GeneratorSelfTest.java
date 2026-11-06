@@ -831,7 +831,7 @@ public final class GeneratorSelfTest {
             fewest = Math.min(fewest, l.placements.size());
             check(l.rows <= LevelGenerator.MEGA_MAX_GRID && l.cols <= LevelGenerator.MEGA_MAX_GRID, "mega fits its limit");
             check(l.letters.length() == 8, "mega has eight letters");
-            check(l.placements.size() < 64, "mega words fit the save's bitmask");
+            check(l.placements.size() < 63, "mega words fit the save's bitmask");
             check(gen.forMega(week).fingerprint() == l.fingerprint(), "mega is the same for everyone");
             check(solvableInAnyOrder(l, TileMods.forLevel(l)), "mega can be solved");
         }
@@ -846,6 +846,21 @@ public final class GeneratorSelfTest {
         GameSession resumed = new GameSession(l, 1);
         resumed.restore(s.foundMask());
         check(resumed.foundMask() == s.foundMask() && resumed.gridPoints() == s.gridPoints(), "a saved board picks up where it left off");
+
+        TileMods mods = TileMods.forLevel(l);
+        GameSession lit = new GameSession(l, 1, mods);
+        lit.submit(l.placements.get(mods.sparkWord()).word);
+        GameSession back = new GameSession(l, 1, mods);
+        back.restore(lit.foundMask());
+        check(lit.sparkWon() && back.sparkWon() && back.coinsEarned() == lit.coinsEarned(), "a won spark survives leaving the board");
+        GameSession missed = new GameSession(l, 1, mods);
+        int plain = 0;
+        for (int i = 0; i < l.placements.size() && plain < TileMods.SPARK_WINDOW; i++) {
+            if (i != mods.sparkWord() && missed.submit(l.placements.get(i).word) == GameSession.Result.FOUND_GRID) plain++;
+        }
+        GameSession late = new GameSession(l, 1, mods);
+        late.restore(missed.foundMask());
+        check(plain < TileMods.SPARK_WINDOW || !late.sparkLive(), "leaving the board doesn't relight a missed spark");
 
         long friday = 20763, saturday = 20764; // 2026-11-06 and 07
         check(!MegaBoard.isOpen(friday) && MegaBoard.daysUntilOpen(friday) == 1, "shut on Friday");
