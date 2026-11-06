@@ -5,20 +5,20 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.os.SystemClock;
 
-import com.kun.pixelwords.game.Achievement;
-import com.kun.pixelwords.game.Progress;
 
-/** One achievement: a medal in its tier's colour, then progress, a shining claim prompt, or a tick. */
-public class AchievementCard extends PressableView {
+/** One achievement or quest: a medal, then progress, a shining claim prompt, or a tick. */
+public class GoalCard extends PressableView {
 
-    private static final int BRONZE = 0xFFD08A4E;
-    private static final int SILVER = 0xFFCFD8EA;
     private static final int LOCKED_DIM = 0xA0251D4A;
     private static final int BAR_SEGMENTS = 12;
     private static final long SHINE_EVERY_MS = 2200;
     private static final long SHINE_SWEEP_MS = 1100;
 
-    public final Achievement achievement;
+    private final String name;
+    private final String icon;
+    private final int medal;
+    private final int coins;
+    private final int goal;
     private final Paint paint = new Paint();
     private final Paint title = new Paint();
     private final Paint count = new Paint();
@@ -26,9 +26,13 @@ public class AchievementCard extends PressableView {
     private int value;
     private boolean unlocked, claimed;
 
-    public AchievementCard(Context context, Achievement achievement) {
+    public GoalCard(Context context, String name, String icon, int medal, int coins, int goal) {
         super(context);
-        this.achievement = achievement;
+        this.name = name;
+        this.icon = icon;
+        this.medal = medal;
+        this.coins = coins;
+        this.goal = goal;
         paint.setFilterBitmap(false);
         PixelTheme.styleBody(title, PixelTheme.bodyPx(context, 19));
         PixelTheme.styleBody(count, PixelTheme.bodyPx(context, 16));
@@ -36,10 +40,10 @@ public class AchievementCard extends PressableView {
         PixelTheme.styleDisplay(label, PixelTheme.displayPx(context, 9));
     }
 
-    public void update(Progress p) {
-        value = achievement.progress(p);
-        unlocked = achievement.isUnlocked(p);
-        claimed = achievement.isClaimed(p);
+    public void update(int value, boolean claimed) {
+        this.value = value;
+        this.claimed = claimed;
+        unlocked = value >= goal;
         invalidate();
     }
 
@@ -47,13 +51,6 @@ public class AchievementCard extends PressableView {
         return PixelTheme.dp(getContext(), v);
     }
 
-    private int medalColor() {
-        switch (achievement.tier) {
-            case BRONZE: return BRONZE;
-            case SILVER: return SILVER;
-            default: return PixelTheme.GOLD;
-        }
-    }
 
     @Override
     protected void onMeasure(int widthSpec, int heightSpec) {
@@ -73,7 +70,7 @@ public class AchievementCard extends PressableView {
         float textX = pad + size + dp(10), right = w - pad;
         float titleY = s + dp(32), rowY = s + dp(62);
         title.setColor(claimable ? PixelTheme.INK : claimed ? PixelTheme.TEXT_DIM : PixelTheme.TEXT);
-        c.drawText(achievement.title, textX, titleY, title);
+        c.drawText(name, textX, titleY, title);
 
         if (claimed) {
             label.setColor(PixelTheme.MINT);
@@ -85,7 +82,7 @@ public class AchievementCard extends PressableView {
                 c.drawText("TAP TO CLAIM", textX, rowY, label);
             } else {
                 count.setColor(PixelTheme.TEXT_DIM);
-                c.drawText(value + " / " + achievement.goal, right, titleY, count);
+                c.drawText(value + " / " + goal, right, titleY, count);
                 drawBar(c, textX, rowY - dp(13), rewardX - dp(10), rowY + dp(3));
             }
         }
@@ -97,13 +94,12 @@ public class AchievementCard extends PressableView {
 
     private void drawMedal(Canvas c, float x, float y, float size) {
         boolean lit = unlocked;
-        int medal = medalColor();
         PixelTheme.drawTile(c, paint, x, y, x + size, y + size, lit ? medal : PixelTheme.shade(medal, 0.55f), px, px * 2);
         float inset = px * 3;
         PixelTheme.drawSlot(c, paint, x + inset, y + inset, x + size - inset, y + size - inset - px * 2, PixelTheme.BG_MID, px);
         float icon = size * 0.56f;
         float ix = x + (size - icon) / 2f, iy = y + (size - icon - px * 2) / 2f;
-        PixelIcons.draw(c, paint, achievement.icon, ix, iy, icon);
+        PixelIcons.draw(c, paint, this.icon, ix, iy, icon);
         if (!lit) {
             paint.setStyle(Paint.Style.FILL);
             paint.setColor(LOCKED_DIM);
@@ -117,7 +113,7 @@ public class AchievementCard extends PressableView {
 
     /** Draws the coin and amount against the right edge, and returns where they start. */
     private float drawReward(Canvas c, float right, float baseline, boolean onGold) {
-        String amount = "+" + achievement.tier.coins;
+        String amount = "+" + coins;
         float icon = dp(18), gap = dp(4);
         float x = right - label.measureText(amount);
         label.setColor(onGold ? PixelTheme.INK : PixelTheme.GOLD);
@@ -131,7 +127,7 @@ public class AchievementCard extends PressableView {
         PixelTheme.drawSlot(c, paint, l, t, r, b, PixelTheme.BG_DEEP, px);
         float inner = r - l - px * 4;
         float seg = (inner - px * (BAR_SEGMENTS - 1)) / BAR_SEGMENTS;
-        float share = value / (float) achievement.goal;
+        float share = value / (float) goal;
         // Any progress at all lights one segment, so a started goal never looks untouched.
         int lit = value == 0 ? 0 : Math.max(1, (int) (share * BAR_SEGMENTS));
         paint.setStyle(Paint.Style.FILL);
