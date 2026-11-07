@@ -36,6 +36,7 @@ public class HomeCard extends PressableView {
         owned = Home.owns(p, item);
         inRoom = Home.placed(p, item.slot) == item;
         affordable = Home.canAfford(p, item);
+        setContentDescription(item.title + (inRoom ? ", in the room" : owned ? ", owned" : ""));
         invalidate();
     }
 
