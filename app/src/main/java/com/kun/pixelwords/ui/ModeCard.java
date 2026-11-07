@@ -31,12 +31,18 @@ public class ModeCard extends PressableView {
 
     public void setStatus(String s) {
         status = s;
+        describe();
         invalidate();
     }
 
     public void setBadge(String s) {
         badge = s;
+        describe();
         invalidate();
+    }
+
+    private void describe() {
+        setContentDescription(name + ", " + status + (badge.isEmpty() ? "" : ", " + badge));
     }
 
     public void setFill(int color) {
