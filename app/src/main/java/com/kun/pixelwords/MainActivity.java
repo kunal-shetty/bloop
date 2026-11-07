@@ -127,7 +127,7 @@ public class MainActivity extends BaseActivity {
         cat = new CatView(this, CAT_DP);
         cat.enableNaps();
         cat.setPetListener(this::onCatPetted);
-        catBubble = PixelTheme.body(this, "", 16, PixelTheme.INK);
+        catBubble = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.INK);
         catBubble.setBackground(new PanelDrawable(PixelTheme.CREAM, Math.max(2f, dp(1))));
         catBubble.setPadding(dp(10), dp(6), dp(10), dp(8));
         catBubble.setGravity(Gravity.CENTER);
@@ -142,7 +142,7 @@ public class MainActivity extends BaseActivity {
         column.addView(streakAndShop(), matchWrap(8));
 
         playBtn = new PixelButton(this, "PLAY", PixelTheme.GOLD, PixelTheme.INK);
-        playBtn.setLabelSize(20);
+        playBtn.setLabelSize(PixelTheme.SIZE_HERO);
         playBtn.setIcon("play");
         playBtn.setIconSize(30);
         playBtn.setShine(true);
@@ -169,7 +169,7 @@ public class MainActivity extends BaseActivity {
         trophy.setOnClickListener(v -> go(new Intent(this, AchievementsActivity.class)));
         FrameLayout trophyBox = new FrameLayout(this);
         trophyBox.addView(trophy, fill());
-        claimBadge = PixelTheme.display(this, "", 8, PixelTheme.INK);
+        claimBadge = PixelTheme.display(this, "", PixelTheme.SIZE_CAPTION, PixelTheme.INK);
         claimBadge.setBackground(new PanelDrawable(PixelTheme.ROSE, Math.max(2f, dp(1))));
         claimBadge.setPadding(dp(4), dp(3), dp(4), dp(3));
         trophyBox.addView(claimBadge, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -215,8 +215,8 @@ public class MainActivity extends BaseActivity {
         streak.addView(com.kun.pixelwords.ui.PixelIcons.view(this, "flame"), ip);
         LinearLayout text = new LinearLayout(this);
         text.setOrientation(LinearLayout.VERTICAL);
-        streakText = PixelTheme.display(this, "", 10, PixelTheme.GOLD);
-        streakSub = PixelTheme.body(this, "", 15, PixelTheme.TEXT_DIM);
+        streakText = PixelTheme.display(this, "", PixelTheme.SIZE_SMALL, PixelTheme.GOLD);
+        streakSub = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.TEXT_DIM);
         streakSub.setPadding(0, dp(4), 0, 0);
         text.addView(streakText);
         text.addView(streakSub);
@@ -262,7 +262,7 @@ public class MainActivity extends BaseActivity {
             LinearLayout cell = new LinearLayout(this);
             cell.setOrientation(LinearLayout.VERTICAL);
             cell.addView(all[i], matchWrap(0));
-            android.widget.TextView caption = PixelTheme.display(this, names[i], 8, PixelTheme.TEXT);
+            android.widget.TextView caption = PixelTheme.display(this, names[i], PixelTheme.SIZE_CAPTION, PixelTheme.TEXT);
             caption.setGravity(Gravity.CENTER);
             cell.addView(caption, matchWrap(4));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
@@ -313,7 +313,7 @@ public class MainActivity extends BaseActivity {
 
     private PixelButton sideButton(String label, String icon, int fill, Class<?> screen) {
         PixelButton b = new PixelButton(this, label, fill, PixelTheme.INK);
-        b.setLabelSize(9);
+        b.setLabelSize(PixelTheme.SIZE_CAPTION);
         b.setIcon(icon);
         b.setIconSize(20);
         b.setOnClickListener(v -> go(new Intent(this, screen)));
