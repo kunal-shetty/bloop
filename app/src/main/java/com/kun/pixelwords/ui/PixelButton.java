@@ -20,6 +20,7 @@ public class PixelButton extends PressableView {
     private int subColor;
     private float iconSize;
     private boolean shine;
+    private String spoken = "";
     private final long born = SystemClock.uptimeMillis();
 
     public PixelButton(Context context, String label, int fillColor, int textColor) {
@@ -32,16 +33,32 @@ public class PixelButton extends PressableView {
         PixelTheme.styleDisplay(labelPaint, PixelTheme.displayPx(context, PixelTheme.SIZE_TITLE));
         PixelTheme.styleBody(subPaint, PixelTheme.bodyPx(context, PixelTheme.SIZE_BODY));
         iconSize = PixelTheme.dp(context, 22);
+        describe();
+    }
+
+    /** What a screen reader says for a button with only an icon on it. */
+    public void setSpokenName(String name) {
+        spoken = name;
+        describe();
+    }
+
+    private void describe() {
+        StringBuilder s = new StringBuilder(label.isEmpty() ? spoken : label);
+        if (!sub.isEmpty()) s.append(", ").append(sub);
+        if (!badge.isEmpty()) s.append(", ").append(badge);
+        setContentDescription(s);
     }
 
     public void setText(String s) {
         label = s;
+        describe();
         requestLayout();
         invalidate();
     }
 
     public void setSubtitle(String s) {
         sub = s == null ? "" : s;
+        describe();
         requestLayout();
         invalidate();
     }
@@ -59,6 +76,7 @@ public class PixelButton extends PressableView {
 
     public void setBadge(String s) {
         badge = s == null ? "" : s;
+        describe();
         invalidate();
     }
 
@@ -128,7 +146,7 @@ public class PixelButton extends PressableView {
         }
 
         if (!badge.isEmpty()) drawBadge(c, w);
-        if (shine) drawShine(c, w, h, s);
+        if (shine && !PixelTheme.reduceMotion()) drawShine(c, w, h, s);
     }
 
     private void drawBadge(Canvas c, float w) {
