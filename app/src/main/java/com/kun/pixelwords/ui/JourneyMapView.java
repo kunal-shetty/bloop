@@ -46,7 +46,7 @@ public class JourneyMapView extends View {
         px = Math.max(2f, Math.round(PixelTheme.dp(context, 1.5f)));
         node = PixelTheme.dp(context, NODE_DP);
         slop = ViewConfiguration.get(context).getScaledTouchSlop();
-        PixelTheme.styleDisplay(number, PixelTheme.displayPx(context, 12));
+        PixelTheme.styleDisplay(number, PixelTheme.displayPx(context, PixelTheme.SIZE_LABEL));
         number.setTextAlign(Paint.Align.CENTER);
     }
 
