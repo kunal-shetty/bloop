@@ -22,8 +22,11 @@ import java.util.Locale;
 /** Everything there is to play, in one place: the Journey first, then every other mode. */
 public class PlayActivity extends PageActivity {
 
+    /** A softer green, so a finished mode steps back from the ones still waiting. */
+    private static final int SOLVED_FILL = 0xFF4FB488;
+
     private PixelButton journey;
-    private ModeCard dailyCard, timedCard, duelCard, ranksCard, livesCard, megaCard;
+    private ModeCard dailyCard, timedCard, duelCard, livesCard, megaCard;
 
     @Override
     protected String pageTitle() {
@@ -55,12 +58,20 @@ public class PlayActivity extends PageActivity {
         megaCard.setOnClickListener(v -> onMega());
         duelCard = new ModeCard(this, "swords", "DUEL", PixelTheme.ROSE);
         duelCard.setOnClickListener(v -> onDuel());
-        ranksCard = new ModeCard(this, "trophy", "RANKS", 0xFFC9A6FF);
-        ranksCard.setOnClickListener(v -> onLeaderboard());
 
-        list.addView(cardRow(dailyCard, timedCard), matchWrap(10));
-        list.addView(cardRow(livesCard, megaCard), matchWrap(10));
-        list.addView(cardRow(duelCard, ranksCard), matchWrap(10));
+        list.addView(dailyCard, matchWrap(10));
+        list.addView(cardRow(timedCard, livesCard), matchWrap(10));
+        list.addView(cardRow(megaCard, duelCard), matchWrap(10));
+    }
+
+    @Override
+    protected PixelButton pageAction() {
+        PixelButton ranks = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
+        ranks.setIcon("trophy");
+        ranks.setIconSize(24);
+        ranks.setSpokenName("Leaderboards");
+        ranks.setOnClickListener(v -> onLeaderboard());
+        return ranks;
     }
 
     private View cardRow(View a, View b) {
@@ -80,16 +91,17 @@ public class PlayActivity extends PageActivity {
         boolean doneToday = progress.streak.lastDay == today;
         dailyCard.setStatus(doneToday ? "Solved!" : "New puzzle");
         dailyCard.setBadge(doneToday ? "" : "NEW");
-        dailyCard.setFill(doneToday ? 0xFF4FB488 : PixelTheme.MINT);
+        dailyCard.setFill(doneToday ? SOLVED_FILL : PixelTheme.MINT);
         timedCard.setStatus(progress.bestTimed > 0 ? "Best " + progress.bestTimed : "2:00 sprint");
         livesCard.setStatus(progress.bestLives > 0 ? "Best " + progress.bestLives : "Survive!");
-        boolean megaReady = MegaBoard.isOpen(today) && !MegaBoard.isSolved(progress, today);
+        boolean megaSolved = MegaBoard.isSolved(progress, today);
+        boolean megaReady = MegaBoard.isOpen(today) && !megaSolved;
         int wait = MegaBoard.daysUntilOpen(today);
-        megaCard.setStatus(MegaBoard.isSolved(progress, today) ? "Solved!" : megaReady ? "Open now"
-                : "In " + days(wait));
+        megaCard.setStatus(megaSolved ? "Solved!" : megaReady ? "Open now" : "In " + days(wait));
         megaCard.setBadge(megaReady ? "NEW" : "");
+        megaCard.setClosed(!megaReady && !megaSolved);
+        megaCard.setFill(megaSolved ? SOLVED_FILL : PixelTheme.GOLD);
         duelCard.setStatus(progress.duelsPlayed > 0 ? MainActivity.wins(progress.duelWins) : "Beat the bot");
-        ranksCard.setStatus("Top players");
     }
 
     private static String days(int n) {
