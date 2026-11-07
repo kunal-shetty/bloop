@@ -50,6 +50,9 @@ public final class Settings {
     public static boolean largeText() { return prefs.getBoolean("largeText", false); }
     public static boolean leftHanded() { return prefs.getBoolean("leftHanded", false); }
     public static boolean reduceMotion() { return prefs.getBoolean("reduceMotion", false); }
+    /** True once the player has been told they can tap a word, so they are only told one time. */
+    public static boolean meaningTipShown() { return prefs.getBoolean("meaningTipShown", false); }
+    public static void setMeaningTipShown() { prefs.edit().putBoolean("meaningTipShown", true).apply(); }
     public static boolean reminders() { return prefs.getBoolean("reminders", false); }
     public static int reminderHour() { return prefs.getInt("reminderHour", DEFAULT_REMINDER_HOUR); }
     /** True once the player has been offered reminders, so they are only asked one time. */
