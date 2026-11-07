@@ -35,6 +35,7 @@ import com.kun.pixelwords.game.NineLives;
 import com.kun.pixelwords.game.PiggyJar;
 import com.kun.pixelwords.game.PowerUps;
 import com.kun.pixelwords.game.Progress;
+import com.kun.pixelwords.game.Region;
 import com.kun.pixelwords.game.Reward;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.Season;
@@ -297,7 +298,7 @@ public class GameActivity extends BaseActivity {
                 boolean hard = Journey.isHard(playLevel), boss = Journey.isBoss(playLevel);
                 level = hard || boss ? gen.forHard(playLevel) : gen.forProgression(playLevel);
                 if (hard) mods = TileMods.forLevel(level);
-                ambient.setTheme(AmbientView.Theme.values()[Journey.themeIndex(Journey.chapterOf(playLevel))]);
+                ambient.setRegion(Region.forChapter(Journey.chapterOf(playLevel)));
                 titleText.setText((boss ? "BOSS " : hard ? "HARD " : "LEVEL ") + playLevel);
                 break;
         }
@@ -342,12 +343,14 @@ public class GameActivity extends BaseActivity {
         fight = boss ? new BossFight(Journey.bossOf(playLevel), session) : null;
         bossRow.setVisibility(boss ? View.VISIBLE : View.GONE);
         if (!boss) return;
-        bossName.setText(fight.boss().title.toUpperCase(Locale.ROOT));
+        bossName.setText(Journey.bossName(playLevel).toUpperCase(Locale.ROOT));
         bossFace.removeAllViews();
         bossFace.addView(com.kun.pixelwords.ui.PixelIcons.view(this, fight.boss().icon), fill());
         bossBar.setSegments(fight.maxHealth());
         bossBar.setValue(1f);
-        handler.postDelayed(() -> say(fight == null ? "" : fight.boss().title.toUpperCase(Locale.ROOT) + " BLOCKS THE WAY!", PixelTheme.ROSE), BOSS_ENTRANCE_MS);
+        handler.postDelayed(() -> {
+            if (fight != null) say("THE BOSS BLOCKS THE WAY!", PixelTheme.ROSE);
+        }, BOSS_ENTRANCE_MS);
     }
 
     /** Brings the screen up to date with the fight, and plays any attack that just landed. */
@@ -1092,7 +1095,7 @@ public class GameActivity extends BaseActivity {
         m.stat("bulb", "Hints used", String.valueOf(o.hints), o.hints == 0 ? PixelTheme.MINT : PixelTheme.TEXT);
         addWinnings(m, o, o.coins);
         if (fight != null) {
-            m.note(fight.boss().title + " runs off, and the path is clear.");
+            m.note(Journey.bossName(playLevel) + " runs off, and the path is clear.");
             sunburst();
         }
         if (s < 3) m.note("Clear a level with no hints for three stars.");
