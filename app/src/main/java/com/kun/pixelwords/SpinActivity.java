@@ -36,7 +36,7 @@ public class SpinActivity extends PageActivity {
         list.addView(wheel, matchWrap(8));
 
         spinButton = new PixelButton(this, "SPIN", PixelTheme.GOLD, PixelTheme.INK);
-        spinButton.setLabelSize(16);
+        spinButton.setLabelSize(PixelTheme.SIZE_HEADING);
         spinButton.setIcon("wheel");
         spinButton.setShine(true);
         spinButton.setOnClickListener(v -> spin());
@@ -58,9 +58,9 @@ public class SpinActivity extends PageActivity {
         LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(dp(22), dp(22));
         ip.rightMargin = dp(10);
         row.addView(com.kun.pixelwords.ui.PixelIcons.view(this, icon), ip);
-        row.addView(PixelTheme.body(this, label, 18, legendary ? PixelTheme.GOLD : PixelTheme.TEXT),
+        row.addView(PixelTheme.body(this, label, PixelTheme.SIZE_BODY, legendary ? PixelTheme.GOLD : PixelTheme.TEXT),
                 new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        row.addView(PixelTheme.body(this, odds, 18, legendary ? PixelTheme.GOLD : PixelTheme.TEXT_DIM));
+        row.addView(PixelTheme.body(this, odds, PixelTheme.SIZE_BODY, legendary ? PixelTheme.GOLD : PixelTheme.TEXT_DIM));
         return row;
     }
 
@@ -68,7 +68,7 @@ public class SpinActivity extends PageActivity {
     protected void refreshPage() {
         boolean ready = DailySpin.canSpin(progress, Days.today());
         spinButton.setText(ready ? "SPIN" : "COME BACK TOMORROW");
-        spinButton.setLabelSize(ready ? 16 : 10);
+        spinButton.setLabelSize(ready ? PixelTheme.SIZE_HEADING : PixelTheme.SIZE_SMALL);
         spinButton.setFill(ready ? PixelTheme.GOLD : PixelTheme.PANEL_LIGHT);
     }
 
