@@ -1182,6 +1182,7 @@ public class GameActivity extends BaseActivity {
         if (session != null) {
             String words = session.foundGridWords().size() + " of " + level.placements.size() + " words";
             subText.setText(fishCells.isEmpty() ? words : words + "   FISH " + fishFound() + "/" + fishCells.size());
+            grid.setContentDescription("Crossword, " + words + " found");
         }
         if (limit() > 0) {
             timerText.setText(clock(secondsLeft));
@@ -1226,6 +1227,7 @@ public class GameActivity extends BaseActivity {
     }
 
     private void shakeWheel() {
+        if (PixelTheme.reduceMotion()) return;
         final float d = PixelTheme.dp(this, 8);
         wheel.animate().translationX(d).setDuration(45).withEndAction(() ->
                 wheel.animate().translationX(-d).setDuration(70).withEndAction(() ->
@@ -1262,6 +1264,7 @@ public class GameActivity extends BaseActivity {
         hud.setGravity(Gravity.CENTER_VERTICAL);
         PixelButton pause = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         pause.setIcon("pause");
+        pause.setSpokenName("Pause");
         pause.setIconSize(24);
         pause.setOnClickListener(v -> showPause());
         hud.addView(pause, new LinearLayout.LayoutParams(dp(46), dp(46)));
@@ -1279,6 +1282,7 @@ public class GameActivity extends BaseActivity {
         hud.addView(titles, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         coinChip = new StatChip(this, "coin");
+        coinChip.setSpokenName("Coins");
         coinChip.setValue(progress.coins);
         hud.addView(coinChip);
         col.addView(hud, wrapWidth(0));
@@ -1362,6 +1366,7 @@ public class GameActivity extends BaseActivity {
 
         PixelButton shuffle = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         shuffle.setIcon("shuffle");
+        shuffle.setSpokenName("Shuffle letters");
         shuffle.setIconSize(30);
         shuffle.setClickSound(Sfx.Id.SHUFFLE);
         shuffle.setOnClickListener(v -> wheel.shuffle(rnd));
@@ -1372,6 +1377,7 @@ public class GameActivity extends BaseActivity {
 
         hintBtn = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         hintBtn.setIcon("bulb");
+        hintBtn.setSpokenName("Hint");
         hintBtn.setIconSize(30);
         hintBtn.setClickSound(null);
         hintBtn.setOnClickListener(v -> onHintPressed());
@@ -1380,6 +1386,7 @@ public class GameActivity extends BaseActivity {
 
         powerBtn = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         powerBtn.setIcon("bolt");
+        powerBtn.setSpokenName("Power-ups");
         powerBtn.setIconSize(30);
         powerBtn.setClickSound(null);
         powerBtn.setOnClickListener(v -> onPowerPressed());
