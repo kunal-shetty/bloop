@@ -743,6 +743,9 @@ public class MainActivity extends BaseActivity {
                         + "and orange spark words worth extra if you find them in your first " + TileMods.SPARK_WINDOW + " words.")
                 .heading("MEANINGS")
                 .body("Tap a word you've found to see what it means.")
+                .heading("BOSSES")
+                .body("Every chapter ends with a boss. Each word you find hurts it, but it fights back every few words, "
+                        + "and whenever you spell something wrong.")
                 .heading("SHOP")
                 .body("Spend your coins on accessories, breeds and rooms for your cat, or on treats to raise your bond.")
                 .heading("EVERY DAY")
