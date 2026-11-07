@@ -4,9 +4,11 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.kun.pixelwords.game.Definitions;
 import com.kun.pixelwords.generator.Dictionary;
 import com.kun.pixelwords.generator.LevelGenerator;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +25,7 @@ public final class GameEngine {
     private final List<Runnable> waiting = new ArrayList<>();
     private volatile LevelGenerator generator;
     private volatile Exception failure;
+    private volatile Definitions definitions;
 
     public static synchronized void init(final Context context) {
         if (instance != null) return;
@@ -47,12 +50,22 @@ public final class GameEngine {
         } catch (Exception e) {
             failure = e;
         }
+        try (InputStream meanings = app.getAssets().open("definitions.txt")) {
+            definitions = Definitions.load(meanings);
+        } catch (IOException e) {
+            definitions = null; // the game plays fine without them: tapping a word just explains nothing
+        }
         final List<Runnable> toRun;
         synchronized (this) {
             toRun = new ArrayList<>(waiting);
             waiting.clear();
         }
         for (final Runnable r : toRun) main.post(r);
+    }
+
+    /** What words mean, or null if they haven't loaded or couldn't be. */
+    public Definitions definitions() {
+        return definitions;
     }
 
     /** Runs {@code r} on the main thread as soon as the generator is available. */
