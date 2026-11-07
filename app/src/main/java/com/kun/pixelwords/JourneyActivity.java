@@ -14,8 +14,10 @@ import android.widget.TextView;
 import com.kun.pixelwords.audio.Haptics;
 import com.kun.pixelwords.audio.Sfx;
 import com.kun.pixelwords.data.ProgressStore;
+import com.kun.pixelwords.game.Boss;
 import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.Progress;
+import com.kun.pixelwords.game.Reward;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.services.PlayGamesService;
 import com.kun.pixelwords.ui.AmbientView;
@@ -26,6 +28,8 @@ import com.kun.pixelwords.ui.PixelButton;
 import com.kun.pixelwords.ui.PixelModal;
 import com.kun.pixelwords.ui.PixelTheme;
 import com.kun.pixelwords.ui.StatChip;
+
+import java.util.Locale;
 
 /** The journey: a chapter at a time, with the cat on the next level. Cleared levels can be replayed. */
 public class JourneyActivity extends BaseActivity {
@@ -205,6 +209,8 @@ public class JourneyActivity extends BaseActivity {
                     .show();
         } else if (level < progress.level) {
             showReplay(level);
+        } else if (Journey.isBoss(level)) {
+            showBoss(level);
         } else if (Journey.isHard(level)) {
             showHardLevel(level);
         } else {
@@ -212,10 +218,24 @@ public class JourneyActivity extends BaseActivity {
         }
     }
 
+    private void showBoss(int level) {
+        Boss boss = Journey.bossOf(level);
+        Reward prize = Journey.bossPrize(level);
+        new PixelModal(this).title("BOSS").icon(boss.icon).accent(PixelTheme.ROSE)
+                .heading(boss.title.toUpperCase(Locale.ROOT))
+                .body(boss.detail + " Spell something wrong and it strikes too.")
+                .stat("coin", "Reward", "+" + Journey.coinsForLevel(level), PixelTheme.GOLD)
+                .stat(prize.icon(), "Prize", prize.label(), PixelTheme.GOLD)
+                .primary("FIGHT", "swords", () -> play(0))
+                .secondary("NOT YET", null)
+                .show();
+    }
+
     private void showReplay(int level) {
         PixelModal m = new PixelModal(this).title("LEVEL " + level).icon("star").accent(PixelTheme.GOLD)
                 .stat("star", "Your best", Journey.starsShown(progress, level) + " / " + Journey.MAX_STARS, PixelTheme.GOLD);
         if (Journey.isHard(level)) m.stat("flame", "Difficulty", "HARD", PixelTheme.ROSE);
+        if (Journey.isBoss(level)) m.stat(Journey.bossOf(level).icon, "Boss", Journey.bossOf(level).title, PixelTheme.ROSE);
         m.note("Replays can win you more stars, but they don't pay coins. Clear a level with no hints for three stars.")
                 .primary("REPLAY", "play", () -> play(level))
                 .secondary("CLOSE", null)
