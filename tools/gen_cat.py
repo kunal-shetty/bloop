@@ -120,6 +120,9 @@ EYES = {
     "eyes_open": two_eyes(["kkkk", "kWbk", "kbbk", "kkkk"]),
     "eyes_closed": two_eyes(["....", "....", "kkkk", "...."]),
     "eyes_happy": two_eyes(["....", ".kk.", "k..k", "...."]),
+    "eyes_wince": Image.alpha_composite(sprite(8, 15, ["k...", ".kk.", "..kk", ".kk.", "k..."]),
+                                        sprite(18, 15, ["...k", ".kk.", "kk..", ".kk.", "...k"])),
+    "eyes_wide": two_eyes(["kkkk", "kWWk", "kWbk", "kkkk"]),
 }
 
 # The mouth and whiskers are part of the face, so they stay in one fixed layer.
@@ -274,8 +277,17 @@ ACCESSORIES = {
         "......kgGGgk......",
         ".......kkkk.......",
     ]),
-    "bowtie": sprite(10, 23, [
-        "kk.......kk.",
+    "heartcollar": sprite(7, 22, [
+        "...kkkkkkkkkkkk...",
+        "..krrrkkkrkkkrrk..",
+        "...kkkgygkgggkkk..",
+        ".....kgyggggGk....",
+        "......kgggGGk.....",
+        ".......kgGGk......",
+        "........kGk.......",
+        ".........k........",
+    ]),
+    "bowtie": sprite(10, 23, [        "kk.......kk.",
         "ksskk.kkssk.",
         "kssssksssskk"[:12],
         "kSsssgssssk.",
