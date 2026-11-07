@@ -91,19 +91,19 @@ public final class PixelModal {
     }
 
     public PixelModal body(CharSequence text) {
-        TextView t = PixelTheme.body(ctx, text, 17, PixelTheme.TEXT);
+        TextView t = PixelTheme.body(ctx, text, PixelTheme.SIZE_BODY, PixelTheme.TEXT);
         t.setLineSpacing(dp(2), 1f);
         return row(t, 0, 10);
     }
 
     public PixelModal note(CharSequence text) {
-        TextView t = PixelTheme.body(ctx, text, 17, PixelTheme.TEXT_DIM);
+        TextView t = PixelTheme.body(ctx, text, PixelTheme.SIZE_BODY, PixelTheme.TEXT_DIM);
         t.setLineSpacing(dp(2), 1f);
         return row(t, 0, 10);
     }
 
     public PixelModal heading(String text) {
-        return row(PixelTheme.display(ctx, text, 9, PixelTheme.TEXT_DIM), 8, 6);
+        return row(PixelTheme.display(ctx, text, PixelTheme.SIZE_CAPTION, PixelTheme.TEXT_DIM), 8, 6);
     }
 
     public PixelModal custom(View v) {
@@ -115,12 +115,12 @@ public final class PixelModal {
     }
 
     public PixelModal stat(String iconName, String label, String value, int valueColor) {
-        return row(statRow(iconName, label, PixelTheme.display(ctx, value, 11, valueColor)), 0, 3);
+        return row(statRow(iconName, label, PixelTheme.display(ctx, value, PixelTheme.SIZE_LABEL, valueColor)), 0, 3);
     }
 
     /** A stat whose number rolls up from zero when the row appears. */
     public PixelModal countStat(String iconName, String label, final String prefix, final int value, int valueColor) {
-        final TextView v = PixelTheme.display(ctx, prefix + "0", 11, valueColor);
+        final TextView v = PixelTheme.display(ctx, prefix + "0", PixelTheme.SIZE_LABEL, valueColor);
         row(statRow(iconName, label, v), 0, 3);
         final int index = rows.size() - 1;
         rowFinishers.add(() -> {
@@ -150,8 +150,8 @@ public final class PixelModal {
 
         LinearLayout text = new LinearLayout(ctx);
         text.setOrientation(LinearLayout.VERTICAL);
-        text.addView(PixelTheme.display(ctx, label, 10, PixelTheme.TEXT));
-        TextView d = PixelTheme.body(ctx, detail, 15, PixelTheme.TEXT_DIM);
+        text.addView(PixelTheme.display(ctx, label, PixelTheme.SIZE_SMALL, PixelTheme.TEXT));
+        TextView d = PixelTheme.body(ctx, detail, PixelTheme.SIZE_BODY, PixelTheme.TEXT_DIM);
         d.setPadding(0, dp(3), 0, 0);
         text.addView(d);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
@@ -175,7 +175,7 @@ public final class PixelModal {
 
     public PixelModal button(String label, int fill, int textColor, String iconName, Sfx.Id sound, final Runnable action) {
         PixelButton b = new PixelButton(ctx, label, fill, textColor);
-        b.setLabelSize(12);
+        b.setLabelSize(PixelTheme.SIZE_LABEL);
         b.setClickSound(sound);
         if (iconName != null) b.setIcon(iconName);
         b.setOnClickListener(v -> {
@@ -199,7 +199,7 @@ public final class PixelModal {
             ip.rightMargin = dp(10);
             r.addView(iconView(iconName), ip);
         }
-        r.addView(PixelTheme.body(ctx, label, 17, PixelTheme.TEXT_DIM),
+        r.addView(PixelTheme.body(ctx, label, PixelTheme.SIZE_BODY, PixelTheme.TEXT_DIM),
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         r.addView(value);
         return r;
@@ -284,7 +284,7 @@ public final class PixelModal {
             ip.rightMargin = dp(10);
             h.addView(iconView(icon), ip);
         }
-        TextView t = PixelTheme.display(ctx, title, 13, PixelTheme.INK);
+        TextView t = PixelTheme.display(ctx, title, PixelTheme.SIZE_LABEL, PixelTheme.INK);
         h.addView(t, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         if (cancelable) {
             PixelButton x = new PixelButton(ctx, "", PixelTheme.shade(accent, 0.8f), PixelTheme.INK);
