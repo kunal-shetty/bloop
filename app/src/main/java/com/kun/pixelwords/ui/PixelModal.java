@@ -289,6 +289,7 @@ public final class PixelModal {
         if (cancelable) {
             PixelButton x = new PixelButton(ctx, "", PixelTheme.shade(accent, 0.8f), PixelTheme.INK);
             x.setIcon("close");
+            x.setSpokenName("Close");
             x.setIconSize(18);
             x.setClickSound(Sfx.Id.UI_BACK);
             x.setOnClickListener(v -> cancel());
@@ -300,6 +301,10 @@ public final class PixelModal {
     private void animateIn() {
         overlay.setAlpha(0f);
         overlay.animate().alpha(1f).setDuration(140).start();
+        if (PixelTheme.reduceMotion()) { // it fades in, and everything is already in place
+            for (Runnable r : rowFinishers) r.run();
+            return;
+        }
         panel.setScaleX(0.72f);
         panel.setScaleY(0.72f);
         panel.animate().scaleX(1f).scaleY(1f).setDuration(280).setInterpolator(new OvershootInterpolator(1.8f)).start();
