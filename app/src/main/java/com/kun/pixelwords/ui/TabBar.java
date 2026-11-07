@@ -12,7 +12,7 @@ import java.util.List;
 /** A row of tabs that shows one section of a scrolling list at a time. */
 public class TabBar extends LinearLayout {
 
-    private static final float LABEL_DP = 8, GAP_DP = 6, TOP_DP = 6, SECTION_TOP_DP = 10;
+    private static final float GAP_DP = 6, TOP_DP = 6, SECTION_TOP_DP = 10;
 
     private final List<PixelButton> tabs = new ArrayList<>();
     private final List<LinearLayout> sections = new ArrayList<>();
@@ -36,7 +36,7 @@ public class TabBar extends LinearLayout {
         sections.add(section);
 
         PixelButton tab = new PixelButton(getContext(), label, PixelTheme.PANEL, PixelTheme.TEXT);
-        tab.setLabelSize(LABEL_DP);
+        tab.setLabelSize(PixelTheme.SIZE_CAPTION);
         int index = tabs.size();
         tab.setOnClickListener(v -> show(index));
         LayoutParams lp = new LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
