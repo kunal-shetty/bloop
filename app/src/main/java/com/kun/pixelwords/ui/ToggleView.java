@@ -28,6 +28,18 @@ public class ToggleView extends PressableView {
         setOnClickListener(v -> toggle());
     }
 
+    @Override
+    public CharSequence getAccessibilityClassName() {
+        return android.widget.Switch.class.getName();
+    }
+
+    @Override
+    public void onInitializeAccessibilityNodeInfo(android.view.accessibility.AccessibilityNodeInfo info) {
+        super.onInitializeAccessibilityNodeInfo(info);
+        info.setCheckable(true);
+        info.setChecked(on);
+    }
+
     private void toggle() {
         on = !on;
         ValueAnimator a = ValueAnimator.ofFloat(knob, on ? 1f : 0f);
