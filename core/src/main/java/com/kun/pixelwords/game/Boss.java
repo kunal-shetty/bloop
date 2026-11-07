@@ -1,16 +1,16 @@
 package com.kun.pixelwords.game;
 
-/** The rival at the end of each chapter. There's one for each chapter scenery, and each fights differently. */
+/** The ways a chapter's rival can fight. Every region's boss uses one, under its own name. See {@link Region#bossName()}. */
 public enum Boss {
 
     FROSTWHISKER("Sir Frostwhisker", "boss_frost", Attack.FREEZE,
-            "Sir Frostwhisker freezes a word. Find another one to thaw it.", "ICE! FIND ANOTHER WORD"),
+            "Freezes a word. Find another one to thaw it.", "ICE! FIND ANOTHER WORD"),
     MADAME_MOTH("Madame Moth", "boss_moth", Attack.SCRAMBLE,
-            "Madame Moth beats her wings and blows the wheel out of order.", "THE WHEEL BLEW AWAY!"),
+            "Blows the wheel out of order.", "THE WHEEL BLEW AWAY!"),
     COUNT_GLOOM("Count Gloom", "boss_bat", Attack.DARKEN,
-            "Count Gloom plunges a word into darkness, hiding its letters until you find another.", "DARKNESS FALLS!"),
+            "Plunges a word into darkness, hiding its letters until you find another.", "DARKNESS FALLS!"),
     EMBER_KING("The Ember King", "boss_king", Attack.STEAL,
-            "The Ember King steals a letter from the wheel. Find a word without it to get it back.", "A LETTER WAS STOLEN!");
+            "Steals a letter from the wheel. Find a word without it to get it back.", "A LETTER WAS STOLEN!");
 
     public enum Attack { FREEZE, SCRAMBLE, DARKEN, STEAL }
 
@@ -30,8 +30,8 @@ public enum Boss {
         this.shout = shout;
     }
 
-    /** The boss guarding a chapter, in step with the chapter's scenery. */
+    /** The fighting style of a chapter's boss. */
     public static Boss forChapter(int chapter) {
-        return values()[Journey.themeIndex(chapter)];
+        return values()[chapter % values().length];
     }
 }
