@@ -136,7 +136,7 @@ public class AlbumActivity extends PageActivity {
             return;
         }
         save();
-        coins.animateTo(progress.coins);
+        earn(coins, progress.coins);
         celebrate();
         refreshPage();
         new PixelModal(this).title("PAGE COMPLETE!").icon("sticker").accent(PixelTheme.GOLD)
