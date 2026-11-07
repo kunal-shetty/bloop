@@ -29,8 +29,8 @@ public class PixelButton extends PressableView {
         this.textColor = textColor;
         this.subColor = PixelTheme.shade(textColor, 0.7f);
         labelPaint.setTextAlign(Paint.Align.LEFT);
-        PixelTheme.styleDisplay(labelPaint, PixelTheme.displayPx(context, 14));
-        PixelTheme.styleBody(subPaint, PixelTheme.bodyPx(context, 17));
+        PixelTheme.styleDisplay(labelPaint, PixelTheme.displayPx(context, PixelTheme.SIZE_TITLE));
+        PixelTheme.styleBody(subPaint, PixelTheme.bodyPx(context, PixelTheme.SIZE_BODY));
         iconSize = PixelTheme.dp(context, 22);
     }
 
