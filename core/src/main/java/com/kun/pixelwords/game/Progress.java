@@ -19,6 +19,7 @@ public final class Progress {
     private static final String HOME_KEY = "home";
     private static final String PAID_KEY = "paid";
     private static final String ALBUM_KEY = "page";
+    private static final String DAILY_LOG_KEY = "dlog";
     private static final int STARS_PER_CHUNK = 30;
     private static final int MAX_STARS_STORED = 3;
     /** Far beyond any real save; stops a corrupt key from allocating a huge array. */
@@ -108,6 +109,10 @@ public final class Progress {
     public long treatDay = 0;
     public int treatsToday = 0;
     public boolean bondCollarPaid = false;
+    /** Dailies solved, as 64 days to a number. See DailyArchive. */
+    public final Map<Long, Long> dailyLog = new TreeMap<>();
+    /** The past daily the player has paid to open, or 0. */
+    public long archiveOpenDay = 0;
     /** What sits in each Home.Slot and where, packed by Home. */
     public final int[] homePlaced = new int[Home.Slot.values().length];
     /** Best stars per level, indexed by level - 1. */
@@ -155,6 +160,17 @@ public final class Progress {
             if (chunk < 0 || chunk > MAX_STAR_CHUNKS) continue;
             for (int i = 0; i < STARS_PER_CHUNK; i++) {
                 recordStars(chunk * STARS_PER_CHUNK + i + 1, (int) (e.getValue() >>> (i * 2)) & 3);
+            }
+        }
+    }
+
+    private void readDailyLog(Map<String, Long> m) {
+        for (Map.Entry<String, Long> e : m.entrySet()) {
+            if (!e.getKey().startsWith(DAILY_LOG_KEY)) continue;
+            try {
+                dailyLog.put(Long.parseLong(e.getKey().substring(DAILY_LOG_KEY.length())), e.getValue());
+            } catch (NumberFormatException ignored) {
+                // a corrupt key loses only its own days
             }
         }
     }
@@ -239,6 +255,8 @@ public final class Progress {
         put(sb, "treatDay", treatDay);
         put(sb, "treats", treatsToday);
         put(sb, "bondCollar", bondCollarPaid ? 1 : 0);
+        for (Map.Entry<Long, Long> block : dailyLog.entrySet()) put(sb, DAILY_LOG_KEY + block.getKey(), block.getValue());
+        put(sb, "archiveOpen", archiveOpenDay);
         for (int i = 0; i < homePlaced.length; i++) put(sb, HOME_KEY + i, homePlaced[i]);
         putStars(sb);
         put(sb, "wearHead", wearHead);
@@ -325,6 +343,8 @@ public final class Progress {
         p.treatDay = get(m, "treatDay", 0);
         p.treatsToday = (int) Math.max(0, get(m, "treats", 0));
         p.bondCollarPaid = get(m, "bondCollar", 0) == 1;
+        p.readDailyLog(m);
+        p.archiveOpenDay = get(m, "archiveOpen", 0);
         for (int i = 0; i < p.homePlaced.length; i++) p.homePlaced[i] = (int) get(m, HOME_KEY + i, 0);
         p.readStars(m);
         p.wearHead = (int) get(m, "wearHead", 0);
@@ -439,6 +459,9 @@ public final class Progress {
         out.treatsToday = Math.max(a.treatDay == out.treatDay ? a.treatsToday : 0,
                 b.treatDay == out.treatDay ? b.treatsToday : 0);
         out.bondCollarPaid = a.bondCollarPaid || b.bondCollarPaid;
+        out.dailyLog.putAll(a.dailyLog);
+        for (Map.Entry<Long, Long> block : b.dailyLog.entrySet()) out.dailyLog.merge(block.getKey(), block.getValue(), (x, y) -> x | y);
+        out.archiveOpenDay = newer.archiveOpenDay;
     }
 
     private static void put(StringBuilder sb, String k, long v) {
