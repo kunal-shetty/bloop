@@ -11,6 +11,7 @@ public class StatChip extends android.view.View {
     private final Paint paint = new Paint();
     private final Paint text = new Paint();
     private final String icon;
+    private String spokenName = "";
     private final float px;
     private int shown;
     private int target;
@@ -24,9 +25,16 @@ public class StatChip extends android.view.View {
         text.setColor(PixelTheme.TEXT);
     }
 
+    /** What a screen reader calls this number. */
+    public void setSpokenName(String name) {
+        spokenName = name;
+        setContentDescription(spokenName + ": " + target);
+    }
+
     public void setValue(int v) {
         if (anim != null) anim.cancel();
         shown = target = v;
+        setContentDescription(spokenName + ": " + v);
         requestLayout();
         invalidate();
     }
@@ -35,6 +43,7 @@ public class StatChip extends android.view.View {
         if (v == target) return;
         if (anim != null) anim.cancel();
         target = v;
+        setContentDescription(spokenName + ": " + v);
         anim = ValueAnimator.ofInt(shown, v);
         anim.setDuration(Math.min(500, 120 + Math.abs(v - shown) * 12L));
         anim.addUpdateListener(a -> {
