@@ -103,6 +103,11 @@ public final class Progress {
     public long streakPaid = 0;
     /** The last day the game was opened. See Comeback. */
     public long lastSeenDay = 0;
+    /** Bond with the cat, the day and count of its last treats, and whether its top prize was paid. See Bond. */
+    public int bondXp = 0;
+    public long treatDay = 0;
+    public int treatsToday = 0;
+    public boolean bondCollarPaid = false;
     /** What sits in each Home.Slot and where, packed by Home. */
     public final int[] homePlaced = new int[Home.Slot.values().length];
     /** Best stars per level, indexed by level - 1. */
@@ -230,6 +235,10 @@ public final class Progress {
         put(sb, "fishClaimed", fishClaimed);
         put(sb, "streakPaid", streakPaid);
         put(sb, "lastSeen", lastSeenDay);
+        put(sb, "bondXp", bondXp);
+        put(sb, "treatDay", treatDay);
+        put(sb, "treats", treatsToday);
+        put(sb, "bondCollar", bondCollarPaid ? 1 : 0);
         for (int i = 0; i < homePlaced.length; i++) put(sb, HOME_KEY + i, homePlaced[i]);
         putStars(sb);
         put(sb, "wearHead", wearHead);
@@ -312,6 +321,10 @@ public final class Progress {
         p.fishClaimed = (int) get(m, "fishClaimed", 0);
         p.streakPaid = get(m, "streakPaid", 0);
         p.lastSeenDay = get(m, "lastSeen", 0);
+        p.bondXp = (int) Math.max(0, get(m, "bondXp", 0));
+        p.treatDay = get(m, "treatDay", 0);
+        p.treatsToday = (int) Math.max(0, get(m, "treats", 0));
+        p.bondCollarPaid = get(m, "bondCollar", 0) == 1;
         for (int i = 0; i < p.homePlaced.length; i++) p.homePlaced[i] = (int) get(m, HOME_KEY + i, 0);
         p.readStars(m);
         p.wearHead = (int) get(m, "wearHead", 0);
@@ -421,6 +434,11 @@ public final class Progress {
         out.fishClaimed = sameHunt ? a.fishClaimed | b.fishClaimed : hunt.fishClaimed;
         out.streakPaid = a.streakPaid | b.streakPaid;
         out.lastSeenDay = Math.max(a.lastSeenDay, b.lastSeenDay);
+        out.bondXp = Math.max(a.bondXp, b.bondXp);
+        out.treatDay = Math.max(a.treatDay, b.treatDay);
+        out.treatsToday = Math.max(a.treatDay == out.treatDay ? a.treatsToday : 0,
+                b.treatDay == out.treatDay ? b.treatsToday : 0);
+        out.bondCollarPaid = a.bondCollarPaid || b.bondCollarPaid;
     }
 
     private static void put(StringBuilder sb, String k, long v) {
