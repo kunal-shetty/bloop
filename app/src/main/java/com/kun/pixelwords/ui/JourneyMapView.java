@@ -141,18 +141,24 @@ public class JourneyMapView extends View {
 
     private void drawLevel(Canvas c, int stop, int level) {
         boolean cleared = level < progress.level, current = level == progress.level, hard = Journey.isHard(level);
+        boolean boss = Journey.isBoss(level);
         float x = stopX(stop), y = stopY(stop), half = node / 2f;
         if (current) {
             double wave = Math.sin(2 * Math.PI * (SystemClock.uptimeMillis() % PULSE_MS) / PULSE_MS);
             half *= 1f + PULSE * (float) (wave + 1) / 2f;
         }
         int fill = current ? PixelTheme.GOLD
-                : hard ? PixelTheme.shade(PixelTheme.ROSE, cleared ? 0.8f : 0.5f)
+                : hard || boss ? PixelTheme.shade(PixelTheme.ROSE, cleared ? 0.8f : 0.5f)
                 : cleared ? PixelTheme.PANEL_LIGHT : PixelTheme.BG_MID;
         PixelTheme.drawTile(c, paint, x - half, y - half, x + half, y + half, fill, px, px * 3);
 
         number.setColor(current ? PixelTheme.INK : cleared || hard ? PixelTheme.TEXT : PixelTheme.TEXT_DIM);
-        c.drawText(String.valueOf(level), x, y + number.getTextSize() * 0.35f, number);
+        if (boss) {
+            float face = node * 0.72f;
+            PixelIcons.draw(c, paint, Journey.bossOf(level).icon, x - face / 2f, y - face / 2f, face);
+        } else {
+            c.drawText(String.valueOf(level), x, y + number.getTextSize() * 0.35f, number);
+        }
         if (hard) {
             float icon = dp(HARD_ICON_DP);
             PixelIcons.draw(c, paint, "flame", x + half - icon * 0.7f, y - half - icon * 0.3f, icon);
