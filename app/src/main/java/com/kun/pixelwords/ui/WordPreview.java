@@ -26,7 +26,7 @@ public class WordPreview extends View {
         super(context);
         px = Math.max(2f, Math.round(PixelTheme.dp(context, 1f)));
         text.setTextAlign(Paint.Align.CENTER);
-        PixelTheme.styleDisplay(text, PixelTheme.displayPx(context, 14));
+        PixelTheme.styleDisplay(text, PixelTheme.displayPx(context, PixelTheme.SIZE_TITLE));
     }
 
     public void setWord(String w) {
