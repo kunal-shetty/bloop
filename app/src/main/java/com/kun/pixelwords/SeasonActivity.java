@@ -54,7 +54,7 @@ public class SeasonActivity extends PageActivity {
         panel.setPadding(dp(12), dp(10), dp(12), dp(12));
         panel.addView(PixelTheme.display(this, "SEASON " + progress.seasonId + ": "
                 + theme.title.toUpperCase(Locale.ROOT), 11, theme.color));
-        summary = PixelTheme.body(this, "", 17, PixelTheme.TEXT);
+        summary = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.TEXT);
         summary.setPadding(0, dp(6), 0, dp(4));
         panel.addView(summary);
         bar = new PixelBar(this);
@@ -62,7 +62,7 @@ public class SeasonActivity extends PageActivity {
         bar.setColor(theme.color);
         panel.addView(bar, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(16)));
         premium = new PixelButton(this, "UNLOCK PREMIUM", PixelTheme.GOLD, PixelTheme.INK);
-        premium.setLabelSize(11);
+        premium.setLabelSize(PixelTheme.SIZE_LABEL);
         premium.setIcon("ticket");
         premium.setSubtitle(Season.PREMIUM_COINS + " coins");
         premium.setOnClickListener(v -> confirmPremium());
@@ -81,7 +81,7 @@ public class SeasonActivity extends PageActivity {
         boolean live = FishHunt.isLive(today);
         addHeading(list, "FISH HUNT", live ? FishHunt.daysToChange(today) + " days left"
                 : "Starts in " + FishHunt.daysToChange(today) + " days");
-        huntStatus = PixelTheme.body(this, "", 17, PixelTheme.TEXT);
+        huntStatus = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.TEXT);
         huntStatus.setPadding(dp(4), dp(6), dp(4), 0);
         list.addView(huntStatus);
         for (int i = 0; i < FishHunt.prizes(); i++) addPrize(list, i);
@@ -90,7 +90,7 @@ public class SeasonActivity extends PageActivity {
     private void addPrize(LinearLayout list, int prize) {
         Reward reward = FishHunt.prize(prize);
         PixelButton b = new PixelButton(this, FishHunt.goal(prize) + " FISH", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
-        b.setLabelSize(10);
+        b.setLabelSize(PixelTheme.SIZE_SMALL);
         b.setIcon(reward.icon());
         b.setSubtitle(reward.label());
         b.setOnClickListener(v -> {
@@ -104,7 +104,7 @@ public class SeasonActivity extends PageActivity {
     private void addTier(LinearLayout list, int tier) {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        TextView number = PixelTheme.display(this, String.valueOf(tier), 10, PixelTheme.CREAM);
+        TextView number = PixelTheme.display(this, String.valueOf(tier), PixelTheme.SIZE_SMALL, PixelTheme.CREAM);
         number.setGravity(Gravity.CENTER);
         row.addView(number, new LinearLayout.LayoutParams(dp(34), LinearLayout.LayoutParams.WRAP_CONTENT));
         row.addView(tierButton(tier, false), trackParams(0));
@@ -121,7 +121,7 @@ public class SeasonActivity extends PageActivity {
     private PixelButton tierButton(int tier, boolean isPremium) {
         Reward reward = Season.reward(progress.seasonId, tier, isPremium);
         PixelButton b = new PixelButton(this, "", PixelTheme.PANEL, PixelTheme.TEXT);
-        b.setLabelSize(8);
+        b.setLabelSize(PixelTheme.SIZE_CAPTION);
         b.setIcon(reward.icon());
         b.setIconSize(20);
         b.setOnClickListener(v -> onClaimed(Season.claim(progress, tier, isPremium)));
