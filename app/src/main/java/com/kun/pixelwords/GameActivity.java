@@ -79,6 +79,12 @@ public class GameActivity extends BaseActivity {
     private static final int LAST_COACHED_LEVEL = 2;
     /** The most of the wheel's width the cat can take without touching the tiles on the smallest wheel. */
     private static final float WHEEL_CAT_SHARE = 0.24f;
+    /** The star iris sheet is mostly a closing star this game doesn't need, so it starts on black. */
+    private static final int IRIS_OPEN_FRAME = 38;
+    /** The combo sheet has "x5" drawn into it, so it can only play on exactly that combo. */
+    private static final int COMBO_SHEET_AT = 5;
+    private static final int COMBO_SHOWN_FROM = 2;
+    private static final long COUNTDOWN_STEP_MS = 780;
 
     private Mode mode = Mode.CAMPAIGN;
     private ProgressStore store;
@@ -91,7 +97,7 @@ public class GameActivity extends BaseActivity {
     private CrosswordView grid;
     private WheelView wheel;
     private WordPreview preview;
-    private TextView titleText, subText, timerText, duelText, coachText, banner, countdownText;
+    private TextView titleText, subText, timerText, duelText, coachText, banner, comboText;
     private PixelBar timerBar;
     private View timerRow;
     private StatChip coinChip;
@@ -138,7 +144,9 @@ public class GameActivity extends BaseActivity {
         store = new ProgressStore(this);
         progress = store.load();
         buildUi();
-        fx.preload("pickups_collect-burst", "ui_confetti", "ui_quest-complete", "pickups_coin-spin", "ui_achievement");
+        fx.playCover("transitions_star-iris", IRIS_OPEN_FRAME, null);
+        fx.preload("pickups_collect-burst", "ui_confetti", "ui_quest-complete", "pickups_coin-spin", "ui_achievement",
+                "ui_combo-counter", "ui_countdown");
         AdsService.get(this).load(); // start loading a rewarded ad early
         GameEngine.get().whenReady(this::startRound);
     }
@@ -203,6 +211,7 @@ public class GameActivity extends BaseActivity {
         finished = false;
         roundLive = false;
         combo = 0;
+        comboText.setVisibility(View.INVISIBLE);
         botScore = 0;
         usedExtraTime = false;
         sparkAnnounced = false;
@@ -315,30 +324,19 @@ public class GameActivity extends BaseActivity {
 
     /** 3, 2, 1, GO! before any timed round. */
     private void runCountdown() {
-        final String[] steps = {"3", "2", "1", "GO!"};
+        final int steps = 4;
         long at = 900;
-        for (int i = 0; i < steps.length; i++) {
-            final int n = i;
+        handler.postDelayed(() -> fx.play("ui_countdown", fx.getWidth() / 2f, fx.getHeight() / 2f, PixelTheme.dp(this, 3), null), at);
+        for (int i = 0; i < steps; i++) {
+            final boolean go = i == steps - 1;
             handler.postDelayed(() -> {
-                boolean go = n == steps.length - 1;
-                countdownText.setText(steps[n]);
-                countdownText.setTextColor(go ? PixelTheme.MINT : PixelTheme.GOLD);
-                countdownText.setVisibility(View.VISIBLE);
-                countdownText.setAlpha(1f);
-                countdownText.setScaleX(2.2f);
-                countdownText.setScaleY(2.2f);
-                countdownText.animate().cancel();
-                countdownText.animate().scaleX(1f).scaleY(1f).setDuration(240)
-                        .setInterpolator(new OvershootInterpolator(2f)).start();
                 Sfx.play(go ? Sfx.Id.COUNT_GO : Sfx.Id.COUNT_BEEP);
                 if (go) Haptics.thud();
                 else Haptics.click();
             }, at);
-            at += 750;
+            at += COUNTDOWN_STEP_MS;
         }
         handler.postDelayed(() -> {
-            countdownText.animate().alpha(0f).setDuration(160)
-                    .withEndAction(() -> countdownText.setVisibility(View.GONE)).start();
             if (resumed) goLive();
             else startPending = true;
         }, at - 250);
@@ -410,7 +408,7 @@ public class GameActivity extends BaseActivity {
         GameSession.Result r = session.submit(word);
         switch (r) {
             case FOUND_GRID:
-                combo++;
+                addCombo();
                 preview.resolve(PixelTheme.MINT, false);
                 Level.Placement p = placementOf(word);
                 if (p != null) burstAt(p.rowAt(p.word.length() / 2), p.colAt(p.word.length() / 2));
@@ -428,7 +426,7 @@ public class GameActivity extends BaseActivity {
                 if (session.isComplete()) endRound(true);
                 break;
             case FOUND_BONUS:
-                combo++;
+                addCombo();
                 preview.resolve(PixelTheme.GOLD, false);
                 wheelCat.hop();
                 say("BONUS WORD  JAR +1", PixelTheme.GOLD);
@@ -448,7 +446,7 @@ public class GameActivity extends BaseActivity {
                 Haptics.click();
                 break;
             case NOT_A_WORD:
-                combo = 0;
+                breakCombo();
                 preview.resolve(PixelTheme.ROSE, true);
                 say("NOT A WORD", PixelTheme.ROSE);
                 Sfx.play(Sfx.Id.WORD_WRONG);
@@ -468,6 +466,31 @@ public class GameActivity extends BaseActivity {
                 break;
         }
         updateHud();
+    }
+
+    /** The run of right answers, shown beside the board and growing as it climbs. */
+    private void addCombo() {
+        combo++;
+        if (combo < COMBO_SHOWN_FROM) return;
+        comboText.setText("x" + combo);
+        comboText.setTextColor(combo >= COMBO_SHEET_AT ? PixelTheme.ROSE : combo >= 3 ? PixelTheme.GOLD : PixelTheme.TEXT);
+        comboText.setVisibility(View.VISIBLE);
+        float size = Math.min(1.6f, 1f + (combo - COMBO_SHOWN_FROM) * 0.12f);
+        comboText.animate().cancel();
+        comboText.setAlpha(1f);
+        comboText.setScaleX(size * 1.5f);
+        comboText.setScaleY(size * 1.5f);
+        comboText.animate().scaleX(size).scaleY(size).setDuration(220).setInterpolator(new OvershootInterpolator(2.5f)).start();
+        if (combo == COMBO_SHEET_AT) {
+            fx.play("ui_combo-counter", fx.getWidth() / 2f, fx.getHeight() * 0.16f, PixelTheme.dp(this, 1.5f), null);
+        }
+    }
+
+    private void breakCombo() {
+        combo = 0;
+        comboText.animate().cancel();
+        comboText.animate().alpha(0f).scaleX(0.5f).scaleY(0.5f).setDuration(180)
+                .withEndAction(() -> comboText.setVisibility(View.INVISIBLE)).start();
     }
 
     /** A weekend board can take two days, so each word is saved as it's found. */
@@ -789,7 +812,7 @@ public class GameActivity extends BaseActivity {
         store.save(progress);
         PlayGamesService.saveProgress(this, progress.serialize());
         if (mode != Mode.TIMED || !usedExtraTime) submitScore(o.score);
-        coinChip.animateTo(progress.coins);
+        earn(grid, coinChip, progress.coins);
 
         if (solved) {
             fx.play("ui_confetti", fx.getWidth() / 2f, fx.getHeight() * 0.3f, PixelTheme.dp(this, 3), null);
@@ -1326,6 +1349,12 @@ public class GameActivity extends BaseActivity {
         banner.setVisibility(View.INVISIBLE);
         boardBox.addView(banner, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
+        comboText = PixelTheme.display(this, "", PixelTheme.SIZE_TITLE, PixelTheme.GOLD);
+        comboText.setShadowLayer(0.01f, dp(2), dp(2), PixelTheme.INK);
+        comboText.setVisibility(View.INVISIBLE);
+        comboText.setPadding(dp(14), dp(10), dp(14), dp(10));
+        boardBox.addView(comboText, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END));
         LinearLayout.LayoutParams boardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
         boardLp.topMargin = dp(8);
         boardLp.bottomMargin = dp(4);
@@ -1397,12 +1426,6 @@ public class GameActivity extends BaseActivity {
 
         contentLayer.addView(col, fill());
 
-        countdownText = PixelTheme.display(this, "", PixelTheme.SIZE_GIANT, PixelTheme.GOLD);
-        countdownText.setGravity(Gravity.CENTER);
-        countdownText.setShadowLayer(0.01f, dp(4), dp(4), PixelTheme.INK);
-        countdownText.setVisibility(View.GONE);
-        contentLayer.addView(countdownText, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
     }
 
     private LinearLayout.LayoutParams wrapWidth(int top) {
