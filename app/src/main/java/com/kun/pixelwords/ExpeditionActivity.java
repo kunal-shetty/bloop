@@ -56,7 +56,7 @@ public class ExpeditionActivity extends PageActivity {
         cat = new CatView(this, 112);
         cat.dress(progress);
         panel.addView(cat);
-        status = PixelTheme.body(this, "", 19, PixelTheme.TEXT);
+        status = PixelTheme.body(this, "", PixelTheme.SIZE_BODY_LARGE, PixelTheme.TEXT);
         status.setGravity(Gravity.CENTER);
         panel.addView(status);
         action = new PixelButton(this, "COLLECT", PixelTheme.GOLD, PixelTheme.INK);
@@ -64,7 +64,7 @@ public class ExpeditionActivity extends PageActivity {
         action.setOnClickListener(v -> collect());
         panel.addView(action, matchWrap(8));
         rush = new PixelButton(this, "BRING HOME NOW", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
-        rush.setLabelSize(10);
+        rush.setLabelSize(PixelTheme.SIZE_SMALL);
         rush.setIcon("coin");
         rush.setOnClickListener(v -> confirmRush());
         panel.addView(rush, matchWrap(8));
@@ -73,14 +73,14 @@ public class ExpeditionActivity extends PageActivity {
         addHeading(list, "WHERE TO?", null);
         for (Expedition.Place place : Expedition.Place.values()) {
             PixelButton b = new PixelButton(this, place.title.toUpperCase(Locale.ROOT), PixelTheme.SKY, PixelTheme.INK);
-            b.setLabelSize(11);
+            b.setLabelSize(PixelTheme.SIZE_LABEL);
             b.setIcon(place.icon);
             b.setSubtitle(place.hours + (place.hours == 1 ? " hour" : " hours") + ", " + place.coinRange() + " coins");
             b.setOnClickListener(v -> send(place));
             placeButtons.add(b);
             list.addView(b, matchWrap(8));
         }
-        list.addView(PixelTheme.body(this, "Longer trips can bring back stickers and hints.", 16, PixelTheme.TEXT_DIM), matchWrap(8));
+        list.addView(PixelTheme.body(this, "Longer trips can bring back stickers and hints.", PixelTheme.SIZE_BODY, PixelTheme.TEXT_DIM), matchWrap(8));
     }
 
     @Override
