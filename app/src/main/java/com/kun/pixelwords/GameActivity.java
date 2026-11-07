@@ -56,6 +56,7 @@ import com.kun.pixelwords.ui.CrosswordView;
 import com.kun.pixelwords.ui.PanelDrawable;
 import com.kun.pixelwords.ui.PixelBar;
 import com.kun.pixelwords.ui.PixelButton;
+import com.kun.pixelwords.ui.PixelIcons;
 import com.kun.pixelwords.ui.PixelModal;
 import com.kun.pixelwords.ui.PixelTheme;
 import com.kun.pixelwords.ui.StarsView;
@@ -339,12 +340,12 @@ public class GameActivity extends BaseActivity {
 
     private void startFight() {
         boolean boss = mode == Mode.CAMPAIGN && Journey.isBoss(playLevel);
-        fight = boss ? new BossFight(Journey.bossOf(playLevel), session) : null;
+        fight = boss ? new BossFight(Journey.regionOf(playLevel), session) : null;
         bossRow.setVisibility(boss ? View.VISIBLE : View.GONE);
         if (!boss) return;
-        bossName.setText(Journey.bossName(playLevel).toUpperCase(Locale.ROOT));
+        bossName.setText(Journey.regionOf(playLevel).bossName().toUpperCase(Locale.ROOT));
         bossFace.removeAllViews();
-        bossFace.addView(com.kun.pixelwords.ui.PixelIcons.view(this, fight.boss().icon), fill());
+        bossFace.addView(PixelIcons.view(this, PixelIcons.boss(Journey.regionOf(playLevel))), fill());
         bossBar.setSegments(fight.maxHealth());
         bossBar.setValue(1f);
         handler.postDelayed(() -> {
@@ -365,7 +366,7 @@ public class GameActivity extends BaseActivity {
         Haptics.thud();
         wheelCat.startle();
         handler.postDelayed(() -> {
-            if (!finished) say(fight.boss().shout, PixelTheme.ROSE);
+            if (!finished) say(attack.shout, PixelTheme.ROSE);
         }, BOSS_SHOUT_DELAY_MS);
         if (PixelTheme.reduceMotion()) return;
         bossFace.setScaleX(1.5f);
@@ -1088,11 +1089,11 @@ public class GameActivity extends BaseActivity {
     private void showCampaignResults(Outcome o) {
         int s = stars(o.hints);
         PixelModal m = results(fight != null ? "BOSS BEATEN!" : "LEVEL " + o.levelNumber + " CLEAR!",
-                fight != null ? fight.boss().icon : "star", PixelTheme.GOLD, true, s, "SCORE", o.score);
+                fight != null ? PixelIcons.boss(Journey.regionOf(playLevel)) : "star", PixelTheme.GOLD, true, s, "SCORE", o.score);
         addWords(m, o);
         m.stat("bulb", "Hints used", String.valueOf(o.hints), o.hints == 0 ? PixelTheme.MINT : PixelTheme.TEXT);
         addWinnings(m, o, o.coins);
-        if (fight != null) m.note(Journey.bossName(playLevel) + " runs off, and the path is clear.");
+        if (fight != null) m.note(Journey.regionOf(playLevel).bossName() + " runs off, and the path is clear.");
         if (s < 3) m.note("Clear a level with no hints for three stars.");
         if (replayLevel > 0) {
             m.note("Replays can win more stars, but they don't pay coins.")
