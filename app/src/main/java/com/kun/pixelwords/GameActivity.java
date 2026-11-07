@@ -22,6 +22,7 @@ import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.Album;
+import com.kun.pixelwords.game.DailyArchive;
 import com.kun.pixelwords.game.Definitions;
 import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.FishHunt;
@@ -72,7 +73,10 @@ public class GameActivity extends BaseActivity {
     /** A cleared campaign level to replay. Left out, the campaign plays the next new level. */
     public static final String EXTRA_REPLAY_LEVEL = "replayLevel";
 
-    public enum Mode { CAMPAIGN, DAILY, TIMED, DUEL, LAN, MEGA, LIVES }
+    /** The past daily to play, in ARCHIVE mode. */
+    public static final String EXTRA_DAY = "day";
+
+    public enum Mode { CAMPAIGN, DAILY, TIMED, DUEL, LAN, MEGA, LIVES, ARCHIVE }
 
     private static final int TIMED_SECONDS = 120;
     private static final int DUEL_SECONDS = 90;
@@ -127,6 +131,7 @@ public class GameActivity extends BaseActivity {
     private int coachLevel;         // the opening level being taught this round, or 0
     private int replayLevel;        // the cleared level being replayed, or 0 for the next new level
     private int playLevel;          // the campaign level on the board
+    private long archiveDay;        // the past daily on the board, in ARCHIVE mode
     private LanMatch race;          // the Wi-Fi race being played, in LAN mode
     private int lastRaceScore;
     private List<DuelBot.Event> botScript;
@@ -150,6 +155,7 @@ public class GameActivity extends BaseActivity {
         String m = getIntent().getStringExtra(EXTRA_MODE);
         if (m != null) mode = Mode.valueOf(m);
         replayLevel = getIntent().getIntExtra(EXTRA_REPLAY_LEVEL, 0);
+        archiveDay = getIntent().getLongExtra(EXTRA_DAY, 0);
         if (mode == Mode.LAN && !joinRace()) return;
         store = new ProgressStore(this);
         progress = store.load();
@@ -236,6 +242,11 @@ public class GameActivity extends BaseActivity {
                 firstDailyToday = progress.streak.lastDay != today;
                 ambient.setTheme(AmbientView.Theme.PETALS);
                 titleText.setText("DAILY");
+                break;
+            case ARCHIVE:
+                level = gen.forDaily(archiveDay);
+                ambient.setTheme(AmbientView.Theme.PETALS);
+                titleText.setText(Days.monthAndDay(archiveDay));
                 break;
             case TIMED:
                 level = gen.forDuel(rnd.nextLong());
@@ -824,7 +835,8 @@ public class GameActivity extends BaseActivity {
         int freezesBefore = progress.streak.freezes;
         Set<Achievement> hadBefore = Achievement.unlocked(progress);
         long today = Days.today();
-        boolean fresh = replayLevel == 0 && !(mode == Mode.DAILY && !firstDailyToday);
+        boolean fresh = replayLevel == 0 && !(mode == Mode.DAILY && !firstDailyToday)
+                && !(mode == Mode.ARCHIVE && DailyArchive.isSolved(progress, archiveDay));
         if (fresh) bankCollections(o, today);
 
         if (solved && mode == Mode.CAMPAIGN) {
@@ -842,9 +854,14 @@ public class GameActivity extends BaseActivity {
             progress.streak = StreakLogic.onDailyCompleted(progress.streak, Days.today());
             progress.dailiesCompleted++;
             o.streakGrew = true;
+            DailyArchive.backfill(progress); // before the log gets its first entry, or the old streak days are lost
+            DailyArchive.markSolved(progress, today);
             o.freezeEarned = progress.streak.freezes > freezesBefore;
             o.milestonePrizes = StreakMilestone.payDue(progress, today);
             Season.addXp(progress, today, Season.XP_DAILY);
+        }
+        if (solved && mode == Mode.ARCHIVE) {
+            o.coins += DailyArchive.solve(progress, archiveDay);
         }
         if (solved && mode == Mode.MEGA && MegaBoard.claim(progress)) {
             Season.addXp(progress, today, MegaBoard.SEASON_XP);
@@ -878,7 +895,7 @@ public class GameActivity extends BaseActivity {
             }
         }
         progress.coins += o.coins;
-        if (replayLevel == 0) progress.totalWordsFound += o.found + o.bonus; // or replays could farm achievements
+        if (fresh) progress.totalWordsFound += o.found + o.bonus; // or replays could farm achievements
         o.achievements = Achievement.newlyUnlocked(hadBefore, progress);
         store.save(progress);
         PlayGamesService.saveProgress(this, progress.serialize());
@@ -956,6 +973,9 @@ public class GameActivity extends BaseActivity {
         switch (mode) {
             case DAILY:
                 showDailyResults(o);
+                break;
+            case ARCHIVE:
+                showArchiveResults(o);
                 break;
             case TIMED:
                 showTimedResults(o);
@@ -1100,9 +1120,21 @@ public class GameActivity extends BaseActivity {
         m.show();
     }
 
+    private void showArchiveResults(Outcome o) {
+        PixelModal m = new PixelModal(this).title(Days.monthAndDay(archiveDay) + " SOLVED!").icon("calendar").accent(PixelTheme.MINT)
+                .quiet().cancelable(false)
+                .custom(cheeringCat())
+                .custom(new StarsView(this, stars(o.hints), 350))
+                .countStat("trophy", "Score", "", o.score, PixelTheme.GOLD);
+        if (o.coins > 0) m.countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
+        else m.note("You'd already solved this one, so this replay pays nothing.");
+        addAchievements(m, o);
+        m.primary("MORE PUZZLES", "calendar", this::finish).show();
+    }
+
     /** The rarest moments get a glow behind them. */
     private void sunburst() {
-        Object glow = fx.loop("holy_sunburst", fx.getWidth() / 2f, fx.getHeight() * 0.12f, PixelTheme.dp(this, 2));
+        Object glow = fx.loop("holy_sunburst", fx.getWidth() / 2f, fx.getHeight() * 0.09f, PixelTheme.dp(this, 1));
         if (glow != null) handler.postDelayed(() -> fx.stop(glow), SUNBURST_MS);
     }
 
