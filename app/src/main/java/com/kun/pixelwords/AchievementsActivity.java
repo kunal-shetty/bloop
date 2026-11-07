@@ -140,6 +140,7 @@ public class AchievementsActivity extends BaseActivity {
         row.setGravity(Gravity.CENTER_VERTICAL);
         PixelButton back = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         back.setIcon("back");
+        back.setSpokenName("Back");
         back.setIconSize(24);
         back.setClickSound(Sfx.Id.UI_BACK);
         back.setOnClickListener(v -> finish());
@@ -148,6 +149,7 @@ public class AchievementsActivity extends BaseActivity {
         title.setGravity(Gravity.CENTER);
         row.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         coins = new StatChip(this, "coin");
+        coins.setSpokenName("Coins");
         row.addView(coins);
         return row;
     }
