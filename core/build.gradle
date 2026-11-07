@@ -25,6 +25,15 @@ tasks.register('selfTest', JavaExec) {
     mainClass = 'com.kun.pixelwords.generator.GeneratorSelfTest'
 }
 
+// ./gradlew :core:codeHash -Pcode=YOURCODE   (prints the hash to add to RedeemCode)
+tasks.register('codeHash', JavaExec) {
+    group = 'build setup'
+    description = 'Prints the hash of a gift code.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.kun.pixelwords.game.RedeemCode'
+    args project.findProperty('code') ?: ''
+}
+
 // ./gradlew :core:prepareDictionary   (re-run after changing the word lists or the filter)
 tasks.register('prepareDictionary', JavaExec) {
     group = 'build setup'
