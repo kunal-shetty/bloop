@@ -41,6 +41,8 @@ public class CrosswordView extends View {
     private int reportedCount;
     private LetterListener letterListener;
     private PickListener pickListener;
+    private PickListener tapListener;
+    private float downX, downY;
     private boolean[][] frozen, spark, fish;
 
     public CrosswordView(Context context) {
@@ -58,6 +60,11 @@ public class CrosswordView extends View {
         letterListener = l;
     }
 
+    /** Hears every ordinary tap on the board, with the cell tapped, or null if it missed the grid. */
+    public void setTapListener(PickListener l) {
+        tapListener = l;
+    }
+
     /** Waits for the player to tap a hidden letter. Tapping anywhere else cancels. */
     public void pickLetter(PickListener l) {
         pickListener = l;
@@ -66,12 +73,24 @@ public class CrosswordView extends View {
 
     @Override
     public boolean onTouchEvent(android.view.MotionEvent e) {
-        if (pickListener == null) return super.onTouchEvent(e);
+        if (pickListener == null) return onOrdinaryTouch(e);
         if (e.getActionMasked() == android.view.MotionEvent.ACTION_UP) {
             PickListener l = pickListener;
             pickListener = null;
             l.onPicked(cellAt(e.getX(), e.getY()));
             invalidate();
+        }
+        return true;
+    }
+
+    private boolean onOrdinaryTouch(android.view.MotionEvent e) {
+        if (tapListener == null) return super.onTouchEvent(e);
+        if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
+            downX = e.getX();
+            downY = e.getY();
+        } else if (e.getActionMasked() == android.view.MotionEvent.ACTION_UP
+                && Math.hypot(e.getX() - downX, e.getY() - downY) < cell) {
+            tapListener.onPicked(cellAt(e.getX(), e.getY()));
         }
         return true;
     }
