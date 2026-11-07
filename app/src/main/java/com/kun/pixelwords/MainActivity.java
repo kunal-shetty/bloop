@@ -22,6 +22,7 @@ import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.Album;
 import com.kun.pixelwords.game.CatMood;
+import com.kun.pixelwords.game.Comeback;
 import com.kun.pixelwords.game.DailySpin;
 import com.kun.pixelwords.game.Expedition;
 import com.kun.pixelwords.game.FishHunt;
@@ -31,7 +32,9 @@ import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Quest;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.Season;
+import com.kun.pixelwords.game.Reward;
 import com.kun.pixelwords.game.StreakLogic;
+import com.kun.pixelwords.game.StreakMilestone;
 import com.kun.pixelwords.game.TileMods;
 import com.kun.pixelwords.services.AdsService;
 import com.kun.pixelwords.services.PlayGamesService;
@@ -109,6 +112,7 @@ public class MainActivity extends BaseActivity {
             introduced = true;
             playIntro();
         }
+        if (!welcomeBack() && Comeback.see(progress, Days.today())) store.save(progress);
         offerReminders();
         updateCat();
     }
@@ -475,6 +479,34 @@ public class MainActivity extends BaseActivity {
         contentLayer.postDelayed(() -> catSays(CatMood.line(progress, Days.today(), catRandom)), CAT_SPEAKS_AFTER_MS);
     }
 
+    /** The cat waits by the door for a player who's been away. True if it's showing. */
+    private boolean welcomeBack() {
+        long today = Days.today();
+        int away = Comeback.daysAway(progress, today);
+        if (away == 0 || modalShowing()) return false;
+        CatView greeter = new CatView(this, 112);
+        greeter.dress(progress);
+        greeter.setCheering(true);
+        greeter.setClickable(false);
+        PixelModal m = new PixelModal(this).title("YOU'RE BACK!").icon("heart").accent(PixelTheme.ROSE)
+                .quiet().cancelable(false)
+                .custom(greeter)
+                .body("Your cat waited by the door for " + days(away) + ", and saved you something.");
+        for (Reward r : Comeback.gift(away)) m.stat(r.icon(), r.label(), "", PixelTheme.GOLD);
+        m.primary("THANKS, CAT!", "heart", this::claimComeback).show();
+        Sfx.play(Sfx.Id.MEOW);
+        return true;
+    }
+
+    private void claimComeback() {
+        Comeback.claim(progress, Days.today());
+        store.save(progress);
+        PlayGamesService.saveProgress(this, progress.serialize());
+        Haptics.celebrate();
+        earn(cat, coinChip, progress.coins);
+        hintChip.animateTo(progress.hintTokens);
+    }
+
     private void onCatPetted() {
         if (catGift == 0) {
             if (catRandom.nextInt(3) == 0) catSays(CatMood.line(progress, Days.today(), catRandom));
@@ -504,7 +536,13 @@ public class MainActivity extends BaseActivity {
                 .stat("flame", "Current streak", days(StreakLogic.displayStreak(progress.streak, today)), PixelTheme.ROSE)
                 .stat("trophy", "Best streak", days(progress.streak.best), PixelTheme.GOLD)
                 .stat("freeze", "Streak freezes", progress.streak.freezes + " / " + StreakLogic.MAX_FREEZES, PixelTheme.SKY)
-                .note("You earn a freeze every " + StreakLogic.FREEZE_EVERY_DAYS + " days. A freeze saves your streak if you miss one day.");
+                .note("You earn a freeze every " + StreakLogic.FREEZE_EVERY_DAYS + " days. A freeze saves your streak if you miss one day.")
+                .heading("MILESTONES");
+        for (StreakMilestone goal : StreakMilestone.values()) {
+            boolean won = goal.isPaid(progress);
+            m.stat(won ? "check" : "lock", days(goal.days), won ? "WON" : "", won ? PixelTheme.MINT : PixelTheme.TEXT_DIM);
+            if (!won) m.note(goal.summary());
+        }
         if (progress.streak.lastDay != today) {
             m.primary("PLAY DAILY", "calendar", () -> goToBoard(new Intent(this, GameActivity.class)
                     .putExtra(GameActivity.EXTRA_MODE, GameActivity.Mode.DAILY.name())));
