@@ -31,6 +31,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // ./gradlew :app:assembleDebug -Psandbox installs beside the real game, with its own save, for testing.
+            if (project.hasProperty('sandbox')) applicationIdSuffix '.sandbox'
+        }
         release {
             if (keystoreFile.exists()) signingConfig signingConfigs.release
             minifyEnabled true
