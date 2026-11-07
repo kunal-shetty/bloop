@@ -16,29 +16,35 @@ import java.util.Random;
  */
 public final class BossFight {
 
-    private static final int WORDS_PER_ATTACK = 3;
+    /** How often a hand-made boss strikes, in words found. */
+    public static final int USUAL_PACE = 3;
     /** The last word on the board is never attacked, so the fight can always end. */
     private static final int FEWEST_WORDS_TO_ATTACK = 2;
 
-    private final Boss boss;
+    private final Boss.Attack[] attacks;
+    private final int wordsPerAttack;
     private final GameSession session;
     private final Level level;
     private final Random rnd;
     private int foundBefore;
     private int wordsSinceAttack;
+    private int attacksMade;
     private List<int[]> darkCells = new ArrayList<>();
     private char stolen;
 
-    public BossFight(Boss boss, GameSession session) {
-        this.boss = boss;
+    /** The boss of a region. */
+    public BossFight(Region region, GameSession session) {
+        this(region.bossAttacks(), region.bossPace(), session);
+    }
+
+    /** A boss that takes these attacks in turn, striking every so many words. */
+    public BossFight(Boss.Attack[] attacks, int wordsPerAttack, GameSession session) {
+        this.attacks = attacks;
+        this.wordsPerAttack = wordsPerAttack;
         this.session = session;
         this.level = session.level();
         this.rnd = new Random(level.fingerprint());
         foundBefore = session.foundGridWords().size();
-    }
-
-    public Boss boss() {
-        return boss;
     }
 
     public int health() {
@@ -76,7 +82,7 @@ public final class BossFight {
         wordsSinceAttack += found - foundBefore;
         foundBefore = found;
         clearEffect();
-        return wordsSinceAttack >= WORDS_PER_ATTACK ? strike() : null;
+        return wordsSinceAttack >= wordsPerAttack ? strike() : null;
     }
 
     /** Call when the player spells something that isn't a word. Returns the attack it set off, or null. */
@@ -86,8 +92,9 @@ public final class BossFight {
 
     private Boss.Attack strike() {
         if (health() < FEWEST_WORDS_TO_ATTACK) return null;
+        Boss.Attack attack = attacks[attacksMade % attacks.length];
         boolean landed;
-        switch (boss.attack) {
+        switch (attack) {
             case FREEZE:
                 landed = freeze();
                 break;
@@ -103,7 +110,8 @@ public final class BossFight {
         }
         if (!landed) return null;
         wordsSinceAttack = 0;
-        return boss.attack;
+        attacksMade++;
+        return attack;
     }
 
     private List<Level.Placement> wordsLeft() {
