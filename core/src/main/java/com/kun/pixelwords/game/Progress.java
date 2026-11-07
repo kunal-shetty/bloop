@@ -99,6 +99,10 @@ public final class Progress {
     public long fishEvent = 0;
     public int fishCount = 0;
     public int fishClaimed = 0;
+    /** Streak rewards paid, as a bit per StreakMilestone. */
+    public long streakPaid = 0;
+    /** The last day the game was opened. See Comeback. */
+    public long lastSeenDay = 0;
     /** What sits in each Home.Slot and where, packed by Home. */
     public final int[] homePlaced = new int[Home.Slot.values().length];
     /** Best stars per level, indexed by level - 1. */
@@ -224,6 +228,8 @@ public final class Progress {
         put(sb, "fishEvent", fishEvent);
         put(sb, "fishCount", fishCount);
         put(sb, "fishClaimed", fishClaimed);
+        put(sb, "streakPaid", streakPaid);
+        put(sb, "lastSeen", lastSeenDay);
         for (int i = 0; i < homePlaced.length; i++) put(sb, HOME_KEY + i, homePlaced[i]);
         putStars(sb);
         put(sb, "wearHead", wearHead);
@@ -304,6 +310,8 @@ public final class Progress {
         p.fishEvent = get(m, "fishEvent", 0);
         p.fishCount = (int) Math.max(0, get(m, "fishCount", 0));
         p.fishClaimed = (int) get(m, "fishClaimed", 0);
+        p.streakPaid = get(m, "streakPaid", 0);
+        p.lastSeenDay = get(m, "lastSeen", 0);
         for (int i = 0; i < p.homePlaced.length; i++) p.homePlaced[i] = (int) get(m, HOME_KEY + i, 0);
         p.readStars(m);
         p.wearHead = (int) get(m, "wearHead", 0);
@@ -411,6 +419,8 @@ public final class Progress {
         out.fishEvent = hunt.fishEvent;
         out.fishCount = sameHunt ? Math.max(a.fishCount, b.fishCount) : hunt.fishCount;
         out.fishClaimed = sameHunt ? a.fishClaimed | b.fishClaimed : hunt.fishClaimed;
+        out.streakPaid = a.streakPaid | b.streakPaid;
+        out.lastSeenDay = Math.max(a.lastSeenDay, b.lastSeenDay);
     }
 
     private static void put(StringBuilder sb, String k, long v) {
