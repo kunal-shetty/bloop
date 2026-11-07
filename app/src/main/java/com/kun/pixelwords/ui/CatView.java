@@ -64,6 +64,7 @@ public class CatView extends View {
         nextBlink = SystemClock.uptimeMillis() + 1500;
         setSoundEffectsEnabled(false);
         setOnClickListener(v -> pet());
+        setContentDescription("Your cat. Double tap to pet.");
     }
 
     /** Dresses the cat in whatever the player is wearing. */
@@ -107,7 +108,7 @@ public class CatView extends View {
 
     /** Keeps hopping happily; used when celebrating. */
     public void setCheering(boolean on) {
-        cheering = on;
+        cheering = on && !PixelTheme.reduceMotion();
         invalidate();
     }
 
