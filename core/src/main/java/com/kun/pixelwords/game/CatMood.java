@@ -23,12 +23,21 @@ public final class CatMood {
             "I like your style.",
     };
 
+    /** Lines the cat only says once the two of you are closer. */
+    private static final String[] CLOSE_CHATTER = {
+            "You're my favourite human.",
+            "I saved you a spot on the sofa.",
+            "I dreamed about tuna again.",
+            "We make a good team.",
+            "I told the mice all about you.",
+    };
+
     private CatMood() {}
 
     /** Coins the cat is offering today, or 0 if it has nothing, or has given all it can. */
     public static int rollGift(Progress p, long today, Random rnd) {
         if (giftsToday(p, today) >= MAX_GIFTS_PER_DAY || rnd.nextFloat() >= GIFT_CHANCE) return 0;
-        return MIN_GIFT_COINS + rnd.nextInt(MAX_GIFT_COINS - MIN_GIFT_COINS + 1);
+        return MIN_GIFT_COINS + rnd.nextInt(MAX_GIFT_COINS - MIN_GIFT_COINS + 1) + Bond.giftBonus(p);
     }
 
     public static void collectGift(Progress p, long today, int coins) {
@@ -44,6 +53,7 @@ public final class CatMood {
     public static String line(Progress p, long today, Random rnd) {
         String topical = topical(p, today);
         if (topical != null && rnd.nextFloat() < TOPICAL_CHANCE) return topical;
+        if (Bond.level(p) >= Bond.CHATTER_LEVEL && rnd.nextBoolean()) return CLOSE_CHATTER[rnd.nextInt(CLOSE_CHATTER.length)];
         return CHATTER[rnd.nextInt(CHATTER.length)];
     }
 
@@ -53,6 +63,7 @@ public final class CatMood {
         if (streak > 0 && p.streak.lastDay != today) return "Keep our " + streak + "-day streak going!";
         if (Journey.isHard(p.level)) return "The next level is hard. I believe in you!";
         if (Journey.slotOf(p.level) == Journey.LEVELS_PER_CHAPTER) return "One more level to the trophy!";
+        if (Bond.isHungry(p, today)) return "Is it treat time? I think it's treat time.";
         return null;
     }
 }
