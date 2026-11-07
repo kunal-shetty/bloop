@@ -17,6 +17,7 @@ import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.game.Boss;
 import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.Progress;
+import com.kun.pixelwords.game.Region;
 import com.kun.pixelwords.game.Reward;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.services.PlayGamesService;
@@ -177,7 +178,7 @@ public class JourneyActivity extends BaseActivity {
         nextBtn.setVisibility(chapter < furthest ? View.VISIBLE : View.INVISIBLE);
         chapterText.setText("Chapter " + (chapter + 1));
         chapterName.setText(Journey.chapterName(chapter));
-        ambient.setTheme(AmbientView.Theme.values()[Journey.themeIndex(chapter)]);
+        ambient.setRegion(Region.forChapter(chapter));
         cat.dress(progress);
         map.show(chapter, progress);
         map.setContentDescription("Journey map, " + Journey.chapterName(chapter) + ". Double tap to play level " + progress.level + ".");
@@ -222,7 +223,7 @@ public class JourneyActivity extends BaseActivity {
         Boss boss = Journey.bossOf(level);
         Reward prize = Journey.bossPrize(level);
         new PixelModal(this).title("BOSS").icon(boss.icon).accent(PixelTheme.ROSE)
-                .heading(boss.title.toUpperCase(Locale.ROOT))
+                .heading(Journey.bossName(level).toUpperCase(Locale.ROOT))
                 .body(boss.detail + " Spell something wrong and it strikes too.")
                 .stat("coin", "Reward", "+" + Journey.coinsForLevel(level), PixelTheme.GOLD)
                 .stat(prize.icon(), "Prize", prize.label(), PixelTheme.GOLD)
@@ -235,7 +236,7 @@ public class JourneyActivity extends BaseActivity {
         PixelModal m = new PixelModal(this).title("LEVEL " + level).icon("star").accent(PixelTheme.GOLD)
                 .stat("star", "Your best", Journey.starsShown(progress, level) + " / " + Journey.MAX_STARS, PixelTheme.GOLD);
         if (Journey.isHard(level)) m.stat("flame", "Difficulty", "HARD", PixelTheme.ROSE);
-        if (Journey.isBoss(level)) m.stat(Journey.bossOf(level).icon, "Boss", Journey.bossOf(level).title, PixelTheme.ROSE);
+        if (Journey.isBoss(level)) m.note(Journey.bossName(level) + ": " + Journey.bossOf(level).detail);
         m.note("Replays can win you more stars, but they don't pay coins. Clear a level with no hints for three stars.")
                 .primary("REPLAY", "play", () -> play(level))
                 .secondary("CLOSE", null)
