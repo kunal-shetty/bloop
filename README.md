@@ -84,7 +84,7 @@ tools/gen_defs.py    Rebuild the word meanings from a WordNet 3.1 dict folder
 
 - **Tested:** everything in `core/` (run `selfTest`).
 - **Run on a real phone (Vivo V2143, Android 13):** the splash, menu, modals and core gameplay. Play Games sign-in, leaderboards, ads and purchases have not been exercised, because they need the console setup above.
-- **Run on the V2143 in a sandbox install:** the star iris, combos, the time-of-day sky, the comeback gift, a streak milestone, feeding the cat, word meanings, past puzzles, gift codes, generated regions, and all four boss attacks. Timed's sprite countdown, opening the jar's chest, flying coins, Reduce Motion and a generated boss's full fight have been built but not watched on a phone.
+- **Run on the V2143 in a sandbox install:** the star iris, combos, the time-of-day sky, the comeback gift, a streak milestone, feeding the cat, word meanings, past puzzles, gift codes, generated regions, all four boss attacks, a generated boss's full fight, Timed's sprite countdown, the jar's chest, flying coins and Reduce Motion.
 - **Not built yet:** online multiplayer (Wi-Fi races work, see below).
 
 ## Multiplayer: Wi-Fi now, online later
