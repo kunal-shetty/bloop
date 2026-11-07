@@ -1269,9 +1269,9 @@ public class GameActivity extends BaseActivity {
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setGravity(Gravity.CENTER_HORIZONTAL);
-        titleText = PixelTheme.display(this, "", 13, PixelTheme.GOLD);
+        titleText = PixelTheme.display(this, "", PixelTheme.SIZE_LABEL, PixelTheme.GOLD);
         titleText.setGravity(Gravity.CENTER);
-        subText = PixelTheme.body(this, "", 17, PixelTheme.TEXT);
+        subText = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.TEXT);
         subText.setGravity(Gravity.CENTER);
         subText.setPadding(0, dp(4), 0, 0);
         titles.addView(titleText);
@@ -1288,19 +1288,19 @@ public class GameActivity extends BaseActivity {
         timerBar = new PixelBar(this);
         timerBar.setSegments(30);
         tr.addView(timerBar, new LinearLayout.LayoutParams(0, dp(18), 1f));
-        timerText = PixelTheme.display(this, "", 12, PixelTheme.TEXT);
+        timerText = PixelTheme.display(this, "", PixelTheme.SIZE_LABEL, PixelTheme.TEXT);
         timerText.setPadding(dp(10), 0, 0, 0);
         tr.addView(timerText);
         timerRow = tr;
         col.addView(tr, wrapWidth(8));
 
-        duelText = PixelTheme.display(this, "", 10, PixelTheme.TEXT);
+        duelText = PixelTheme.display(this, "", PixelTheme.SIZE_SMALL, PixelTheme.TEXT);
         duelText.setGravity(Gravity.CENTER);
         duelText.setBackground(new PanelDrawable(0xE03A2E6E, Math.max(2f, dp(1))));
         duelText.setPadding(dp(8), dp(8), dp(8), dp(8));
         col.addView(duelText, wrapWidth(8));
 
-        coachText = PixelTheme.display(this, "", 10, PixelTheme.GOLD);
+        coachText = PixelTheme.display(this, "", PixelTheme.SIZE_SMALL, PixelTheme.GOLD);
         coachText.setGravity(Gravity.CENTER);
         coachText.setLineSpacing(dp(4), 1f);
         coachText.setBackground(new PanelDrawable(0xE03A2E6E, Math.max(2f, dp(1))));
@@ -1316,7 +1316,7 @@ public class GameActivity extends BaseActivity {
             Haptics.tick();
         });
         boardBox.addView(grid, fill());
-        banner = PixelTheme.display(this, "", 11, PixelTheme.MINT);
+        banner = PixelTheme.display(this, "", PixelTheme.SIZE_LABEL, PixelTheme.MINT);
         banner.setBackground(new PanelDrawable(0xF0251D4A, Math.max(2f, dp(1))));
         banner.setPadding(dp(14), dp(9), dp(14), dp(10));
         banner.setVisibility(View.INVISIBLE);
@@ -1390,7 +1390,7 @@ public class GameActivity extends BaseActivity {
 
         contentLayer.addView(col, fill());
 
-        countdownText = PixelTheme.display(this, "", 56, PixelTheme.GOLD);
+        countdownText = PixelTheme.display(this, "", PixelTheme.SIZE_GIANT, PixelTheme.GOLD);
         countdownText.setGravity(Gravity.CENTER);
         countdownText.setShadowLayer(0.01f, dp(4), dp(4), PixelTheme.INK);
         countdownText.setVisibility(View.GONE);
