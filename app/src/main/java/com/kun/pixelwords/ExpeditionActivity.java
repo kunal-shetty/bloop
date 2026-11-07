@@ -169,7 +169,7 @@ public class ExpeditionActivity extends PageActivity {
         List<Reward> paid = Expedition.collect(progress, System.currentTimeMillis());
         if (paid.isEmpty()) return;
         save();
-        coins.animateTo(progress.coins);
+        earn(cat, coins, progress.coins);
         celebrate();
         Haptics.celebrate();
         cat.hop();
