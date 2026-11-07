@@ -4,6 +4,7 @@ import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.AdPolicy;
 import com.kun.pixelwords.game.Comeback;
 import com.kun.pixelwords.game.Album;
+import com.kun.pixelwords.game.Bond;
 import com.kun.pixelwords.game.CatMood;
 import com.kun.pixelwords.game.DailySpin;
 import com.kun.pixelwords.game.DuelBot;
@@ -97,6 +98,7 @@ public final class GeneratorSelfTest {
         testNewSaveFields();
         testStreakMilestones();
         testComeback();
+        testBond();
         testLan();
         testCurve(gen);
 
@@ -1162,6 +1164,62 @@ public final class GeneratorSelfTest {
     }
 
     /** Every new field must survive a save, a cloud copy, and a merge in either order. */
+    private static void testBond() {
+        long day = 500;
+        Progress p = new Progress();
+        check(Bond.level(p) == 1 && Bond.progress(p) == 0f, "a new cat starts at level one");
+        check(!Bond.canFeed(p, Bond.Treat.KIBBLE, day), "treats cost coins");
+        check(Bond.feed(p, Bond.Treat.KIBBLE, day) == null && p.bondXp == 0, "no coins means no treat");
+        check(!Bond.isHungry(p, day), "a cat that has never had a treat doesn't ask for one");
+
+        p.coins = 1000;
+        Bond.feed(p, Bond.Treat.KIBBLE, day);
+        check(p.coins == 975 && p.bondXp == 10, "a treat costs coins and raises the bond");
+        Bond.feed(p, Bond.Treat.FISH_BITES, day);
+        Bond.feed(p, Bond.Treat.TUNA_FEAST, day);
+        check(p.bondXp == 130 && Bond.level(p) == 2, "enough treats raise the level");
+        check(Bond.treatsLeft(p, day) == 0 && !Bond.canFeed(p, Bond.Treat.KIBBLE, day), "three treats a day is the limit");
+        int coins = p.coins;
+        Bond.feed(p, Bond.Treat.KIBBLE, day);
+        check(p.coins == coins && p.bondXp == 130, "a full cat costs nothing");
+        check(Bond.isHungry(p, day + 1) && !Bond.isHungry(p, day), "the cat is hungry again the next day");
+        check(Bond.treatsLeft(p, day + 1) == 3, "treats come back the next day");
+
+        int last = 0;
+        for (int level = 2; level <= Bond.MAX_LEVEL; level++) {
+            check(Bond.xpFor(level) - Bond.xpFor(level - 1) > last, "every level takes longer than the one before");
+            last = Bond.xpFor(level) - Bond.xpFor(level - 1);
+        }
+        p.bondXp = Bond.xpFor(3);
+        check(Bond.level(p) == 3 && Bond.xpToNext(p) == Bond.xpFor(4) - Bond.xpFor(3), "levels start exactly on their threshold");
+        check(Bond.giftBonus(p) == 5, "a closer cat brings more coins");
+        p.bondXp = Bond.xpFor(4);
+        p.coins = 0;
+        check(!Expedition.isUnlocked(new Progress(), Expedition.Place.COVE), "the cove starts locked");
+        check(!Expedition.start(new Progress(), Expedition.Place.COVE, 1000), "a new cat can't go to the cove");
+        check(Expedition.start(p, Expedition.Place.COVE, 1000), "a close cat can go to the cove");
+        check(Expedition.collect(p, 1000 + 12 * 60 * 60 * 1000L).size() >= 2, "the cove pays coins and a hint");
+        p.bondXp = Bond.xpFor(Bond.EXTRA_TREAT_LEVEL);
+        check(Bond.treatsPerDay(p) == 4, "a close cat takes one more treat a day");
+
+        p.bondXp = Bond.xpFor(Bond.MAX_LEVEL) - 1;
+        p.coins = 500;
+        Reward prize = Bond.feed(p, Bond.Treat.KIBBLE, day + 5);
+        check(prize != null && Shop.owns(p, Shop.Item.HEART_COLLAR), "the top level wins the Heart Collar");
+        check(Bond.feed(p, Bond.Treat.KIBBLE, day + 5) == null, "the collar is only won once");
+        check(Bond.level(p) == Bond.MAX_LEVEL && Bond.progress(p) == 1f && Bond.xpToNext(p) == 0, "the bar stays full at the top");
+        Progress rich = new Progress();
+        rich.coins = 100_000;
+        check(!Shop.buy(rich, Shop.Item.HEART_COLLAR), "the collar can't be bought");
+
+        Progress a = new Progress(), b = new Progress();
+        a.bondXp = 50; a.treatDay = 9; a.treatsToday = 2;
+        b.bondXp = 90; b.treatDay = 9; b.treatsToday = 1; b.bondCollarPaid = true;
+        Progress m = Progress.merge(a, b);
+        check(m.bondXp == 90 && m.treatsToday == 2 && m.bondCollarPaid, "the bond survives a cloud merge");
+        check(Progress.parse(b.serialize()).serialize().equals(b.serialize()), "the bond is saved");
+    }
+
     private static void testStreakMilestones() {
         Progress p = new Progress();
         check(StreakMilestone.payDue(p, 1).isEmpty(), "a new player has earned no streak rewards");
