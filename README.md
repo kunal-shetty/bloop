@@ -1,6 +1,6 @@
 # Bloop
 
-A Words-of-Wonder-style word-wheel crossword for Android, in pure Java, with a pixel-art world, a pixel cat you can dress up and collect breeds for, a room to furnish, daily streaks, a daily spin, cat trips, a sticker album, a monthly Season Pass, Fish Hunt events, Nine Lives, a weekend Mega Board, word duels, timed mode, leaderboards and cloud save.
+A Words-of-Wonder-style word-wheel crossword for Android, in pure Java, with a pixel-art world, a pixel cat you can dress up and collect breeds for, a room to furnish, daily streaks, a daily spin, cat trips, a sticker album, a monthly Season Pass, Fish Hunt events, Nine Lives, a weekend Mega Board, word duels, timed mode, boss fights, regions that never repeat, word meanings, past daily puzzles, gift codes, leaderboards and cloud save.
 
 ## What's in the box
 
@@ -22,6 +22,7 @@ tools/gen_cat.py     Regenerate the cat and its accessories (needs Pillow)
 tools/gen_icon.py    Regenerate the launcher icon (needs Pillow)
 tools/gen_home.py    Regenerate the cat home art (needs Pillow)
 tools/gen_album.py   Regenerate the sticker album banners (needs Pillow)
+tools/gen_defs.py    Rebuild the word meanings from a WordNet 3.1 dict folder
 ```
 
 ## Running
@@ -29,6 +30,8 @@ tools/gen_album.py   Regenerate the sticker album banners (needs Pillow)
 ```
 ./gradlew :core:selfTest          # 35k checks: dictionary, generator, game rules, saves, and real races over local sockets
 ./gradlew :app:assembleDebug      # needs the Android SDK (open the folder in Android Studio)
+./gradlew :app:assembleDebug -Psandbox   # installs beside the real game with its own save, for testing on a phone in use
+./gradlew :core:codeHash -Pcode=YOURCODE   # prints the hash for a new gift code
 ```
 
 ## How the important parts work
@@ -59,6 +62,14 @@ tools/gen_album.py   Regenerate the sticker album banners (needs Pillow)
 - **Season Pass:** `Season` runs 30-day seasons from a fixed date, so a new one needs no update or server. There are six themes, then they repeat. Unclaimed rewards are paid when a season ends. Premium costs coins for now: `Season.PREMIUM_WITH_COINS` is the switch for selling it instead.
 - **Fish Hunt:** `FishHunt` runs for seven days in the middle of each season. Fish positions come from the level and the event.
 - **Screens:** the menu stays small: PLAY opens `PlayActivity`, which lists every mode, and players on the first three levels go straight to the Journey. Cloud save lives in Settings, and the shop shows one tab at a time.
+- **Regions:** `Region` builds every Journey chapter from its number: name, colours, hills, moon and weather. The first four are hand-made. Word pairs are visited in a scattered order, and a numbered round begins if they ever run out, so no region comes back.
+- **Bosses:** the last level of every chapter is a boss, on a `forHard` board. `BossFight` takes a point of health for each word and strikes every few words or on a wrong word. It can't be lost: one effect at a time, the next word ends it, and an attack is only used if a word stays within reach. The first four regions have hand-made bosses in `Boss`; later ones get a name, a face from `BossArt`, and their own mix of attacks and pace from `Region`.
+- **Bond:** `Bond` holds treats and bond levels. Treats cost coins, are limited per day, and later levels take longer, so it's a steady way to spend coins. Levels unlock chatter, bigger gifts, Treasure Cove and the Heart Collar.
+- **Word meanings:** `tools/gen_defs.py` turns WordNet into `assets/definitions.txt`, skipping senses marked offensive or using the bad-word list. `Definitions` reads it. Tapping a found word shows its meaning over the board and never stops the clock.
+- **Past puzzles:** `DailyArchive` remembers solved days, 64 to a number, and rebuilds any daily from its date. Opening one costs more than solving it pays, and it never touches the streak.
+- **Streak milestones and comebacks:** `StreakMilestone` pays by best streak, so breaking a streak takes nothing back. `Comeback` pays once for an absence of three days or more.
+- **Gift codes:** `RedeemCode` keeps hashes of the codes, because there's no server. Each works once per save. Since they ship with the app, a code can only be withdrawn by an update.
+- **Type scale:** text sizes are the `SIZE_` constants in `PixelTheme`. Don't use bare numbers.
 - **Saves:** `Progress` serialises to `key=value` lines (stars are packed, 30 levels to a line); `Progress.merge` resolves local-vs-cloud conflicts without losing progress.
 
 ## Before you can run it on a phone (setup checklist)
@@ -73,7 +84,7 @@ tools/gen_album.py   Regenerate the sticker album banners (needs Pillow)
 
 - **Tested:** everything in `core/` (run `selfTest`).
 - **Run on a real phone (Vivo V2143, Android 13):** the splash, menu, modals and core gameplay. Play Games sign-in, leaderboards, ads and purchases have not been exercised, because they need the console setup above.
-- **Built but not yet run on a phone:** the jar, tile twists, power-ups, Mega Board, Nine Lives, breeds, rooms, the spin, trips, the album, the Season Pass and Fish Hunt. Their rules are tested in `core/`; their screens have only been compiled.
+- **Run on the V2143 in a sandbox install:** the star iris, combos, the time-of-day sky, the comeback gift, a streak milestone, feeding the cat, word meanings, past puzzles, gift codes, generated regions, and all four boss attacks. Timed's sprite countdown, opening the jar's chest, flying coins, Reduce Motion and a generated boss's full fight have been built but not watched on a phone.
 - **Not built yet:** online multiplayer (Wi-Fi races work, see below).
 
 ## Multiplayer: Wi-Fi now, online later
