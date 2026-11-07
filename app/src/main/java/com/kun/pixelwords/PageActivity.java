@@ -95,7 +95,18 @@ abstract class PageActivity extends BaseActivity {
         coins = new StatChip(this, "coin");
         coins.setSpokenName("Coins");
         bar.addView(coins);
+        PixelButton action = pageAction();
+        if (action != null) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(46), dp(46));
+            lp.leftMargin = dp(8);
+            bar.addView(action, lp);
+        }
         return bar;
+    }
+
+    /** A small extra button at the end of the top bar, or null. */
+    protected PixelButton pageAction() {
+        return null;
     }
 
     protected int dp(float v) {
