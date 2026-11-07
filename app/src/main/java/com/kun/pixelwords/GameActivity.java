@@ -87,6 +87,7 @@ public class GameActivity extends BaseActivity {
     private static final int COMBO_SHOWN_FROM = 2;
     private static final long COUNTDOWN_STEP_MS = 780;
     private static final long SUNBURST_MS = 2500;
+    private static final int CAT_HEARTS_FROM = 3;
 
     private Mode mode = Mode.CAMPAIGN;
     private ProgressStore store;
@@ -285,6 +286,7 @@ public class GameActivity extends BaseActivity {
         preview.clear();
         timerBar.setAlarm(false);
         timerBar.setColor(PixelTheme.MINT);
+        wheelCat.setWorried(false);
         timerBar.setValue(1f);
         boolean timed = limit() > 0;
         timerRow.setVisibility(timed ? View.VISIBLE : View.GONE);
@@ -380,6 +382,7 @@ public class GameActivity extends BaseActivity {
         updateHud();
         if (secondsLeft == URGENT_SECONDS) {
             Sfx.play(Sfx.Id.CLOCK_URGENT);
+            wheelCat.setWorried(true);
             timerBar.setAlarm(true);
             timerBar.setColor(PixelTheme.ROSE);
         } else if (secondsLeft < URGENT_SECONDS && secondsLeft > 0) {
@@ -418,6 +421,7 @@ public class GameActivity extends BaseActivity {
                 Sfx.play(Sfx.Id.WORD_FOUND, Math.min(1.5f, 1f + (combo - 1) * 0.08f));
                 Haptics.success();
                 wheelCat.hop();
+                if (combo >= CAT_HEARTS_FROM) wheelCat.heart();
                 String praise = praiseFor(word.length());
                 say((praise == null ? "" : praise + "  ") + "+" + Scoring.gridWordPoints(word.toLowerCase(Locale.ROOT)), PixelTheme.MINT);
                 if (session.sparkWon() && !sparkAnnounced) {
@@ -437,6 +441,7 @@ public class GameActivity extends BaseActivity {
                 break;
             case FROZEN:
                 preview.resolve(PixelTheme.SKY, true);
+                wheelCat.startle();
                 say("FROZEN! FIND A CROSSING WORD", PixelTheme.SKY);
                 Sfx.play(Sfx.Id.WORD_ALREADY);
                 Haptics.click();
@@ -454,6 +459,7 @@ public class GameActivity extends BaseActivity {
                 Sfx.play(Sfx.Id.WORD_WRONG);
                 Haptics.error();
                 shakeWheel();
+                wheelCat.wince();
                 if (mode == Mode.LIVES) {
                     run.wrongWord();
                     if (run.isOver()) {
@@ -742,6 +748,9 @@ public class GameActivity extends BaseActivity {
         stopClock();
         wheel.setLocked(true);
         timerBar.setAlarm(false);
+        wheelCat.setWorried(false);
+        if (solved) wheelCat.hop();
+        else wheelCat.wince();
 
         // Everything is banked immediately, so leaving during the celebration loses nothing.
         final Outcome o = new Outcome();
@@ -1385,6 +1394,7 @@ public class GameActivity extends BaseActivity {
             @Override public void onPreview(String word) { preview.setWord(word); }
 
             @Override public void onLetterAdded(int position) {
+                wheelCat.nudge();
                 Sfx.letter(position);
                 Haptics.tick();
             }
@@ -1406,6 +1416,7 @@ public class GameActivity extends BaseActivity {
         wheelCat = new CatView(this, catSize / getResources().getDisplayMetrics().density);
         wheelCat.dress(progress);
         wheelCat.setClickable(false);
+        wheelCat.enableNaps();
         wheelBox.addView(wheelCat, new FrameLayout.LayoutParams(catSize, catSize, Gravity.CENTER));
 
         PixelButton shuffle = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
