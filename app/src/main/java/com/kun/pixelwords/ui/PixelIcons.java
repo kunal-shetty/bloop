@@ -42,6 +42,19 @@ public final class PixelIcons {
     }
 
     static {
+        ART.put("lock", new String[]{
+                "....kkkk....",
+                "...kddddk...",
+                "..kdk..kdk..",
+                "..kdk..kdk..",
+                "..kdk..kdk..",
+                ".kkkkkkkkkk.",
+                ".kggggggggk.",
+                ".kgggkkgggk.",
+                ".kgggkkgggk.",
+                ".kooooooook.",
+                ".kkkkkkkkkk.",
+                "............"});
         ART.put("wheel", new String[]{
                 "...kkkkkk...",
                 "..krrrggsk..",
