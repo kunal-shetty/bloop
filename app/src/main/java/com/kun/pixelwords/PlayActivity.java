@@ -99,7 +99,7 @@ public class PlayActivity extends PageActivity {
     private void launch(GameActivity.Mode mode) {
         Intent i = new Intent(this, GameActivity.class);
         i.putExtra(GameActivity.EXTRA_MODE, mode.name());
-        go(i);
+        goToBoard(i);
     }
 
     private void onDaily() {
