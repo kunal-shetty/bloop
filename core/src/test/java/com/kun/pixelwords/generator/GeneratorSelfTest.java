@@ -5,6 +5,8 @@ import com.kun.pixelwords.game.AdPolicy;
 import com.kun.pixelwords.game.Comeback;
 import com.kun.pixelwords.game.Album;
 import com.kun.pixelwords.game.Bond;
+import com.kun.pixelwords.game.Boss;
+import com.kun.pixelwords.game.BossFight;
 import com.kun.pixelwords.game.CatMood;
 import com.kun.pixelwords.game.DailyArchive;
 import com.kun.pixelwords.game.DailySpin;
@@ -103,6 +105,7 @@ public final class GeneratorSelfTest {
         testBond();
         testDefinitions(gen);
         testDailyArchive();
+        testBosses(gen);
         testLan();
         testCurve(gen);
 
@@ -1203,6 +1206,74 @@ public final class GeneratorSelfTest {
             }
         }
         check(clean, "no meaning uses a word from the bad-word list");
+    }
+
+    /** Plays a whole fight, as badly as it can be played, and returns how many attacks landed. Fails if it ever gets stuck. */
+    private static int fightOut(Level level, Boss boss, long seed) {
+        GameSession s = new GameSession(level, level.fingerprint());
+        BossFight fight = new BossFight(boss, s);
+        Random rnd = new Random(seed);
+        int attacks = 0, guard = 0;
+        check(fight.health() == fight.maxHealth(), "a boss starts at full health");
+        while (!s.isComplete() && guard++ < 500) {
+            if (rnd.nextBoolean()) {
+                s.submit("zzz");
+                if (fight.onWrongWord() != null) attacks++;
+            }
+            List<Level.Placement> reachable = new ArrayList<>();
+            for (int i = 0; i < level.placements.size(); i++) {
+                Level.Placement p = level.placements.get(i);
+                if (s.foundGridWords().contains(p.word) || s.isFrozen(i)) continue;
+                if (fight.spellable(p.word, fight.stolenLetter())) reachable.add(p);
+            }
+            check(!reachable.isEmpty(), "a word is always within reach of a boss fight");
+            if (reachable.isEmpty()) return attacks;
+            int before = fight.health();
+            check(s.submit(reachable.get(rnd.nextInt(reachable.size())).word) == GameSession.Result.FOUND_GRID, "a reachable word counts");
+            check(fight.health() < before, "every word hurts the boss");
+            if (fight.onBoardChanged() != null) attacks++;
+        }
+        check(s.isComplete() && fight.health() == 0, "the fight always ends with the boss beaten");
+        return attacks;
+    }
+
+    private static void testBosses(LevelGenerator gen) {
+        check(Journey.isBoss(20) && Journey.isBoss(40) && !Journey.isBoss(19) && !Journey.isBoss(21), "the last level of each chapter is a boss");
+        check(!Journey.isHard(20), "a boss isn't also a hard level");
+        check(Journey.coinsForLevel(20) == Scoring.COINS_PER_BOSS, "a boss pays more");
+        check(Journey.bossOf(20) == Boss.FROSTWHISKER && Journey.bossOf(40) == Boss.MADAME_MOTH, "each chapter has its boss");
+        check(Journey.bossOf(100) == Boss.FROSTWHISKER, "bosses come round again with the scenery");
+        check(Boss.values().length == 4, "there's a boss for each chapter name");
+
+        int[] landed = new int[Boss.values().length];
+        for (int chapter = 0; chapter < 24; chapter++) {
+            int level = Journey.lastLevel(chapter);
+            Boss boss = Boss.forChapter(chapter);
+            Level board = gen.forHard(level);
+            for (long seed = 0; seed < 6; seed++) landed[boss.ordinal()] += fightOut(board, boss, seed);
+            for (Boss other : Boss.values()) fightOut(board, other, 99);
+        }
+        for (Boss b : Boss.values()) check(landed[b.ordinal()] > 20, b.title + " lands its attacks");
+
+        Level board = gen.forHard(20);
+        GameSession s = new GameSession(board, 1);
+        BossFight fight = new BossFight(Boss.FROSTWHISKER, s);
+        check(fight.onWrongWord() == Boss.Attack.FREEZE, "a wrong word sets off an attack");
+        check(fight.onWrongWord() == null, "only one effect at a time");
+        int ice = s.bossFrozenWord();
+        check(ice >= 0 && s.submit(board.placements.get(ice).word) == GameSession.Result.FROZEN, "a frozen word can't be played");
+        for (Level.Placement p : board.placements) {
+            if (board.placements.indexOf(p) != ice) {
+                s.submit(p.word);
+                break;
+            }
+        }
+        fight.onBoardChanged();
+        check(s.bossFrozenWord() < 0, "finding another word thaws it");
+
+        Progress p = new Progress();
+        Reward prize = Journey.bossPrize(39).grant(p, 1);
+        check(prize != null, "a boss has a prize");
     }
 
     private static void testDailyArchive() {
