@@ -7,6 +7,7 @@ public final class Scoring {
 
     public static final int COINS_PER_LEVEL = 10;
     public static final int COINS_PER_HARD_LEVEL = 30;
+    public static final int COINS_PER_BOSS = 100;
     public static final int COINS_PER_DAILY = 25;
     public static final int COINS_PER_CHAPTER = 100;
     public static final int HINTS_PER_CHAPTER = 1;
