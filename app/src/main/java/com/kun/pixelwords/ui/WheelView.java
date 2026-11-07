@@ -93,6 +93,7 @@ public class WheelView extends View {
         popAt = new long[letters.size()];
         layoutLetters();
         traceGuide();
+        setContentDescription("Letter wheel: " + String.join(" ", word.toUpperCase(Locale.ROOT).split("")));
         invalidate();
     }
 
