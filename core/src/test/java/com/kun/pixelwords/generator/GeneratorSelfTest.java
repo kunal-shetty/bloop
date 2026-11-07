@@ -6,6 +6,7 @@ import com.kun.pixelwords.game.Comeback;
 import com.kun.pixelwords.game.Album;
 import com.kun.pixelwords.game.Bond;
 import com.kun.pixelwords.game.CatMood;
+import com.kun.pixelwords.game.DailyArchive;
 import com.kun.pixelwords.game.DailySpin;
 import com.kun.pixelwords.game.Definitions;
 import com.kun.pixelwords.game.DuelBot;
@@ -101,6 +102,7 @@ public final class GeneratorSelfTest {
         testComeback();
         testBond();
         testDefinitions(gen);
+        testDailyArchive();
         testLan();
         testCurve(gen);
 
@@ -1201,6 +1203,52 @@ public final class GeneratorSelfTest {
             }
         }
         check(clean, "no meaning uses a word from the bad-word list");
+    }
+
+    private static void testDailyArchive() {
+        long today = 20_000;
+        Progress p = new Progress();
+        check(DailyArchive.days(today).size() == DailyArchive.DAYS_SHOWN, "four weeks are on show");
+        check(DailyArchive.days(today).get(DailyArchive.DAYS_SHOWN - 1) == today - 1, "the newest day shown is yesterday");
+        check(DailyArchive.missed(p, today) == DailyArchive.DAYS_SHOWN, "a new player has them all to solve");
+
+        long day = today - 3;
+        check(!DailyArchive.canOpen(p, day, today) && !DailyArchive.open(p, day, today), "opening costs coins");
+        p.coins = 120;
+        check(!DailyArchive.canOpen(p, today, today), "today isn't in the archive");
+        check(!DailyArchive.canOpen(p, today - DailyArchive.DAYS_SHOWN - 1, today), "days too far back can't be opened");
+        check(DailyArchive.open(p, day, today) && p.coins == 70, "opening a day charges for it");
+        check(DailyArchive.open(p, day, today) && p.coins == 70, "going back in costs nothing");
+        check(DailyArchive.isOpen(p, day) && !DailyArchive.isSolved(p, day), "an opened day isn't solved yet");
+        int coins = DailyArchive.solve(p, day);
+        check(coins == DailyArchive.SOLVE_COINS && DailyArchive.isSolved(p, day), "solving pays and is remembered");
+        check(!DailyArchive.isOpen(p, day), "a solved day is no longer open");
+        check(DailyArchive.solve(p, day) == 0, "a day can't pay twice");
+        check(!DailyArchive.canOpen(p, day, today), "a solved day can't be bought again");
+        check(DailyArchive.missed(p, today) == DailyArchive.DAYS_SHOWN - 1, "a solved day leaves the count");
+        check(DailyArchive.OPEN_COINS > DailyArchive.SOLVE_COINS, "catching up costs more than it pays");
+
+        Progress q = new Progress();
+        q.streak = new StreakLogic.State(3, 3, today - 1, 0);
+        DailyArchive.backfill(q);
+        check(DailyArchive.isSolved(q, today - 1) && DailyArchive.isSolved(q, today - 3) && !DailyArchive.isSolved(q, today - 4),
+                "an old save's streak counts as solved");
+        DailyArchive.markSolved(q, today - 10);
+        q.streak = new StreakLogic.State(9, 9, today - 1, 0);
+        DailyArchive.backfill(q);
+        check(!DailyArchive.isSolved(q, today - 8), "the backfill only happens once");
+
+        check(DailyArchive.isSolved(Progress.parse(p.serialize()), day), "solved days are saved");
+        check(Progress.parse(p.serialize()).serialize().equals(p.serialize()), "the archive round-trips");
+        Progress a = new Progress(), b = new Progress();
+        DailyArchive.markSolved(a, 100);
+        DailyArchive.markSolved(b, 101);
+        DailyArchive.markSolved(b, 500);
+        Progress m = Progress.merge(a, b);
+        check(DailyArchive.isSolved(m, 100) && DailyArchive.isSolved(m, 101) && DailyArchive.isSolved(m, 500), "solved days add up across devices");
+        check(Progress.merge(a, b).serialize().equals(Progress.merge(b, a).serialize()), "the log merges in any order");
+        DailyArchive.markSolved(a, 127); // the top bit of a block makes a negative number in the save
+        check(DailyArchive.isSolved(Progress.parse(a.serialize()), 127), "the last day of a block survives saving");
     }
 
     private static void testBond() {
