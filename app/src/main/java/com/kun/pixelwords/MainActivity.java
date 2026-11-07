@@ -53,6 +53,9 @@ public class MainActivity extends BaseActivity {
 
     private static final int[] REMINDER_HOURS = {9, 13, 19, 21};
     private static final int REQUEST_NOTIFICATIONS = 1;
+    /** The chest takes over four seconds at its own pace, which is too long to watch every time. */
+    private static final float JAR_CHEST_SPEED = 2f;
+    private static final long JAR_COINS_AT_MS = 900;
     private static final long CAT_SPEAKS_AFTER_MS = 900;
     private static final long CAT_BUBBLE_MS = 3500;
 
@@ -88,6 +91,7 @@ public class MainActivity extends BaseActivity {
         buildUi();
         syncWithCloud();
         AdsService.get(this).gatherConsent(this);
+        fx.preload("pickups_chest-open", "ui_confetti");
     }
 
     @Override
@@ -311,8 +315,15 @@ public class MainActivity extends BaseActivity {
         PlayGamesService.saveProgress(this, progress.serialize());
         Sfx.play(Sfx.Id.BUY);
         Haptics.celebrate();
-        fx.play("ui_confetti", fx.getWidth() / 2f, fx.getHeight() * 0.3f, PixelTheme.dp(this, 2.4f), null);
+        int shown = coinChip.value();
         refresh();
+        coinChip.setValue(shown); // the coins arrive with the chest, so the number waits for them
+        float x = fx.getWidth() / 2f, y = fx.getHeight() * 0.42f;
+        fx.play("pickups_chest-open", x, y, PixelTheme.dp(this, 3), JAR_CHEST_SPEED, null);
+        contentLayer.postDelayed(() -> {
+            fx.play("ui_confetti", x, y, PixelTheme.dp(this, 2.4f), null);
+            earn(jarBtn, coinChip, progress.coins);
+        }, JAR_COINS_AT_MS);
     }
 
     private PixelButton sideButton(String label, String icon, int fill, Class<?> screen) {
@@ -444,8 +455,7 @@ public class MainActivity extends BaseActivity {
         }
         CatMood.collectGift(progress, Days.today(), catGift);
         store.save(progress);
-        coinChip.animateTo(progress.coins);
-        Sfx.play(Sfx.Id.COIN);
+        earn(cat, coinChip, progress.coins);
         Haptics.success();
         catSays("+" + catGift + " coins! I found them for you.");
         catGift = 0;
@@ -469,7 +479,7 @@ public class MainActivity extends BaseActivity {
                 .stat("freeze", "Streak freezes", progress.streak.freezes + " / " + StreakLogic.MAX_FREEZES, PixelTheme.SKY)
                 .note("You earn a freeze every " + StreakLogic.FREEZE_EVERY_DAYS + " days. A freeze saves your streak if you miss one day.");
         if (progress.streak.lastDay != today) {
-            m.primary("PLAY DAILY", "calendar", () -> go(new Intent(this, GameActivity.class)
+            m.primary("PLAY DAILY", "calendar", () -> goToBoard(new Intent(this, GameActivity.class)
                     .putExtra(GameActivity.EXTRA_MODE, GameActivity.Mode.DAILY.name())));
         }
         m.secondary("CLOSE", null).show();
