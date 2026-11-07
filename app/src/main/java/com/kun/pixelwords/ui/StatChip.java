@@ -57,6 +57,11 @@ public class StatChip extends android.view.View {
         animate().scaleX(1f).scaleY(1f).setDuration(180).start();
     }
 
+    /** The number this chip is showing, or counting towards. */
+    public int value() {
+        return target;
+    }
+
     @Override
     protected void onMeasure(int widthSpec, int heightSpec) {
         float pad = PixelTheme.dp(getContext(), 8);
