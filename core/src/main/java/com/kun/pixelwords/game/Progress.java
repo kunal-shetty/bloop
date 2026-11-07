@@ -113,6 +113,8 @@ public final class Progress {
     public final Map<Long, Long> dailyLog = new TreeMap<>();
     /** The past daily the player has paid to open, or 0. */
     public long archiveOpenDay = 0;
+    /** Gift codes used, as a bit per RedeemCode id. */
+    public long redeemedCodes = 0;
     /** What sits in each Home.Slot and where, packed by Home. */
     public final int[] homePlaced = new int[Home.Slot.values().length];
     /** Best stars per level, indexed by level - 1. */
@@ -257,6 +259,7 @@ public final class Progress {
         put(sb, "bondCollar", bondCollarPaid ? 1 : 0);
         for (Map.Entry<Long, Long> block : dailyLog.entrySet()) put(sb, DAILY_LOG_KEY + block.getKey(), block.getValue());
         put(sb, "archiveOpen", archiveOpenDay);
+        put(sb, "codes", redeemedCodes);
         for (int i = 0; i < homePlaced.length; i++) put(sb, HOME_KEY + i, homePlaced[i]);
         putStars(sb);
         put(sb, "wearHead", wearHead);
@@ -345,6 +348,7 @@ public final class Progress {
         p.bondCollarPaid = get(m, "bondCollar", 0) == 1;
         p.readDailyLog(m);
         p.archiveOpenDay = get(m, "archiveOpen", 0);
+        p.redeemedCodes = get(m, "codes", 0);
         for (int i = 0; i < p.homePlaced.length; i++) p.homePlaced[i] = (int) get(m, HOME_KEY + i, 0);
         p.readStars(m);
         p.wearHead = (int) get(m, "wearHead", 0);
@@ -462,6 +466,7 @@ public final class Progress {
         out.dailyLog.putAll(a.dailyLog);
         for (Map.Entry<Long, Long> block : b.dailyLog.entrySet()) out.dailyLog.merge(block.getKey(), block.getValue(), (x, y) -> x | y);
         out.archiveOpenDay = newer.archiveOpenDay;
+        out.redeemedCodes = a.redeemedCodes | b.redeemedCodes; // a code is only ever paid once
     }
 
     private static void put(StringBuilder sb, String k, long v) {
