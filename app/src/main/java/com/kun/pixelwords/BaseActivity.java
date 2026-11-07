@@ -12,6 +12,7 @@ import android.widget.FrameLayout;
 
 import com.kun.pixelwords.fx.FxLayer;
 import com.kun.pixelwords.ui.PixelModal;
+import com.kun.pixelwords.ui.PixelTheme;
 
 /**
  * Shared screen scaffold, full-bleed under the notch. Layers, bottom to top:
@@ -84,17 +85,22 @@ public abstract class BaseActivity extends Activity {
         if (hasFocus) immersive();
     }
 
-    @SuppressWarnings("deprecation")
     protected void go(Intent intent) {
         startActivity(intent);
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        slide(R.anim.page_in, R.anim.page_stay_out);
     }
 
+    /** Pages slide across, or simply fade for a player who asked for less movement. */
     @SuppressWarnings("deprecation")
+    private void slide(int enter, int exit) {
+        if (PixelTheme.reduceMotion()) overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        else overridePendingTransition(enter, exit);
+    }
+
     @Override
     public void finish() {
         super.finish();
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        slide(R.anim.page_stay_in, R.anim.page_out);
     }
 
     // ------------------------------------------------------------------ modals
