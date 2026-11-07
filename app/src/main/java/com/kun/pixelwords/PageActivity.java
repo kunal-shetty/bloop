@@ -88,7 +88,7 @@ abstract class PageActivity extends BaseActivity {
         back.setClickSound(Sfx.Id.UI_BACK);
         back.setOnClickListener(v -> finish());
         bar.addView(back, new LinearLayout.LayoutParams(dp(46), dp(46)));
-        TextView title = PixelTheme.display(this, pageTitle(), 14, PixelTheme.GOLD);
+        TextView title = PixelTheme.display(this, pageTitle(), PixelTheme.SIZE_TITLE, PixelTheme.GOLD);
         title.setGravity(Gravity.CENTER);
         bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         coins = new StatChip(this, "coin");
@@ -111,9 +111,9 @@ abstract class PageActivity extends BaseActivity {
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setBackground(new PanelDrawable(0xE0251D4A, Math.max(2f, dp(1))));
         row.setPadding(dp(10), dp(8), dp(10), dp(9));
-        row.addView(PixelTheme.display(this, text, 10, PixelTheme.CREAM),
+        row.addView(PixelTheme.display(this, text, PixelTheme.SIZE_SMALL, PixelTheme.CREAM),
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        if (detail != null) row.addView(PixelTheme.body(this, detail, 16, PixelTheme.GOLD));
+        if (detail != null) row.addView(PixelTheme.body(this, detail, PixelTheme.SIZE_BODY, PixelTheme.GOLD));
         list.addView(row, matchWrap(10));
     }
 
