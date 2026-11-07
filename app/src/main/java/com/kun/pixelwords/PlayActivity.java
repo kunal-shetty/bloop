@@ -38,7 +38,7 @@ public class PlayActivity extends PageActivity {
     @Override
     protected void fillPage(LinearLayout list) {
         journey = new PixelButton(this, "JOURNEY", PixelTheme.GOLD, PixelTheme.INK);
-        journey.setLabelSize(20);
+        journey.setLabelSize(PixelTheme.SIZE_HERO);
         journey.setIcon("play");
         journey.setIconSize(30);
         journey.setShine(true);
