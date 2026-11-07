@@ -84,7 +84,7 @@ public class LanActivity extends BaseActivity {
         back.setClickSound(Sfx.Id.UI_BACK);
         back.setOnClickListener(v -> finish());
         bar.addView(back, new LinearLayout.LayoutParams(dp(46), dp(46)));
-        TextView title = PixelTheme.display(this, "WI-FI RACE", 14, PixelTheme.GOLD);
+        TextView title = PixelTheme.display(this, "WI-FI RACE", PixelTheme.SIZE_TITLE, PixelTheme.GOLD);
         title.setGravity(Gravity.CENTER);
         bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         bar.addView(new View(this), new LinearLayout.LayoutParams(dp(46), dp(46))); // keeps the title centred
@@ -94,31 +94,31 @@ public class LanActivity extends BaseActivity {
         you.setGravity(Gravity.CENTER_VERTICAL);
         you.setBackground(new PanelDrawable(0xE03A2E6E, Math.max(2f, dp(1))));
         you.setPadding(dp(12), dp(6), dp(6), dp(8));
-        youText = PixelTheme.body(this, "", 18, PixelTheme.CREAM);
+        youText = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.CREAM);
         you.addView(youText, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         PixelButton change = new PixelButton(this, "CHANGE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
-        change.setLabelSize(8);
+        change.setLabelSize(PixelTheme.SIZE_CAPTION);
         change.setOnClickListener(v -> askName());
         you.addView(change, new LinearLayout.LayoutParams(dp(92), dp(40)));
         page.addView(you, matchWrap(10));
         showYou();
 
         hostBtn = new PixelButton(this, "HOST A ROOM", PixelTheme.GOLD, PixelTheme.INK);
-        hostBtn.setLabelSize(12);
+        hostBtn.setLabelSize(PixelTheme.SIZE_LABEL);
         hostBtn.setIcon("home");
         hostBtn.setIconSize(22);
         hostBtn.setOnClickListener(v -> host());
         page.addView(hostBtn, matchWrap(10));
 
         startBtn = new PixelButton(this, "START RACE", PixelTheme.MINT, PixelTheme.INK);
-        startBtn.setLabelSize(12);
+        startBtn.setLabelSize(PixelTheme.SIZE_LABEL);
         startBtn.setIcon("play");
         startBtn.setIconSize(22);
         startBtn.setVisibility(View.GONE);
         startBtn.setOnClickListener(v -> startRace());
         page.addView(startBtn, matchWrap(10));
 
-        status = PixelTheme.body(this, "", 17, PixelTheme.TEXT);
+        status = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.TEXT);
         status.setGravity(Gravity.CENTER);
         status.setPadding(0, dp(12), 0, dp(4));
         page.addView(status, matchWrap(0));
@@ -172,7 +172,7 @@ public class LanActivity extends BaseActivity {
         status.setText(rooms.isEmpty() ? "No rooms yet. Ask a friend to host, or host your own." : "Tap a room to join.");
         for (LanDiscovery.Room room : rooms) {
             PixelButton b = new PixelButton(this, room.name, PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
-            b.setLabelSize(10);
+            b.setLabelSize(PixelTheme.SIZE_SMALL);
             b.setIcon("swords");
             b.setIconSize(20);
             b.setOnClickListener(v -> join(room));
@@ -228,7 +228,7 @@ public class LanActivity extends BaseActivity {
         List<LanPlayer> players = match.players();
         list.removeAllViews();
         for (LanPlayer p : players) {
-            TextView row = PixelTheme.body(this, p.label(), 18, PixelTheme.TEXT);
+            TextView row = PixelTheme.body(this, p.label(), PixelTheme.SIZE_BODY, PixelTheme.TEXT);
             row.setBackground(new PanelDrawable(0xE03A2E6E, Math.max(2f, dp(1))));
             row.setPadding(dp(12), dp(10), dp(12), dp(12));
             list.addView(row, matchWrap(8));
