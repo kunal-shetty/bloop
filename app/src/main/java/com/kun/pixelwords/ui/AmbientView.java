@@ -154,6 +154,7 @@ public class AmbientView extends View {
         int cell = w / Math.max(1, scene.getWidth() - 1);
         dst.set(0, 0, scene.getWidth() * cell, scene.getHeight() * cell);
         c.drawBitmap(scene, null, dst, paint);
+        if (PixelTheme.reduceMotion()) return; // the scenery stays, and the weather stops
 
         long now = SystemClock.uptimeMillis();
         float dt = last == 0 ? 0.016f : Math.min(0.05f, (now - last) / 1000f);
