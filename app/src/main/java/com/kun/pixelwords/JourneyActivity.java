@@ -116,7 +116,7 @@ public class JourneyActivity extends BaseActivity {
         back.setClickSound(Sfx.Id.UI_BACK);
         back.setOnClickListener(v -> finish());
         row.addView(back, new LinearLayout.LayoutParams(dp(46), dp(46)));
-        TextView title = PixelTheme.display(this, "JOURNEY", 12, PixelTheme.GOLD);
+        TextView title = PixelTheme.display(this, "JOURNEY", PixelTheme.SIZE_LABEL, PixelTheme.GOLD);
         title.setGravity(Gravity.CENTER);
         row.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         coins = new StatChip(this, "coin");
@@ -133,8 +133,8 @@ public class JourneyActivity extends BaseActivity {
         LinearLayout names = new LinearLayout(this);
         names.setOrientation(LinearLayout.VERTICAL);
         names.setGravity(Gravity.CENTER);
-        chapterText = PixelTheme.body(this, "", 16, PixelTheme.TEXT_DIM);
-        chapterName = PixelTheme.display(this, "", 11, PixelTheme.CREAM);
+        chapterText = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.TEXT_DIM);
+        chapterName = PixelTheme.display(this, "", PixelTheme.SIZE_LABEL, PixelTheme.CREAM);
         chapterName.setPadding(0, dp(4), 0, 0);
         chapterText.setGravity(Gravity.CENTER);
         chapterName.setGravity(Gravity.CENTER);
