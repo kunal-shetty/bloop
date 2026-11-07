@@ -10,6 +10,7 @@ public class ModeCard extends PressableView {
     private static final float HEIGHT_DP = 104;
     private static final float PAD_DP = 10;
     private static final float ICON_DP = 36;
+    private static final int CLOSED_FILL = PixelTheme.PANEL;
 
     private final Paint paint = new Paint();
     private final Paint title = new Paint();
@@ -19,6 +20,7 @@ public class ModeCard extends PressableView {
     private String status = "";
     private String badge = "";
     private int fill;
+    private boolean closed;
 
     public ModeCard(Context context, String icon, String name, int fill) {
         super(context);
@@ -42,7 +44,14 @@ public class ModeCard extends PressableView {
     }
 
     private void describe() {
-        setContentDescription(name + ", " + status + (badge.isEmpty() ? "" : ", " + badge));
+        setContentDescription(name + (closed ? ", closed" : "") + ", " + status + (badge.isEmpty() ? "" : ", " + badge));
+    }
+
+    /** Greys the card out and swaps its icon for a padlock. It can still be tapped, to say when it opens. */
+    public void setClosed(boolean on) {
+        closed = on;
+        describe();
+        invalidate();
     }
 
     public void setFill(int color) {
@@ -64,19 +73,20 @@ public class ModeCard extends PressableView {
     @Override
     protected void onDraw(Canvas c) {
         float w = getWidth(), h = getHeight(), s = sink();
-        PixelTheme.drawTile(c, paint, 0, s, w, h, fill, px, depth - s);
+        int face = closed ? CLOSED_FILL : fill;
+        PixelTheme.drawTile(c, paint, 0, s, w, h, face, px, depth - s);
 
         float pad = PixelTheme.dp(getContext(), PAD_DP);
         float size = PixelTheme.dp(getContext(), ICON_DP);
         float top = px + s + pad;
         // A dark medallion keeps every icon readable on any card colour.
-        PixelTheme.drawSlot(c, paint, pad, top, pad + size + px * 4, top + size + px * 4, PixelTheme.shade(fill, 0.42f), px);
-        PixelIcons.draw(c, paint, icon, pad + px * 2, top + px * 2, size);
+        PixelTheme.drawSlot(c, paint, pad, top, pad + size + px * 4, top + size + px * 4, PixelTheme.shade(face, 0.42f), px);
+        PixelIcons.draw(c, paint, closed ? "lock" : icon, pad + px * 2, top + px * 2, size);
 
         float textY = h - depth - px - pad;
-        sub.setColor(PixelTheme.INK);
+        sub.setColor(closed ? PixelTheme.TEXT_DIM : PixelTheme.INK);
         c.drawText(status, pad, textY, sub);
-        title.setColor(PixelTheme.INK);
+        title.setColor(closed ? PixelTheme.TEXT : PixelTheme.INK);
         c.drawText(name, pad, textY - sub.getTextSize() - PixelTheme.dp(getContext(), 1), title);
 
         if (!badge.isEmpty()) {
