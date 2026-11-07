@@ -4,10 +4,15 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.text.InputFilter;
+import android.text.InputType;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -33,6 +38,7 @@ import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Quest;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.Season;
+import com.kun.pixelwords.game.RedeemCode;
 import com.kun.pixelwords.game.Reward;
 import com.kun.pixelwords.game.StreakLogic;
 import com.kun.pixelwords.game.StreakMilestone;
@@ -60,6 +66,8 @@ public class MainActivity extends BaseActivity {
     /** The chest takes over four seconds at its own pace, which is too long to watch every time. */
     private static final float JAR_CHEST_SPEED = 2f;
     private static final long JAR_COINS_AT_MS = 900;
+    private static final int MAX_CODE_LENGTH = 24;
+    private static final long KEYBOARD_DELAY_MS = 250;
     private static final long CAT_SPEAKS_AFTER_MS = 900;
     private static final long CAT_BUBBLE_MS = 3500;
 
@@ -637,6 +645,7 @@ public class MainActivity extends BaseActivity {
                 });
         m.button("REMINDER TIME", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "clock", Sfx.Id.UI_TAP, this::showReminderTimes);
         m.button("ACCESSIBILITY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showAccessibility);
+        m.button("REDEEM CODE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "ticket", Sfx.Id.UI_TAP, this::showRedeem);
         m.button("CLOUD SAVE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "cloud", Sfx.Id.UI_TAP, this::onCloud);
         m.button("HOW TO PLAY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showHowToPlay);
         m.button("CREDITS", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showCredits);
@@ -645,6 +654,62 @@ public class MainActivity extends BaseActivity {
             m.button("AD PRIVACY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "gear", Sfx.Id.UI_TAP, () -> ads.showPrivacyOptions(this));
         }
         m.show();
+    }
+
+    private void showRedeem() {
+        EditText field = new EditText(this);
+        field.setTypeface(PixelTheme.DISPLAY);
+        field.setTextSize(TypedValue.COMPLEX_UNIT_PX, PixelTheme.displayPx(this, PixelTheme.SIZE_LABEL));
+        field.setTextColor(PixelTheme.INK);
+        field.setHintTextColor(PixelTheme.shade(PixelTheme.INK, 1.5f));
+        field.setHint("CODE");
+        field.setGravity(Gravity.CENTER);
+        field.setSingleLine(true);
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(MAX_CODE_LENGTH)});
+        field.setBackground(new PanelDrawable(PixelTheme.CREAM, Math.max(2f, dp(1))));
+        field.setPadding(dp(10), dp(12), dp(10), dp(12));
+        field.setContentDescription("Gift code");
+        new PixelModal(this).title("REDEEM CODE").icon("ticket").accent(PixelTheme.GOLD)
+                .body("Got a gift code? Type it here. Each one works once.")
+                .custom(field)
+                .primary("REDEEM", "check", () -> {
+                    hideKeyboard(field);
+                    redeem(field.getText().toString());
+                })
+                .secondary("CANCEL", () -> hideKeyboard(field))
+                .show();
+        field.requestFocus();
+        field.postDelayed(() -> ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
+                .showSoftInput(field, InputMethodManager.SHOW_IMPLICIT), KEYBOARD_DELAY_MS);
+    }
+
+    private void hideKeyboard(View field) {
+        ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(field.getWindowToken(), 0);
+    }
+
+    private void redeem(String typed) {
+        RedeemCode.Result result = RedeemCode.redeem(progress, typed, Days.today());
+        if (result.status != RedeemCode.Status.OK) {
+            new PixelModal(this).title("NO LUCK").icon("close").accent(PixelTheme.ROSE)
+                    .body(result.status == RedeemCode.Status.ALREADY_USED ? "You've already used this code."
+                            : result.status == RedeemCode.Status.EXPIRED ? "This code has run out."
+                            : "That code doesn't look right. Check it and try again.")
+                    .primary("TRY AGAIN", this::showRedeem)
+                    .secondary("CLOSE", null)
+                    .show();
+            return;
+        }
+        store.save(progress);
+        PlayGamesService.saveProgress(this, progress.serialize());
+        Sfx.play(Sfx.Id.BUY);
+        Haptics.celebrate();
+        fx.play("ui_confetti", fx.getWidth() / 2f, fx.getHeight() * 0.3f, PixelTheme.dp(this, 2.4f), null);
+        earn(coinChip, progress.coins);
+        hintChip.animateTo(progress.hintTokens);
+        PixelModal m = new PixelModal(this).title("CODE REDEEMED!").icon("ticket").accent(PixelTheme.MINT);
+        for (Reward r : result.rewards) m.stat(r.icon(), r.label(), "", PixelTheme.GOLD);
+        m.primary("NICE", null).show();
     }
 
     private void showAccessibility() {
