@@ -100,9 +100,9 @@ public class AchievementsActivity extends BaseActivity {
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setBackground(new PanelDrawable(0xE0251D4A, Math.max(2f, dp(1))));
         row.setPadding(dp(10), dp(8), dp(10), dp(9));
-        row.addView(PixelTheme.display(this, text, 10, PixelTheme.CREAM),
+        row.addView(PixelTheme.display(this, text, PixelTheme.SIZE_SMALL, PixelTheme.CREAM),
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        if (detail != null) row.addView(PixelTheme.body(this, detail, 16, PixelTheme.GOLD));
+        if (detail != null) row.addView(PixelTheme.body(this, detail, PixelTheme.SIZE_BODY, PixelTheme.GOLD));
         list.addView(row, matchWrap(10));
     }
 
@@ -144,7 +144,7 @@ public class AchievementsActivity extends BaseActivity {
         back.setClickSound(Sfx.Id.UI_BACK);
         back.setOnClickListener(v -> finish());
         row.addView(back, new LinearLayout.LayoutParams(dp(46), dp(46)));
-        TextView title = PixelTheme.display(this, "GOALS", 14, PixelTheme.GOLD);
+        TextView title = PixelTheme.display(this, "GOALS", PixelTheme.SIZE_TITLE, PixelTheme.GOLD);
         title.setGravity(Gravity.CENTER);
         row.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         coins = new StatChip(this, "coin");
@@ -163,7 +163,7 @@ public class AchievementsActivity extends BaseActivity {
 
         LinearLayout text = new LinearLayout(this);
         text.setOrientation(LinearLayout.VERTICAL);
-        summary = PixelTheme.display(this, "", 10, PixelTheme.CREAM);
+        summary = PixelTheme.display(this, "", PixelTheme.SIZE_SMALL, PixelTheme.CREAM);
         text.addView(summary);
         bar = new PixelBar(this);
         bar.setSegments(Achievement.values().length);
@@ -171,7 +171,7 @@ public class AchievementsActivity extends BaseActivity {
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(16));
         bp.topMargin = dp(6);
         text.addView(bar, bp);
-        waiting = PixelTheme.body(this, "", 16, PixelTheme.TEXT_DIM);
+        waiting = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.TEXT_DIM);
         waiting.setPadding(0, dp(4), 0, 0);
         text.addView(waiting);
         panel.addView(text, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
