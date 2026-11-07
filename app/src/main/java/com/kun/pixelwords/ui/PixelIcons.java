@@ -42,6 +42,58 @@ public final class PixelIcons {
     }
 
     static {
+        ART.put("boss_frost", new String[]{
+                "............",
+                ".kk......kk.",
+                "kwwk....kwwk",
+                "kwskkkkkkswk",
+                ".kssssssssk.",
+                "kssskssksssk",
+                "kssskssksssk",
+                "kssssssssssk",
+                ".ksssrrsssk.",
+                "..kssssssk..",
+                "...kkkkkk...",
+                "............"});
+        ART.put("boss_moth", new String[]{
+                ".k........k.",
+                "..k......k..",
+                "krrk.kk.krrk",
+                "krrrkyykrrrk",
+                "krxrkyykrxrk",
+                "krrrkyykrrrk",
+                ".krrkyykrrk.",
+                "..kkkyykkk..",
+                ".krrkyykrrk.",
+                ".kkk.kk.kkk.",
+                "............",
+                "............"});
+        ART.put("boss_bat", new String[]{
+                "............",
+                "k...k..k...k",
+                "kk..kkkk..kk",
+                "kqk.kqqk.kqk",
+                "kqqkqqqqkqqk",
+                "kqqqqwqqwqqk",
+                "kqqkqqqqkqqk",
+                "kqk.kqqk.kqk",
+                ".k...kk...k.",
+                "............",
+                "............",
+                "............"});
+        ART.put("boss_king", new String[]{
+                "...g.gg.g...",
+                "...gggggg...",
+                "...kkkkkk...",
+                ".kkffffffkk.",
+                "kffkffffkffk",
+                "kfffkffkfffk",
+                "kffffffffffk",
+                ".kfffrrfffk.",
+                "..kffffffk..",
+                "...kkkkkk...",
+                "............",
+                "............"});
         ART.put("lock", new String[]{
                 "....kkkk....",
                 "...kddddk...",
