@@ -153,6 +153,7 @@ public class AmbientView extends View {
         }
         int cell = w / Math.max(1, scene.getWidth() - 1);
         dst.set(0, 0, scene.getWidth() * cell, scene.getHeight() * cell);
+        paint.setAlpha(255); // the last particle left its transparency here, which made the whole sky pulse
         c.drawBitmap(scene, null, dst, paint);
         if (PixelTheme.reduceMotion()) return; // the scenery stays, and the weather stops
 
