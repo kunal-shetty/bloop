@@ -21,6 +21,7 @@ import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.Album;
+import com.kun.pixelwords.game.Bond;
 import com.kun.pixelwords.game.CatMood;
 import com.kun.pixelwords.game.Comeback;
 import com.kun.pixelwords.game.DailySpin;
@@ -71,7 +72,7 @@ public class MainActivity extends BaseActivity {
     /** The cat's size on the menu. It shrinks to fit on a short screen. */
     private static final int CAT_DP = 240;
 
-    private PixelButton playBtn;
+    private PixelButton playBtn, bondBtn;
     private PixelButton spinBtn, tripsBtn, passBtn, albumBtn, jarBtn;
     private TextView spinState, tripsState, passState, albumState, jarState;
     private StatChip coinChip, hintChip;
@@ -148,6 +149,13 @@ public class MainActivity extends BaseActivity {
         catBox.addView(catBubble, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
         catBox.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> sitBubbleOverCat(v.getHeight()));
+        bondBtn = new PixelButton(this, "", PixelTheme.ROSE, PixelTheme.INK);
+        bondBtn.setLabelSize(PixelTheme.SIZE_CAPTION);
+        bondBtn.setIcon("heart");
+        bondBtn.setIconSize(16);
+        bondBtn.setOnClickListener(v -> showBond());
+        catBox.addView(bondBtn, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START));
         column.addView(catBox, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(136), 1f));
 
         column.addView(streakAndShop(), matchWrap(8));
@@ -402,6 +410,8 @@ public class MainActivity extends BaseActivity {
         coinChip.setValue(progress.coins);
         hintChip.setValue(progress.hintTokens);
         cat.dress(progress);
+        bondBtn.setText("LV " + Bond.level(progress));
+        bondBtn.setBadge(Bond.isHungry(progress, Days.today()) && Bond.canFeed(progress, Bond.Treat.KIBBLE, Days.today()) ? "!" : "");
         int ready = Achievement.claimable(progress).size() + Quest.claimable(progress).size();
         claimBadge.setText(String.valueOf(ready));
         claimBadge.setVisibility(ready > 0 ? View.VISIBLE : View.GONE);
@@ -505,6 +515,65 @@ public class MainActivity extends BaseActivity {
         Haptics.celebrate();
         earn(cat, coinChip, progress.coins);
         hintChip.animateTo(progress.hintTokens);
+    }
+
+    private void showBond() {
+        long today = Days.today();
+        int level = Bond.level(progress);
+        PixelBar bar = new PixelBar(this);
+        bar.setSegments(20);
+        bar.setColor(PixelTheme.ROSE);
+        bar.setValue(Bond.progress(progress));
+        FrameLayout barBox = new FrameLayout(this); // the modal stretches a row's width but not its height
+        barBox.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(18)));
+        PixelModal m = new PixelModal(this).title("YOUR BOND").icon("heart").accent(PixelTheme.ROSE)
+                .body("Treats bring you and your cat closer, and every level unlocks something.")
+                .custom(barBox)
+                .stat("heart", "Bond level", level + " / " + Bond.MAX_LEVEL, PixelTheme.ROSE);
+        if (level < Bond.MAX_LEVEL) m.stat("sparkle", "To the next level", String.valueOf(Bond.xpToNext(progress)), PixelTheme.TEXT);
+        m.stat("paw", "Treats left today", Bond.treatsLeft(progress, today) + " / " + Bond.treatsPerDay(progress), PixelTheme.GOLD);
+        for (Bond.Treat treat : Bond.Treat.values()) {
+            boolean can = Bond.canFeed(progress, treat, today);
+            m.button(treat.title.toUpperCase(Locale.ROOT) + " " + treat.price, can ? PixelTheme.GOLD : PixelTheme.PANEL,
+                    can ? PixelTheme.INK : PixelTheme.TEXT_DIM, can ? treat.icon : "lock", can ? null : Sfx.Id.UI_TAP,
+                    () -> feed(treat));
+        }
+        m.heading("UNLOCKS");
+        for (Bond.Perk perk : Bond.perks()) {
+            boolean won = level >= perk.level;
+            m.stat(won ? "check" : "lock", perk.text, "LV " + perk.level, won ? PixelTheme.MINT : PixelTheme.TEXT_DIM);
+        }
+        m.secondary("CLOSE", null).show();
+    }
+
+    private void feed(Bond.Treat treat) {
+        long today = Days.today();
+        if (!Bond.canFeed(progress, treat, today)) return;
+        int levelBefore = Bond.level(progress);
+        Reward prize = Bond.feed(progress, treat, today);
+        store.save(progress);
+        PlayGamesService.saveProgress(this, progress.serialize());
+        coinChip.animateTo(progress.coins);
+        refresh();
+        Sfx.play(Sfx.Id.MEOW, 1.1f);
+        Haptics.success();
+        cat.hop();
+        for (int i = 0; i < 3; i++) cat.heart();
+        int level = Bond.level(progress);
+        if (level == levelBefore) {
+            catSays("Yum! Thank you!");
+            return;
+        }
+        Sfx.play(Sfx.Id.STREAK_UP);
+        fx.play("ui_confetti", fx.getWidth() / 2f, fx.getHeight() * 0.3f, PixelTheme.dp(this, 2.4f), null);
+        catSays("We're closer now! Bond level " + level + "!");
+        if (prize != null) {
+            new PixelModal(this).title("BOND LEVEL " + level + "!").icon("heart").accent(PixelTheme.ROSE)
+                    .body("Your cat gave you something it's been keeping safe.")
+                    .stat(prize.icon(), prize.label(), "", PixelTheme.GOLD)
+                    .primary("I LOVE YOU TOO", null)
+                    .show();
+        }
     }
 
     private void onCatPetted() {
