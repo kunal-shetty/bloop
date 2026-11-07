@@ -410,8 +410,8 @@ public class MainActivity extends BaseActivity {
         coinChip.setValue(progress.coins);
         hintChip.setValue(progress.hintTokens);
         cat.dress(progress);
-        bondBtn.setText("LV " + Bond.level(progress));
-        bondBtn.setBadge(Bond.isHungry(progress, Days.today()) && Bond.canFeed(progress, Bond.Treat.KIBBLE, Days.today()) ? "!" : "");
+        boolean hungry = Bond.isHungry(progress, Days.today()) && Bond.canFeed(progress, Bond.Treat.KIBBLE, Days.today());
+        bondBtn.setText(hungry ? "FEED" : "LV " + Bond.level(progress));
         int ready = Achievement.claimable(progress).size() + Quest.claimable(progress).size();
         claimBadge.setText(String.valueOf(ready));
         claimBadge.setVisibility(ready > 0 ? View.VISIBLE : View.GONE);
