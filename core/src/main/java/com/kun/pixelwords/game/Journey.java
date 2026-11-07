@@ -69,13 +69,9 @@ public final class Journey {
         return slotOf(level) == LEVELS_PER_CHAPTER;
     }
 
-    public static Boss bossOf(int level) {
-        return Boss.forChapter(chapterOf(level));
-    }
-
-    /** Fighting styles come round again, but every region's boss has its own name. */
-    public static String bossName(int level) {
-        return Region.forChapter(chapterOf(level)).bossName();
+    /** The region a level is in, which also says who its boss is. */
+    public static Region regionOf(int level) {
+        return Region.forChapter(chapterOf(level));
     }
 
     /** What beating a chapter's boss wins, the first time. */
