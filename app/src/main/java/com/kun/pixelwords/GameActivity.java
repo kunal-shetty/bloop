@@ -94,7 +94,6 @@ public class GameActivity extends BaseActivity {
     private static final int COMBO_SHEET_AT = 5;
     private static final int COMBO_SHOWN_FROM = 2;
     private static final long COUNTDOWN_STEP_MS = 780;
-    private static final long SUNBURST_MS = 2500;
     private static final int CAT_HEARTS_FROM = 3;
     private static final long MEANING_SHOWN_MS = 5000;
     private static final long BOSS_ENTRANCE_MS = 700;
@@ -1014,7 +1013,6 @@ public class GameActivity extends BaseActivity {
         if (!o.milestonePrizes.isEmpty()) {
             m.heading("STREAK MILESTONE!");
             for (Reward r : o.milestonePrizes) m.stat(r.icon(), r.label(), "", PixelTheme.GOLD);
-            sunburst();
         }
         if (o.bonus > 0 && replayLevel == 0) {
             m.stat("jar", "Piggy jar", progress.jarWords + " / " + PiggyJar.CAPACITY, PixelTheme.GOLD);
@@ -1094,10 +1092,7 @@ public class GameActivity extends BaseActivity {
         addWords(m, o);
         m.stat("bulb", "Hints used", String.valueOf(o.hints), o.hints == 0 ? PixelTheme.MINT : PixelTheme.TEXT);
         addWinnings(m, o, o.coins);
-        if (fight != null) {
-            m.note(Journey.bossName(playLevel) + " runs off, and the path is clear.");
-            sunburst();
-        }
+        if (fight != null) m.note(Journey.bossName(playLevel) + " runs off, and the path is clear.");
         if (s < 3) m.note("Clear a level with no hints for three stars.");
         if (replayLevel > 0) {
             m.note("Replays can win more stars, but they don't pay coins.")
@@ -1190,12 +1185,6 @@ public class GameActivity extends BaseActivity {
         addWinnings(m, o, o.coins);
         if (o.coins == 0) m.note("You'd already solved this one, so this replay pays nothing.");
         m.primary("MORE PUZZLES", "calendar", this::finish).show();
-    }
-
-    /** The rarest moments get a glow behind them. */
-    private void sunburst() {
-        Object glow = fx.loop("holy_sunburst", fx.getWidth() / 2f, fx.getHeight() * 0.09f, PixelTheme.dp(this, 1));
-        if (glow != null) handler.postDelayed(() -> fx.stop(glow), SUNBURST_MS);
     }
 
     /** Back at the menu after sharing: the results modal closes with its button, so nothing is left to return to. */
