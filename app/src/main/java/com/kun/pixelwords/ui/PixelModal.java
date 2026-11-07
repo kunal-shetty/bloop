@@ -125,8 +125,11 @@ public final class PixelModal {
         r.setGravity(Gravity.CENTER_HORIZONTAL);
         r.setBackground(new PanelDrawable(PixelTheme.BG_MID, Math.max(2f, dp(1))));
         r.setPadding(dp(10), dp(8), dp(10), dp(12));
-        r.addView(PixelTheme.display(ctx, label, PixelTheme.SIZE_CAPTION, PixelTheme.TEXT_DIM));
+        TextView name = PixelTheme.display(ctx, label, PixelTheme.SIZE_CAPTION, PixelTheme.TEXT_DIM);
+        name.setGravity(Gravity.CENTER);
+        r.addView(name);
         TextView v = PixelTheme.display(ctx, "0", PixelTheme.SIZE_HERO, valueColor);
+        v.setGravity(Gravity.CENTER);
         v.setPadding(0, dp(8), 0, 0);
         r.addView(v);
         row(r, 0, 6);
