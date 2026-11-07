@@ -75,12 +75,16 @@ public class ExpeditionActivity extends PageActivity {
             PixelButton b = new PixelButton(this, place.title.toUpperCase(Locale.ROOT), PixelTheme.SKY, PixelTheme.INK);
             b.setLabelSize(PixelTheme.SIZE_LABEL);
             b.setIcon(place.icon);
-            b.setSubtitle(place.hours + (place.hours == 1 ? " hour" : " hours") + ", " + place.coinRange() + " coins");
+            b.setSubtitle(subtitle(place));
             b.setOnClickListener(v -> send(place));
             placeButtons.add(b);
             list.addView(b, matchWrap(8));
         }
         list.addView(PixelTheme.body(this, "Longer trips can bring back stickers and hints.", PixelTheme.SIZE_BODY, PixelTheme.TEXT_DIM), matchWrap(8));
+    }
+
+    private static String subtitle(Expedition.Place place) {
+        return place.hours + (place.hours == 1 ? " hour" : " hours") + ", " + place.coinRange() + " coins";
     }
 
     @Override
@@ -108,9 +112,14 @@ public class ExpeditionActivity extends PageActivity {
         cat.setVisibility(away && !back ? View.GONE : View.VISIBLE);
         action.setVisibility(back ? View.VISIBLE : View.GONE);
         rush.setVisibility(away && !back ? View.VISIBLE : View.GONE);
-        for (PixelButton b : placeButtons) {
-            b.setFill(away ? PixelTheme.PANEL : PixelTheme.SKY);
-            b.setTextColor(away ? PixelTheme.TEXT_DIM : PixelTheme.INK);
+        Expedition.Place[] places = Expedition.Place.values();
+        for (int i = 0; i < places.length; i++) {
+            PixelButton b = placeButtons.get(i);
+            boolean open = Expedition.isUnlocked(progress, places[i]);
+            b.setFill(away || !open ? PixelTheme.PANEL : PixelTheme.SKY);
+            b.setTextColor(away || !open ? PixelTheme.TEXT_DIM : PixelTheme.INK);
+            b.setIcon(open ? places[i].icon : "lock");
+            b.setSubtitle(open ? subtitle(places[i]) : "Reach bond level " + places[i].bondLevel);
         }
         if (!away) {
             status.setText("Your cat is ready for an adventure.");
