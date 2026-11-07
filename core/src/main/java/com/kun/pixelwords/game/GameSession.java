@@ -28,6 +28,7 @@ public final class GameSession {
     private int hintsUsed;
     private int wordsSubmitted;
     private boolean sparkWon;
+    private int bossFrozenWord = -1;
 
     public GameSession(Level level, long hintSeed) {
         this(level, hintSeed, TileMods.NONE);
@@ -71,8 +72,18 @@ public final class GameSession {
         return sparkWon;
     }
 
-    /** True if this placement is still frozen: none of its letters have been revealed yet. */
+    /** The word a boss has frozen, or -1. See BossFight. */
+    public int bossFrozenWord() {
+        return bossFrozenWord;
+    }
+
+    public void setBossFrozenWord(int placement) {
+        bossFrozenWord = placement;
+    }
+
+    /** True if this placement is still frozen: by a boss, or until one of its letters is revealed. */
     public boolean isFrozen(int placement) {
+        if (placement == bossFrozenWord) return true;
         if (!mods.isFrozen(placement)) return false;
         Level.Placement p = level.placements.get(placement);
         for (int i = 0; i < p.word.length(); i++) {
