@@ -221,7 +221,7 @@ public class AchievementsActivity extends BaseActivity {
         store.save(progress);
         if (PlayGamesService.isConfigured(this)) PlayGamesService.saveProgress(this, progress.serialize());
         refresh();
-        coins.animateTo(progress.coins);
+        earn(card, coins, progress.coins);
         Sfx.play(Sfx.Id.COIN);
         Haptics.success();
         burstOver(card);
