@@ -1213,16 +1213,16 @@ public final class GeneratorSelfTest {
     }
 
     /** Plays a whole fight, as badly as it can be played, and returns how many attacks landed. Fails if it ever gets stuck. */
-    private static int fightOut(Level level, Boss boss, long seed) {
+    private static int fightOut(Level level, Boss.Attack[] attacks, int pace, long seed) {
         GameSession s = new GameSession(level, level.fingerprint());
-        BossFight fight = new BossFight(boss, s);
+        BossFight fight = new BossFight(attacks, pace, s);
         Random rnd = new Random(seed);
-        int attacks = 0, guard = 0;
+        int landed = 0, guard = 0;
         check(fight.health() == fight.maxHealth(), "a boss starts at full health");
         while (!s.isComplete() && guard++ < 500) {
             if (rnd.nextBoolean()) {
                 s.submit("zzz");
-                if (fight.onWrongWord() != null) attacks++;
+                if (fight.onWrongWord() != null) landed++;
             }
             List<Level.Placement> reachable = new ArrayList<>();
             for (int i = 0; i < level.placements.size(); i++) {
@@ -1231,14 +1231,14 @@ public final class GeneratorSelfTest {
                 if (fight.spellable(p.word, fight.stolenLetter())) reachable.add(p);
             }
             check(!reachable.isEmpty(), "a word is always within reach of a boss fight");
-            if (reachable.isEmpty()) return attacks;
+            if (reachable.isEmpty()) return landed;
             int before = fight.health();
             check(s.submit(reachable.get(rnd.nextInt(reachable.size())).word) == GameSession.Result.FOUND_GRID, "a reachable word counts");
             check(fight.health() < before, "every word hurts the boss");
-            if (fight.onBoardChanged() != null) attacks++;
+            if (fight.onBoardChanged() != null) landed++;
         }
         check(s.isComplete() && fight.health() == 0, "the fight always ends with the boss beaten");
-        return attacks;
+        return landed;
     }
 
     private static void testRedeemCodes() {
@@ -1267,7 +1267,7 @@ public final class GeneratorSelfTest {
         check(Region.forChapter(50).skyTop == Region.forChapter(50).skyTop, "a region's colours are the same every time");
 
         // Far beyond any real save, and past the point the word pairs run out and get numbered.
-        int chapters = 8000;
+        int chapters = 20000;
         Set<String> names = new HashSet<>(), bosses = new HashSet<>(), looks = new HashSet<>();
         Set<Region.Weather> weather = new HashSet<>();
         for (int chapter = 0; chapter < chapters; chapter++) {
@@ -1285,6 +1285,22 @@ public final class GeneratorSelfTest {
         check(names.size() == chapters, "no region name ever comes back: " + names.size());
         check(bosses.size() == chapters, "no boss name ever comes back: " + bosses.size());
         check(looks.size() == chapters, "no region ever looks the same: " + looks.size());
+
+        Set<String> faces = new HashSet<>();
+        Set<String> fightingStyles = new HashSet<>();
+        for (int chapter = 4; chapter < chapters; chapter++) {
+            Region r = Region.forChapter(chapter);
+            int[] art = r.bossArt();
+            check(art.length == Region.BOSS_ART_SIZE * Region.BOSS_ART_SIZE, "a boss's face is the right size");
+            faces.add(java.util.Arrays.toString(art));
+            check(r.bossPace() >= 2 && r.bossPace() <= 4 && !r.bossDetail().isEmpty(), "every boss has a pace and says what it does");
+            Boss.Attack[] attacks = r.bossAttacks();
+            check(attacks.length == 1 || attacks[0] != attacks[1], "a boss's two attacks differ");
+            fightingStyles.add(java.util.Arrays.toString(attacks) + r.bossPace());
+            if (chapter > 4) check(!java.util.Arrays.equals(art, Region.forChapter(chapter - 1).bossArt()), "no boss looks like the one before");
+        }
+        check(faces.size() == chapters - 4, "no boss face ever comes back: " + faces.size());
+        check(fightingStyles.size() >= 30, "bosses fight in many ways: " + fightingStyles.size());
         check(weather.size() == Region.Weather.values().length, "every kind of weather turns up");
         check(Region.forChapter(5_000_000).name.length() > 3, "a region exists however far a player gets");
     }
@@ -1293,23 +1309,22 @@ public final class GeneratorSelfTest {
         check(Journey.isBoss(20) && Journey.isBoss(40) && !Journey.isBoss(19) && !Journey.isBoss(21), "the last level of each chapter is a boss");
         check(!Journey.isHard(20), "a boss isn't also a hard level");
         check(Journey.coinsForLevel(20) == Scoring.COINS_PER_BOSS, "a boss pays more");
-        check(Journey.bossOf(20) == Boss.FROSTWHISKER && Journey.bossOf(40) == Boss.MADAME_MOTH, "each chapter has its boss");
-        check(Journey.bossOf(100) == Boss.FROSTWHISKER, "bosses come round again with the scenery");
-        check(Boss.values().length == 4, "there's a boss for each chapter name");
+        check(Journey.regionOf(20).bossName().equals("Sir Frostwhisker") && Journey.regionOf(40).bossName().equals("Madame Moth"), "each chapter has its boss");
 
-        int[] landed = new int[Boss.values().length];
+        int[] landed = new int[Boss.Attack.values().length];
         for (int chapter = 0; chapter < 24; chapter++) {
-            int level = Journey.lastLevel(chapter);
-            Boss boss = Boss.forChapter(chapter);
-            Level board = gen.forHard(level);
-            for (long seed = 0; seed < 6; seed++) landed[boss.ordinal()] += fightOut(board, boss, seed);
-            for (Boss other : Boss.values()) fightOut(board, other, 99);
+            Level board = gen.forHard(Journey.lastLevel(chapter));
+            Region region = Region.forChapter(chapter);
+            for (long seed = 0; seed < 4; seed++) fightOut(board, region.bossAttacks(), region.bossPace(), seed);
+            for (Boss.Attack a : Boss.Attack.values()) {
+                for (long seed = 0; seed < 3; seed++) landed[a.ordinal()] += fightOut(board, new Boss.Attack[]{a}, BossFight.USUAL_PACE, seed);
+            }
         }
-        for (Boss b : Boss.values()) check(landed[b.ordinal()] > 20, b.title + " lands its attacks");
+        for (Boss.Attack a : Boss.Attack.values()) check(landed[a.ordinal()] > 20, a + " lands");
 
         Level board = gen.forHard(20);
         GameSession s = new GameSession(board, 1);
-        BossFight fight = new BossFight(Boss.FROSTWHISKER, s);
+        BossFight fight = new BossFight(new Boss.Attack[]{Boss.Attack.FREEZE}, BossFight.USUAL_PACE, s);
         check(fight.onWrongWord() == Boss.Attack.FREEZE, "a wrong word sets off an attack");
         check(fight.onWrongWord() == null, "only one effect at a time");
         int ice = s.bossFrozenWord();
