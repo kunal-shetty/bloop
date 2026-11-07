@@ -34,6 +34,9 @@ public class CatView extends View {
     private static final long MEW_GAP_MS = 1200;
     private static final long NAP_AFTER_MS = 30_000;
     private static final long SNORE_MS = 1500;
+    private static final long WINCE_MS = 650;
+    private static final long STARTLE_MS = 900;
+    private static final long FLINCH_STEP_MS = 60;
     private static final Map<String, Bitmap> CACHE = new HashMap<>();
 
     private static final class Heart {
@@ -52,8 +55,8 @@ public class CatView extends View {
     private final Paint snore = new Paint();
     private Shop.Item head, face, neck;
     private String coat = "";
-    private long nextBlink, blinkUntil, hopAt, happyUntil, lastMew, lastPet;
-    private boolean cheering, naps, gift;
+    private long nextBlink, blinkUntil, hopAt, happyUntil, lastMew, lastPet, winceUntil, wideUntil;
+    private boolean cheering, naps, gift, worried;
     private Runnable onPet;
 
     public CatView(Context context, float desiredSizeDp) {
@@ -112,6 +115,40 @@ public class CatView extends View {
         invalidate();
     }
 
+    /** Flinches, with its eyes screwed shut. */
+    public void wince() {
+        winceUntil = SystemClock.uptimeMillis() + WINCE_MS;
+        happyUntil = 0;
+        invalidate();
+    }
+
+    /** Stares in surprise for a moment. */
+    public void startle() {
+        wideUntil = SystemClock.uptimeMillis() + STARTLE_MS;
+        invalidate();
+    }
+
+    /** Keeps its eyes wide, for as long as the player is in trouble. */
+    public void setWorried(boolean on) {
+        worried = on;
+        invalidate();
+    }
+
+    /** Wakes the cat and puts off its next nap: something just happened that it would notice. */
+    public void nudge() {
+        lastPet = SystemClock.uptimeMillis();
+    }
+
+    /** A heart floats up from the cat. */
+    public void heart() {
+        Heart h = new Heart();
+        h.x = getWidth() * (0.3f + rnd.nextFloat() * 0.4f);
+        h.y = getHeight() * 0.3f;
+        h.born = SystemClock.uptimeMillis();
+        hearts.add(h);
+        invalidate();
+    }
+
     public void hop() {
         hopAt = SystemClock.uptimeMillis();
         happyUntil = hopAt + 900;
@@ -125,11 +162,7 @@ public class CatView extends View {
             Sfx.play(Sfx.Id.MEOW, 0.92f + rnd.nextFloat() * 0.2f);
         }
         Haptics.click();
-        Heart h = new Heart();
-        h.x = getWidth() * (0.3f + rnd.nextFloat() * 0.4f);
-        h.y = getHeight() * 0.3f;
-        h.born = hopAt;
-        hearts.add(h);
+        heart();
         lastPet = hopAt;
         if (onPet != null) onPet.run();
     }
@@ -202,12 +235,16 @@ public class CatView extends View {
         int shadow = size * 5 / 16 - lift / 2, floor = top + size - scale * 2;
         c.drawRect(left + size / 2 - shadow, floor, left + size / 2 + shadow, floor + scale * 2, shadowPaint);
 
-        dst.set(left, top - lift, left + size, top + size - lift);
+        boolean wincing = now < winceUntil;
+        int flinch = wincing && !PixelTheme.reduceMotion() ? ((now / FLINCH_STEP_MS) % 2 == 0 ? scale : -scale) : 0;
+        dst.set(left + flinch, top - lift, left + size + flinch, top + size - lift);
         boolean happy = now < happyUntil;
-        boolean asleep = naps && !happy && now - lastPet > NAP_AFTER_MS;
+        boolean wide = worried || now < wideUntil;
+        boolean asleep = naps && !happy && !wide && now - lastPet > NAP_AFTER_MS;
         draw(c, "tail_" + (happy ? (now / 90) % 3 : (now / 340) % 3) + coat);
         draw(c, "body" + coat);
-        draw(c, happy ? "eyes_happy" : asleep || now < blinkUntil ? "eyes_closed" : "eyes_open");
+        draw(c, wincing ? "eyes_wince" : happy ? "eyes_happy" : wide ? "eyes_wide"
+                : asleep || now < blinkUntil ? "eyes_closed" : "eyes_open");
         wear(c, neck);
         wear(c, face);
         wear(c, head);
