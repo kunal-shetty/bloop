@@ -63,7 +63,7 @@ public class AlbumActivity extends PageActivity {
             int width = getResources().getDisplayMetrics().widthPixels - dp(48);
             panel.addView(banner, new LinearLayout.LayoutParams(width, width * 28 / 96));
         }
-        TextView title = PixelTheme.display(this, "", 10, PixelTheme.CREAM);
+        TextView title = PixelTheme.display(this, "", PixelTheme.SIZE_SMALL, PixelTheme.CREAM);
         title.setPadding(0, dp(8), 0, dp(4));
         panel.addView(title);
 
@@ -71,7 +71,7 @@ public class AlbumActivity extends PageActivity {
         for (int i = 0; i < page.words.length; i += STICKERS_PER_ROW) {
             LinearLayout row = new LinearLayout(this);
             for (int c = 0; c < STICKERS_PER_ROW; c++) {
-                TextView sticker = PixelTheme.body(this, "", 17, PixelTheme.TEXT);
+                TextView sticker = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.TEXT);
                 sticker.setGravity(Gravity.CENTER);
                 sticker.setPadding(0, dp(6), 0, dp(8));
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
@@ -84,7 +84,7 @@ public class AlbumActivity extends PageActivity {
 
         Reward prize = Album.pagePrize(page);
         PixelButton claim = new PixelButton(this, "CLAIM PRIZE", PixelTheme.GOLD, PixelTheme.INK);
-        claim.setLabelSize(10);
+        claim.setLabelSize(PixelTheme.SIZE_SMALL);
         claim.setIcon(prize.icon());
         claim.setSubtitle("150 coins and " + prize.label());
         claim.setShine(true);
