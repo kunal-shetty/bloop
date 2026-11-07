@@ -62,7 +62,7 @@ public class SplashView extends View {
         letter.setTextAlign(Paint.Align.CENTER);
         PixelTheme.styleDisplay(letter, 32f);
         small.setTextAlign(Paint.Align.CENTER);
-        PixelTheme.styleDisplay(small, PixelTheme.displayPx(context, 9));
+        PixelTheme.styleDisplay(small, PixelTheme.displayPx(context, PixelTheme.SIZE_CAPTION));
         for (int i = 0; i < STARS; i++) {
             starX[i] = rnd.nextFloat();
             starY[i] = rnd.nextFloat();
