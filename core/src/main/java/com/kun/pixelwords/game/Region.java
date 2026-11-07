@@ -68,7 +68,11 @@ public final class Region {
             "Baron", "Duchess", "Warden", "Lady", "Lord", "Queen", "Keeper", "Marquis", "Sage", "Knight", "Countess", "Prince",
     };
 
+    /** Every single attack, then every pair, so plenty of different bosses can be built from them. */
+    private static final Boss.Attack[] ATTACKS = Boss.Attack.values();
+    private static final int FASTEST_PACE = 2, SLOWEST_PACE = 4;
     private static final long SALT = 0x5245_4749_4F4E_5331L;
+    private static final long BOSS_SALT = 0x5245_4749_4F4E_4253L;
     private static final double GOLDEN_ANGLE = 137.50776405;
     /** Shares no factor with the number of word pairs, so stepping by it visits every pair before any comes back. */
     private static final int NAME_STRIDE = 1_303;
@@ -83,13 +87,14 @@ public final class Region {
     public final float moonX, moonY, moonSize;
     /** How tight the hills are, and how far they sit up or down the screen. */
     public final float hillWave, hillShift;
+    private final double hue;
 
     private Region(int chapter, String name, int skyTop, int skyBottom, int hillFar, int hillNear, int moon, int particle, Weather weather) {
-        this(chapter, name, skyTop, skyBottom, hillFar, hillNear, moon, particle, weather, 0.76f, 0.13f, 1f / 11f, 1f, 0f);
+        this(chapter, name, skyTop, skyBottom, hillFar, hillNear, moon, particle, weather, 0.76f, 0.13f, 1f / 11f, 1f, 0f, 0);
     }
 
     private Region(int chapter, String name, int skyTop, int skyBottom, int hillFar, int hillNear, int moon, int particle,
-                   Weather weather, float moonX, float moonY, float moonSize, float hillWave, float hillShift) {
+                   Weather weather, float moonX, float moonY, float moonSize, float hillWave, float hillShift, double hue) {
         this.chapter = chapter;
         this.name = name;
         this.skyTop = skyTop;
@@ -104,6 +109,7 @@ public final class Region {
         this.moonSize = moonSize;
         this.hillWave = hillWave;
         this.hillShift = hillShift;
+        this.hue = hue;
     }
 
     /** The region of a zero-based chapter. The same on every device. */
@@ -122,7 +128,7 @@ public final class Region {
         Weather[] kinds = Weather.values();
         return new Region(chapter, name(chapter), skyTop, skyBottom, hillFar, hillNear, moon, particle, kinds[r.nextInt(kinds.length)],
                 0.18f + r.nextFloat() * 0.64f, 0.08f + r.nextFloat() * 0.12f, 0.06f + r.nextFloat() * 0.06f,
-                0.65f + r.nextFloat() * 0.8f, (r.nextFloat() - 0.5f) * 0.08f);
+                0.65f + r.nextFloat() * 0.8f, (r.nextFloat() - 0.5f) * 0.08f, hue);
     }
 
     /** Works through every pair of words in a scattered order. If they ever all get used, the next round is numbered. */
@@ -140,9 +146,49 @@ public final class Region {
         return n < 100 ? ROMAN_TENS[n / 10] + ROMAN_ONES[n % 10] : String.valueOf(n);
     }
 
+    public boolean hasHandMadeBoss() {
+        return chapter < HAND_MADE.length;
+    }
+
+    /** The hand-made boss's icon. Only for regions where {@link #hasHandMadeBoss()}. */
+    public String handMadeBossIcon() {
+        return Boss.forChapter(chapter).icon;
+    }
+
+    /** A generated boss's face, as {@link #BOSS_ART_SIZE} rows of pixels. */
+    public int[] bossArt() {
+        return BossArt.paint(chapter, hue);
+    }
+
+    public static final int BOSS_ART_SIZE = BossArt.SIZE;
+
+    /** What this region's boss does, in the order it does it: one attack, or two taken in turn. */
+    public Boss.Attack[] bossAttacks() {
+        if (hasHandMadeBoss()) return new Boss.Attack[]{Boss.forChapter(chapter).attack};
+        Random r = new Random(SeedUtil.mix(BOSS_SALT, chapter));
+        Boss.Attack first = ATTACKS[r.nextInt(ATTACKS.length)];
+        if (r.nextBoolean()) return new Boss.Attack[]{first};
+        Boss.Attack second = ATTACKS[(first.ordinal() + 1 + r.nextInt(ATTACKS.length - 1)) % ATTACKS.length];
+        return new Boss.Attack[]{first, second};
+    }
+
+    /** How many words this region's boss lets pass between attacks. */
+    public int bossPace() {
+        if (hasHandMadeBoss()) return BossFight.USUAL_PACE;
+        Random r = new Random(SeedUtil.mix(BOSS_SALT + 1, chapter));
+        return FASTEST_PACE + r.nextInt(SLOWEST_PACE - FASTEST_PACE + 1);
+    }
+
+    /** What this region's boss does, for showing before the fight. */
+    public String bossDetail() {
+        StringBuilder out = new StringBuilder();
+        for (Boss.Attack a : bossAttacks()) out.append(out.length() == 0 ? "" : " ").append(a.detail);
+        return out.toString();
+    }
+
     /** The name of the boss guarding this region. */
     public String bossName() {
-        if (chapter < HAND_MADE.length) return Boss.forChapter(chapter).title;
+        if (hasHandMadeBoss()) return Boss.forChapter(chapter).title;
         return BOSS_RANKS[chapter % BOSS_RANKS.length] + " of " + titleCase(name);
     }
 
@@ -156,7 +202,7 @@ public final class Region {
         return out.toString();
     }
 
-    private static int hsv(double hue, float saturation, float value) {
+    static int hsv(double hue, float saturation, float value) {
         double h = ((hue % 360) + 360) % 360 / 60.0;
         double chroma = value * saturation;
         double x = chroma * (1 - Math.abs(h % 2 - 1));
