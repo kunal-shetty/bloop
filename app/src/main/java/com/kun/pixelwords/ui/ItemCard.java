@@ -52,6 +52,7 @@ public class ItemCard extends PressableView {
         owned = Shop.owns(p, item);
         worn = Shop.isWearing(p, item);
         affordable = Shop.canAfford(p, item);
+        setContentDescription(item.title + (worn ? ", wearing" : owned ? ", owned" : ""));
         invalidate();
     }
 
