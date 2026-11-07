@@ -62,6 +62,7 @@ public final class PixelTheme {
     private static final float LARGE_TEXT_SCALE = 1.2f;
 
     private static float textScale = 1f;
+    private static boolean reduceMotion;
 
     /** Applies the accessibility settings. Screens already on show keep their old look until rebuilt. */
     public static void applySettings() {
@@ -69,7 +70,13 @@ public final class PixelTheme {
         MINT = colourblind ? COLOURBLIND_BLUE : STANDARD_MINT;
         ROSE = colourblind ? COLOURBLIND_ORANGE : STANDARD_ROSE;
         textScale = Settings.largeText() ? LARGE_TEXT_SCALE : 1f;
+        reduceMotion = Settings.reduceMotion();
         PixelIcons.clearCache();
+    }
+
+    /** True when the player has asked for less movement. Read every frame, so it's kept here rather than in the prefs. */
+    public static boolean reduceMotion() {
+        return reduceMotion;
     }
 
     public static void init(Context c) {
