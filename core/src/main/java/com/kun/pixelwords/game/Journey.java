@@ -15,7 +15,7 @@ public final class Journey {
     private static final long HARD_SALT = 0x4A4F_5552_4E45_5901L;
     /** Levels at the start of a chapter stay normal, so a new region opens gently. */
     private static final int FIRST_HARD_SLOT = 6;
-    /** The last level of a chapter is never hard, so the reward isn't gated by a sudden wall. */
+    /** The last level of a chapter is its boss, so the levels before it are left to lead up to that. */
     private static final int LAST_HARD_SLOT = LEVELS_PER_CHAPTER - 1;
     private static final int MIN_HARD_PER_CHAPTER = 2;
     private static final int MAX_HARD_PER_CHAPTER = 3;
@@ -70,7 +70,22 @@ public final class Journey {
         return hard;
     }
 
+    /** The last level of every chapter is a boss. */
+    public static boolean isBoss(int level) {
+        return slotOf(level) == LEVELS_PER_CHAPTER;
+    }
+
+    public static Boss bossOf(int level) {
+        return Boss.forChapter(chapterOf(level));
+    }
+
+    /** What beating a chapter's boss wins, the first time. */
+    public static Reward bossPrize(int level) {
+        return chapterOf(level) % 2 == 0 ? Reward.sticker() : Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 1);
+    }
+
     public static int coinsForLevel(int level) {
+        if (isBoss(level)) return Scoring.COINS_PER_BOSS;
         return isHard(level) ? Scoring.COINS_PER_HARD_LEVEL : Scoring.COINS_PER_LEVEL;
     }
 
