@@ -61,6 +61,7 @@ public class MainActivity extends BaseActivity {
 
     private ProgressStore store;
     private Progress progress;
+    private AmbientView ambient;
     /** Players on these first levels skip the list of modes. */
     private static final int NEW_PLAYER_LEVELS = 3;
 
@@ -69,6 +70,7 @@ public class MainActivity extends BaseActivity {
 
     private PixelButton playBtn;
     private PixelButton spinBtn, tripsBtn, passBtn, albumBtn, jarBtn;
+    private TextView spinState, tripsState, passState, albumState, jarState;
     private StatChip coinChip, hintChip;
     private CatView cat;
     private TextView streakText, streakSub, claimBadge, catBubble;
@@ -79,7 +81,7 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected View createBackground() {
-        AmbientView ambient = new AmbientView(this);
+        ambient = new AmbientView(this);
         ambient.setTheme(AmbientView.Theme.FIREFLIES);
         return ambient;
     }
@@ -98,6 +100,7 @@ public class MainActivity extends BaseActivity {
     protected void onResume() {
         super.onResume();
         progress = store.load();
+        ambient.setHour(java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY));
         boolean newWeek = Quest.rollOver(progress, Days.today());
         boolean newSeason = Season.rollOver(progress, Days.today());
         if (newWeek || newSeason) store.save(progress);
@@ -181,11 +184,6 @@ public class MainActivity extends BaseActivity {
         trophyBox.addView(claimBadge, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END));
         bar.addView(trophyBox, new LinearLayout.LayoutParams(dp(46), dp(46)));
-        PixelButton help = iconButton("book", "How to play");
-        help.setOnClickListener(v -> showHowToPlay());
-        LinearLayout.LayoutParams helpLp = new LinearLayout.LayoutParams(dp(46), dp(46));
-        helpLp.leftMargin = dp(8);
-        bar.addView(help, helpLp);
         PixelButton gear = iconButton("gear", "Settings");
         gear.setOnClickListener(v -> showSettings());
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(dp(46), dp(46));
@@ -265,6 +263,7 @@ public class MainActivity extends BaseActivity {
         jarBtn.setOnClickListener(v -> showJar());
         PixelButton[] all = {spinBtn, tripsBtn, passBtn, albumBtn, jarBtn};
         String[] names = {"SPIN", "TRIPS", "PASS", "ALBUM", "JAR"};
+        TextView[] states = new TextView[all.length];
         for (int i = 0; i < all.length; i++) {
             LinearLayout cell = new LinearLayout(this);
             cell.setOrientation(LinearLayout.VERTICAL);
@@ -273,11 +272,46 @@ public class MainActivity extends BaseActivity {
             android.widget.TextView caption = PixelTheme.display(this, names[i], PixelTheme.SIZE_CAPTION, PixelTheme.TEXT);
             caption.setGravity(Gravity.CENTER);
             cell.addView(caption, matchWrap(4));
+            states[i] = PixelTheme.body(this, " ", PixelTheme.SIZE_BODY, PixelTheme.TEXT);
+            states[i].setGravity(Gravity.CENTER);
+            states[i].setSingleLine(true);
+            cell.addView(states[i], matchWrap(1));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
             if (i > 0) lp.leftMargin = dp(6);
             row.addView(cell, lp);
         }
+        spinState = states[0];
+        tripsState = states[1];
+        passState = states[2];
+        albumState = states[3];
+        jarState = states[4];
         return row;
+    }
+
+    /** One line under an extra says why it's worth a tap. Gold means something is waiting there. */
+    private void showState(PixelButton button, TextView state, String text, boolean ready) {
+        state.setText(text);
+        state.setTextColor(ready ? PixelTheme.GOLD : PixelTheme.TEXT);
+        button.setBadge(ready ? "!" : "");
+        button.setContentDescription(button.getContentDescription() + ", " + text);
+    }
+
+    /** Whole hours left, rounded up, so a trip never reads as "0H" while the cat is still away. */
+    private static String hoursLeft(long millis) {
+        return (millis + Days.MILLIS_PER_HOUR - 1) / Days.MILLIS_PER_HOUR + "H LEFT";
+    }
+
+    private void refreshExtras(long today) {
+        long now = System.currentTimeMillis();
+        showState(spinBtn, spinState, DailySpin.canSpin(progress, today) ? "READY" : "DONE", DailySpin.canSpin(progress, today));
+        boolean away = Expedition.isAway(progress), back = Expedition.isBack(progress, now);
+        showState(tripsBtn, tripsState, back ? "HOME!" : away ? hoursLeft(Expedition.millisLeft(progress, now)) : "SEND", back);
+        int passReady = Season.claimableCount(progress) + FishHunt.claimableCount(progress);
+        showState(passBtn, passState, passReady > 0 ? passReady + " READY" : "TIER " + Season.tiersReached(progress), passReady > 0);
+        int albumReady = Album.claimableCount(progress);
+        showState(albumBtn, albumState, albumReady > 0 ? albumReady + " READY" : "COLLECT", albumReady > 0);
+        boolean jarReady = PiggyJar.canOpen(progress, today);
+        showState(jarBtn, jarState, jarReady ? "READY" : Math.min(progress.jarWords, PiggyJar.CAPACITY) + "/" + PiggyJar.CAPACITY, jarReady);
     }
 
     private PixelButton extraButton(String icon, int fill) {
@@ -376,14 +410,7 @@ public class MainActivity extends BaseActivity {
         boolean megaReady = MegaBoard.isOpen(today) && !MegaBoard.isSolved(progress, today);
         playBtn.setBadge(!isNewPlayer() && (!doneToday || megaReady) ? "NEW" : "");
 
-        long now = System.currentTimeMillis();
-        spinBtn.setBadge(DailySpin.canSpin(progress, today) ? "!" : "");
-        tripsBtn.setBadge(Expedition.isBack(progress, now) ? "!" : "");
-        int passReady = Season.claimableCount(progress) + FishHunt.claimableCount(progress);
-        passBtn.setBadge(passReady > 0 ? String.valueOf(passReady) : "");
-        int albumReady = Album.claimableCount(progress);
-        albumBtn.setBadge(albumReady > 0 ? String.valueOf(albumReady) : "");
-        jarBtn.setBadge(PiggyJar.canOpen(progress, today) ? "!" : "");
+        refreshExtras(today);
 
         streakText.setText(streak == 0 ? "NO STREAK" : days(streak).toUpperCase(Locale.ROOT));
         streakSub.setText(doneToday ? "All done!" : streak > 0 ? "Play today!" : "Play daily");
