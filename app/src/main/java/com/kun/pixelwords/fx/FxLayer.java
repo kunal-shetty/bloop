@@ -9,6 +9,8 @@ import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.view.View;
 
+import com.kun.pixelwords.ui.PixelTheme;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -69,7 +71,16 @@ public class FxLayer extends View {
 
     /** Plays an effect once, centred on (cx, cy) in view pixels. {@code scale} = screen pixels per sprite pixel. */
     public Object play(String name, float cx, float cy, float scale, Runnable onDone) {
+        if (PixelTheme.reduceMotion() && fillsTheScreen(name)) {
+            if (onDone != null) post(onDone);
+            return null;
+        }
         return start(name, cx, cy, scale, false, onDone);
+    }
+
+    /** Effects big enough to bother someone who asked for less movement. Small pickups stay as feedback. */
+    private static boolean fillsTheScreen(String name) {
+        return name.equals("ui_confetti") || name.startsWith("transitions_") || name.equals("holy_sunburst");
     }
 
     /** Plays an effect until {@link #stop(Object)} is called. */
