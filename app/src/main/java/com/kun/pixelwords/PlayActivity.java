@@ -7,6 +7,7 @@ import android.widget.LinearLayout;
 
 import com.kun.pixelwords.audio.Sfx;
 import com.kun.pixelwords.data.Days;
+import com.kun.pixelwords.game.DailyArchive;
 import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.MegaBoard;
 import com.kun.pixelwords.game.StreakLogic;
@@ -26,7 +27,7 @@ public class PlayActivity extends PageActivity {
     private static final int SOLVED_FILL = 0xFF4FB488;
 
     private PixelButton journey;
-    private ModeCard dailyCard, timedCard, duelCard, livesCard, megaCard;
+    private ModeCard dailyCard, archiveCard, timedCard, duelCard, livesCard, megaCard;
 
     @Override
     protected String pageTitle() {
@@ -59,7 +60,10 @@ public class PlayActivity extends PageActivity {
         duelCard = new ModeCard(this, "swords", "DUEL", PixelTheme.ROSE);
         duelCard.setOnClickListener(v -> onDuel());
 
-        list.addView(dailyCard, matchWrap(10));
+        archiveCard = new ModeCard(this, "book", "PAST", 0xFFC9A6FF);
+        archiveCard.setOnClickListener(v -> go(new Intent(this, ArchiveActivity.class)));
+
+        list.addView(cardRow(dailyCard, archiveCard), matchWrap(10));
         list.addView(cardRow(timedCard, livesCard), matchWrap(10));
         list.addView(cardRow(megaCard, duelCard), matchWrap(10));
     }
@@ -92,6 +96,9 @@ public class PlayActivity extends PageActivity {
         dailyCard.setStatus(doneToday ? "Solved!" : "New puzzle");
         dailyCard.setBadge(doneToday ? "" : "NEW");
         dailyCard.setFill(doneToday ? SOLVED_FILL : PixelTheme.MINT);
+        DailyArchive.backfill(progress);
+        int missed = DailyArchive.missed(progress, today);
+        archiveCard.setStatus(missed > 0 ? missed + " to solve" : "All caught up!");
         timedCard.setStatus(progress.bestTimed > 0 ? "Best " + progress.bestTimed : "2:00 sprint");
         livesCard.setStatus(progress.bestLives > 0 ? "Best " + progress.bestLives : "Survive!");
         boolean megaSolved = MegaBoard.isSolved(progress, today);
@@ -126,6 +133,8 @@ public class PlayActivity extends PageActivity {
                 .stat("freeze", "Streak freezes", progress.streak.freezes + " / " + StreakLogic.MAX_FREEZES, PixelTheme.SKY)
                 .note("You can replay it for fun, but it won't pay coins or count towards your streak again.")
                 .primary("REPLAY", "play", () -> launch(GameActivity.Mode.DAILY))
+                .button("PAST PUZZLES", PixelTheme.SKY, PixelTheme.INK, "book", Sfx.Id.UI_TAP,
+                        () -> go(new Intent(this, ArchiveActivity.class)))
                 .secondary("CLOSE", null)
                 .show();
     }
