@@ -741,8 +741,10 @@ public class MainActivity extends BaseActivity {
                 .heading("TWISTS")
                 .body("Hard boards have gold letters that pay coins, frozen words that a crossing word must thaw, "
                         + "and orange spark words worth extra if you find them in your first " + TileMods.SPARK_WINDOW + " words.")
+                .heading("MEANINGS")
+                .body("Tap a word you've found to see what it means.")
                 .heading("SHOP")
-                .body("Spend your coins on accessories, breeds and rooms for your cat.")
+                .body("Spend your coins on accessories, breeds and rooms for your cat, or on treats to raise your bond.")
                 .heading("EVERY DAY")
                 .body("Spin the wheel, send your cat on a trip, collect stickers, and climb the Season Pass.")
                 .primary("LET'S GO", null)
@@ -760,6 +762,8 @@ public class MainActivity extends BaseActivity {
                 .note("Press Start 2P and VT323, SIL Open Font License 1.1.")
                 .heading("WORDS")
                 .note("ENABLE word list (public domain); google-10000-english; LDNOOBW word filter (CC BY 4.0).")
+                .heading("MEANINGS")
+                .note("WordNet 3.1, Copyright 2011 by Princeton University. All rights reserved. Used under its licence.")
                 .primary("CLOSE", null)
                 .show();
     }
