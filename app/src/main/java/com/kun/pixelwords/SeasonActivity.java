@@ -162,7 +162,7 @@ public class SeasonActivity extends PageActivity {
             return;
         }
         save();
-        coins.animateTo(progress.coins);
+        earn(coins, progress.coins);
         Sfx.play(Sfx.Id.COIN);
         refreshPage();
         new PixelModal(this).title("REWARD").icon(paid.icon()).accent(PixelTheme.GOLD)
