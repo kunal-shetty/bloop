@@ -2,6 +2,7 @@ package com.kun.pixelwords.generator;
 
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.AdPolicy;
+import com.kun.pixelwords.game.Comeback;
 import com.kun.pixelwords.game.Album;
 import com.kun.pixelwords.game.CatMood;
 import com.kun.pixelwords.game.DailySpin;
@@ -24,6 +25,7 @@ import com.kun.pixelwords.game.Quest;
 import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.ShareCard;
 import com.kun.pixelwords.game.StreakLogic;
+import com.kun.pixelwords.game.StreakMilestone;
 import com.kun.pixelwords.game.TileMods;
 import com.kun.pixelwords.lan.LanClient;
 import com.kun.pixelwords.lan.LanHost;
@@ -93,6 +95,8 @@ public final class GeneratorSelfTest {
         testSeason();
         testFishHunt(gen);
         testNewSaveFields();
+        testStreakMilestones();
+        testComeback();
         testLan();
         testCurve(gen);
 
@@ -1158,6 +1162,78 @@ public final class GeneratorSelfTest {
     }
 
     /** Every new field must survive a save, a cloud copy, and a merge in either order. */
+    private static void testStreakMilestones() {
+        Progress p = new Progress();
+        check(StreakMilestone.payDue(p, 1).isEmpty(), "a new player has earned no streak rewards");
+        check(StreakMilestone.next(p) == StreakMilestone.DAYS_3, "the first goal is three days");
+
+        p.streak = new StreakLogic.State(3, 3, 100, 0);
+        List<Reward> paid = StreakMilestone.payDue(p, 1);
+        check(paid.size() == 1 && p.coins == 50, "three days pays once");
+        check(StreakMilestone.payDue(p, 2).isEmpty() && p.coins == 50, "a milestone never pays twice");
+        check(StreakMilestone.next(p) == StreakMilestone.DAYS_7, "the next goal moves on");
+
+        p.streak = new StreakLogic.State(1, 30, 200, 0); // the streak broke, but the best one stands
+        int hints = p.hintTokens;
+        StreakMilestone.payDue(p, 3);
+        check(p.coins == 50 + 100 + 200 + 400, "everything up to the best streak is paid, even after a break");
+        check(p.hintTokens == hints + 2 && p.revealTokens == 2, "hints and power-ups are paid too");
+        check(StreakMilestone.DAYS_7.isPaid(p) && !StreakMilestone.DAYS_60.isPaid(p), "paid milestones are remembered");
+
+        Progress q = new Progress();
+        q.streak = new StreakLogic.State(365, 365, 200, 0);
+        Shop.give(q, Shop.Item.GOLD_SHADES);
+        int before = q.coins;
+        StreakMilestone.payDue(q, 4);
+        check(Shop.breed(q) == Shop.Breed.ORANGE && Shop.owns(q, Shop.Breed.GALAXY), "a year's streak wins the Galaxy Cat");
+        check(q.coins - before > 9_350, "a reward you already own turns into coins");
+        check(StreakMilestone.next(q) == null, "there's nothing left after a year");
+
+        Set<Integer> days = new HashSet<>();
+        int last = 0;
+        for (StreakMilestone m : StreakMilestone.values()) {
+            days.add(m.days);
+            check(m.days > last, "milestones climb");
+            check(!m.summary().isEmpty(), "every milestone says what it pays");
+            last = m.days;
+        }
+        check(days.size() == StreakMilestone.values().length, "every milestone has its own day");
+
+        Progress a = Progress.parse(p.serialize());
+        Progress b = Progress.parse(p.serialize());
+        a.streakPaid = 1;
+        b.streakPaid = 2;
+        check(Progress.merge(a, b).streakPaid == 3, "paid milestones survive a cloud merge");
+        check(Progress.parse(p.serialize()).streakPaid == p.streakPaid, "paid milestones are saved");
+    }
+
+    private static void testComeback() {
+        Progress p = new Progress();
+        check(Comeback.daysAway(p, 100) == 0, "a first launch is not a comeback");
+        check(Comeback.see(p, 100) && p.lastSeenDay == 100, "the first day is noted");
+        check(!Comeback.see(p, 100), "seeing the same day again needs no save");
+        check(Comeback.daysAway(p, 102) == 0, "two days away is too short");
+        check(Comeback.claim(p, 102).isEmpty() && p.coins == 0 && p.lastSeenDay == 102, "nothing is paid for a short gap");
+
+        int hints = p.hintTokens;
+        check(Comeback.daysAway(p, 105) == 3, "three days away counts");
+        check(Comeback.claim(p, 105).size() == 2 && p.coins == 100 && p.hintTokens == hints + 1, "a short absence pays a small gift");
+        check(Comeback.claim(p, 105).isEmpty() && p.coins == 100, "one absence can't pay twice");
+
+        check(Comeback.gift(7).get(0).amount == 200, "a week away pays more");
+        check(Comeback.gift(30).size() == 3, "a long absence adds a power-up");
+        check(Comeback.gift(1000).get(0).amount == 400, "the gift stops growing");
+
+        check(!Comeback.see(p, 50) && p.lastSeenDay == 105, "turning the clock back changes nothing");
+        check(Comeback.daysAway(p, 50) == 0, "a clock in the past is not an absence");
+
+        Progress a = new Progress(), b = new Progress();
+        a.lastSeenDay = 10;
+        b.lastSeenDay = 20;
+        check(Progress.merge(a, b).lastSeenDay == 20, "playing on any device counts as being here");
+        check(Progress.parse(b.serialize()).lastSeenDay == 20, "the last day seen is saved");
+    }
+
     private static void testNewSaveFields() {
         Progress p = new Progress();
         p.themesOwned = 6; p.homeTheme = 2; p.jarWords = 12; p.jarDay = 20; p.jarOpensToday = 2;
