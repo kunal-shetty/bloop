@@ -9,6 +9,8 @@ import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.view.View;
 
+import com.kun.pixelwords.game.Region;
+
 import java.util.Random;
 
 /**
@@ -68,6 +70,53 @@ public class AmbientView extends View {
         }
     }
 
+    /** Everything the view needs to draw a scene, whether it came from a {@link Theme} or a {@link Region}. */
+    private static final class Look {
+        int skyTop, skyBottom, hillFar, hillNear, moon, particle;
+        float vx, vy, sway, stretch = 1f;
+        boolean wanders;
+        long seed;
+        float moonX = 0.76f, moonY = 0.13f, moonSize = 1f / 11f, hillWave = 1f, hillShift = 0f;
+
+        static Look of(Theme t) {
+            Look l = new Look();
+            l.skyTop = t.skyTop;
+            l.skyBottom = t.skyBottom;
+            l.hillFar = t.hillFar;
+            l.hillNear = t.hillNear;
+            l.moon = t.moon;
+            l.particle = t.particle;
+            l.vx = t.vx;
+            l.vy = t.vy;
+            l.sway = t.sway;
+            l.wanders = t == Theme.FIREFLIES;
+            l.seed = t.ordinal() * 91L + 7;
+            return l;
+        }
+
+        static Look of(Region r) {
+            Look l = new Look();
+            l.skyTop = r.skyTop;
+            l.skyBottom = r.skyBottom;
+            l.hillFar = r.hillFar;
+            l.hillNear = r.hillNear;
+            l.moon = r.moon;
+            l.particle = r.particle;
+            l.vx = r.weather.vx;
+            l.vy = r.weather.vy;
+            l.sway = r.weather.sway;
+            l.stretch = r.weather.stretch;
+            l.wanders = r.weather.wanders;
+            l.seed = r.chapter * 91L + 7;
+            l.moonX = r.moonX;
+            l.moonY = r.moonY;
+            l.moonSize = r.moonSize;
+            l.hillWave = r.hillWave;
+            l.hillShift = r.hillShift;
+            return l;
+        }
+    }
+
     private static final int COUNT = 44;
     private static final int[][] BAYER = {{0, 8, 2, 10}, {12, 4, 14, 6}, {3, 11, 1, 9}, {15, 7, 13, 5}};
 
@@ -79,6 +128,8 @@ public class AmbientView extends View {
     private final Random rnd = new Random(1234);
     private final Rect dst = new Rect();
     private Theme theme = Theme.SNOW;
+    private Region region;
+    private Look look = Look.of(Theme.SNOW);
     private Light light;
     private Bitmap scene;
     private long last;
@@ -96,8 +147,20 @@ public class AmbientView extends View {
     }
 
     public void setTheme(Theme t) {
-        if (t == theme && scene != null) return;
+        if (t == theme && region == null && scene != null) return;
         theme = t;
+        region = null;
+        look = Look.of(t);
+        scene = null;
+        seeded = false;
+        invalidate();
+    }
+
+    /** Shows a Journey region: every one has its own colours, land and weather. */
+    public void setRegion(Region r) {
+        if (region != null && region.chapter == r.chapter && scene != null) return;
+        region = r;
+        look = Look.of(r);
         scene = null;
         seeded = false;
         invalidate();
@@ -129,12 +192,12 @@ public class AmbientView extends View {
         int cell = Math.max(2, Math.round(PixelTheme.dp(getContext(), 2.5f)));
         int sw = w / cell + 1, sh = h / cell + 1;
         int[] px = new int[sw * sh];
-        Random r = new Random(theme.ordinal() * 91L + 7);
-        int skyTop = light != null ? light.skyTop : theme.skyTop;
-        int skyBottom = light != null ? light.skyBottom : theme.skyBottom;
-        int moon = light != null ? light.sun : theme.moon;
-        int hillFar = light != null ? light.hillFar : theme.hillFar;
-        int hillNear = light != null ? light.hillNear : theme.hillNear;
+        Random r = new Random(look.seed);
+        int skyTop = light != null ? light.skyTop : look.skyTop;
+        int skyBottom = light != null ? light.skyBottom : look.skyBottom;
+        int moon = light != null ? light.sun : look.moon;
+        int hillFar = light != null ? light.hillFar : look.hillFar;
+        int hillNear = light != null ? light.hillNear : look.hillNear;
 
         // Sky: five flat bands with ordered dithering between them, for that classic console gradient.
         int bands = 5;
@@ -156,7 +219,7 @@ public class AmbientView extends View {
         }
 
         // Moon with a soft dithered halo.
-        int mx = (int) (sw * 0.76f), my = (int) (sh * 0.13f), mr = sw / 11;
+        int mx = (int) (sw * look.moonX), my = (int) (sh * look.moonY), mr = (int) (sw * look.moonSize);
         for (int yy = Math.max(0, my - mr * 2); yy < Math.min(sh, my + mr * 2); yy++) {
             for (int xx = Math.max(0, mx - mr * 2); xx < Math.min(sw, mx + mr * 2); xx++) {
                 float d = (float) Math.hypot(xx - mx, yy - my);
@@ -170,9 +233,10 @@ public class AmbientView extends View {
             }
         }
 
-        hills(px, sw, sh, hillFar, 0.70f, 0.075f, 0.011f, 1.3f);
-        hills(px, sw, sh, lerp(hillFar, hillNear, 0.5f), 0.79f, 0.06f, 0.019f, 4.1f);
-        hills(px, sw, sh, hillNear, 0.88f, 0.045f, 0.03f, 2.2f);
+        float wave = look.hillWave, shift = look.hillShift, phase = look.seed * 0.37f;
+        hills(px, sw, sh, hillFar, 0.70f + shift, 0.075f, 0.011f * wave, 1.3f + phase);
+        hills(px, sw, sh, lerp(hillFar, hillNear, 0.5f), 0.79f + shift, 0.06f, 0.019f * wave, 4.1f + phase);
+        hills(px, sw, sh, hillNear, 0.88f + shift / 2f, 0.045f, 0.03f * wave, 2.2f + phase);
 
         scene = Bitmap.createBitmap(px, sw, sh, Bitmap.Config.ARGB_8888);
     }
@@ -208,18 +272,18 @@ public class AmbientView extends View {
         for (int i = 0; i < COUNT; i++) {
             float d = depth[i]; // 0.4 (far) .. 1.0 (near)
             phase[i] += dt * (1f + d);
-            if (theme == Theme.FIREFLIES) {
+            if (look.wanders) {
                 x[i] += (float) Math.sin(phase[i] * 1.3f) * 20f * dp * dt;
                 y[i] += (float) Math.cos(phase[i] * 0.9f) * 14f * dp * dt;
             } else {
-                x[i] += (theme.vx * dp * d + (float) Math.sin(phase[i]) * theme.sway * dp) * dt;
-                y[i] += theme.vy * dp * d * dt;
+                x[i] += (look.vx * dp * d + (float) Math.sin(phase[i]) * look.sway * dp) * dt;
+                y[i] += look.vy * dp * d * dt;
             }
             if (y[i] > h + 8 || x[i] < -16 || x[i] > w + 16 || y[i] < -16) respawn(i, w, h, false);
 
             float size = Math.max(2f, (2f + 3f * d) * dp);
-            int color = light != null ? light.particle : theme.particle;
-            if (theme == Theme.FIREFLIES) {
+            int color = light != null ? light.particle : look.particle;
+            if (look.wanders) {
                 float pulse = 0.5f + 0.5f * (float) Math.sin(phase[i] * 2f);
                 color = (color & 0x00FFFFFF) | ((int) (60 + 195 * pulse) << 24);
             } else {
@@ -230,7 +294,7 @@ public class AmbientView extends View {
             float snap = Math.max(2f, dp * 2f);
             float px = Math.round(x[i] / snap) * snap;
             float py = Math.round(y[i] / snap) * snap;
-            c.drawRect(px, py, px + size, py + size, paint);
+            c.drawRect(px, py, px + size, py + size * look.stretch, paint);
         }
         postInvalidateOnAnimation();
     }
@@ -239,11 +303,11 @@ public class AmbientView extends View {
         depth[i] = 0.4f + 0.6f * rnd.nextFloat();
         phase[i] = rnd.nextFloat() * 6.28f;
         x[i] = rnd.nextFloat() * w;
-        if (theme == Theme.FIREFLIES || anywhere) {
+        if (look.wanders || anywhere) {
             y[i] = rnd.nextFloat() * h;
         } else {
-            y[i] = -8;
-            if (theme.vx < 0 && rnd.nextBoolean()) { // drifting left: some enter from the right edge
+            y[i] = look.vy < 0 ? h + 8 : -8; // rising weather starts at the bottom
+            if (look.vx < 0 && rnd.nextBoolean()) { // drifting left: some enter from the right edge
                 x[i] = w + 8;
                 y[i] = rnd.nextFloat() * h;
             }
