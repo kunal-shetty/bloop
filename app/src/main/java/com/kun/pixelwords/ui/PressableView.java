@@ -23,6 +23,12 @@ public abstract class PressableView extends View {
         setHapticFeedbackEnabled(false);
     }
 
+    /** Screen readers announce this as a button. */
+    @Override
+    public CharSequence getAccessibilityClassName() {
+        return android.widget.Button.class.getName();
+    }
+
     public void setClickSound(Sfx.Id id) {
         clickSound = id;
     }
