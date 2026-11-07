@@ -20,7 +20,7 @@ public class StatChip extends android.view.View {
         super(context);
         this.icon = icon;
         px = Math.max(2f, Math.round(PixelTheme.dp(context, 1.5f)));
-        PixelTheme.styleDisplay(text, PixelTheme.displayPx(context, 11));
+        PixelTheme.styleDisplay(text, PixelTheme.displayPx(context, PixelTheme.SIZE_LABEL));
         text.setColor(PixelTheme.TEXT);
     }
 
