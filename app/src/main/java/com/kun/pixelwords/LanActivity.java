@@ -80,6 +80,7 @@ public class LanActivity extends BaseActivity {
         bar.setGravity(Gravity.CENTER_VERTICAL);
         PixelButton back = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         back.setIcon("back");
+        back.setSpokenName("Back");
         back.setIconSize(24);
         back.setClickSound(Sfx.Id.UI_BACK);
         back.setOnClickListener(v -> finish());
