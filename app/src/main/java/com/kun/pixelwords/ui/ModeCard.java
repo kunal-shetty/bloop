@@ -25,8 +25,8 @@ public class ModeCard extends PressableView {
         this.icon = icon;
         this.name = name;
         this.fill = fill;
-        PixelTheme.styleDisplay(title, PixelTheme.displayPx(context, 11));
-        PixelTheme.styleBody(sub, PixelTheme.bodyPx(context, 17));
+        PixelTheme.styleDisplay(title, PixelTheme.displayPx(context, PixelTheme.SIZE_LABEL));
+        PixelTheme.styleBody(sub, PixelTheme.bodyPx(context, PixelTheme.SIZE_BODY));
     }
 
     public void setStatus(String s) {
