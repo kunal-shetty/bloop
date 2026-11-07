@@ -88,6 +88,7 @@ public class JourneyActivity extends BaseActivity {
 
             @Override public void onTrophy() { showTrophy(); }
         });
+        map.setOnClickListener(v -> onLevelTapped(progress.level)); // the map handles its own taps, so only a screen reader lands here
         cat = new CatView(this, CAT_DP);
         cat.setClickable(false);
 
@@ -112,6 +113,7 @@ public class JourneyActivity extends BaseActivity {
         row.setGravity(Gravity.CENTER_VERTICAL);
         PixelButton back = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         back.setIcon("close");
+        back.setSpokenName("Close");
         back.setIconSize(22);
         back.setClickSound(Sfx.Id.UI_BACK);
         back.setOnClickListener(v -> finish());
@@ -120,6 +122,7 @@ public class JourneyActivity extends BaseActivity {
         title.setGravity(Gravity.CENTER);
         row.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         coins = new StatChip(this, "coin");
+        coins.setSpokenName("Coins");
         row.addView(coins);
         column.addView(row);
 
@@ -156,6 +159,7 @@ public class JourneyActivity extends BaseActivity {
         PixelButton b = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         b.setIcon("back");
         b.setIconSize(22);
+        b.setSpokenName(direction < 0 ? "Previous chapter" : "Next chapter");
         b.setOnClickListener(v -> showChapter(chapter + direction));
         return b;
     }
@@ -171,6 +175,7 @@ public class JourneyActivity extends BaseActivity {
         ambient.setTheme(AmbientView.Theme.values()[Journey.themeIndex(chapter)]);
         cat.dress(progress);
         map.show(chapter, progress);
+        map.setContentDescription("Journey map, " + Journey.chapterName(chapter) + ". Double tap to play level " + progress.level + ".");
         map.post(this::placeCatAndScroll);
     }
 
