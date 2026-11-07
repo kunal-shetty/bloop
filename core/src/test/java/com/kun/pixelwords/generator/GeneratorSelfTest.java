@@ -21,6 +21,7 @@ import com.kun.pixelwords.game.MegaBoard;
 import com.kun.pixelwords.game.NineLives;
 import com.kun.pixelwords.game.PiggyJar;
 import com.kun.pixelwords.game.PowerUps;
+import com.kun.pixelwords.game.RedeemCode;
 import com.kun.pixelwords.game.Region;
 import com.kun.pixelwords.game.Reward;
 import com.kun.pixelwords.game.Season;
@@ -108,6 +109,7 @@ public final class GeneratorSelfTest {
         testDailyArchive();
         testBosses(gen);
         testRegions();
+        testRedeemCodes();
         testLan();
         testCurve(gen);
 
@@ -1237,6 +1239,25 @@ public final class GeneratorSelfTest {
         }
         check(s.isComplete() && fight.health() == 0, "the fight always ends with the boss beaten");
         return attacks;
+    }
+
+    private static void testRedeemCodes() {
+        Progress p = new Progress();
+        int hints = p.hintTokens;
+        check(RedeemCode.redeem(p, "NOTACODE", 1).status == RedeemCode.Status.UNKNOWN && p.coins == 0, "a wrong code pays nothing");
+        check(RedeemCode.redeem(p, "", 1).status == RedeemCode.Status.UNKNOWN, "an empty code pays nothing");
+        RedeemCode.Result r = RedeemCode.redeem(p, " welcome-bloop ", 1);
+        check(r.status == RedeemCode.Status.OK && r.rewards.size() == 2, "a code works, whatever its case and dashes");
+        check(p.coins == 200 && p.hintTokens == hints + 2, "a code pays out");
+        check(RedeemCode.redeem(p, "WELCOMEBLOOP", 2).status == RedeemCode.Status.ALREADY_USED && p.coins == 200, "a code only works once");
+        check(RedeemCode.redeem(p, "MEOWMEOW", 2).status == RedeemCode.Status.OK && p.revealTokens == 1, "each code works separately");
+        check(RedeemCode.redeem(p, "TUNATIME", 2).status == RedeemCode.Status.OK && p.coins == 200 + 150 + 300, "all the codes work");
+        check(Progress.parse(p.serialize()).redeemedCodes == p.redeemedCodes, "used codes are saved");
+        Progress a = new Progress(), b = new Progress();
+        a.redeemedCodes = 1;
+        b.redeemedCodes = 2;
+        check(Progress.merge(a, b).redeemedCodes == 3, "a code used on either device stays used");
+        check(RedeemCode.hash("meow-meow") == RedeemCode.hash("MEOWMEOW"), "the hash ignores case and dashes");
     }
 
     private static void testRegions() {
