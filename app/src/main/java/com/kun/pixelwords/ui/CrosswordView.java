@@ -43,7 +43,7 @@ public class CrosswordView extends View {
     private PickListener pickListener;
     private PickListener tapListener;
     private float downX, downY;
-    private boolean[][] frozen, spark, fish;
+    private boolean[][] frozen, spark, fish, dark;
 
     public CrosswordView(Context context) {
         this(context, null);
@@ -83,6 +83,8 @@ public class CrosswordView extends View {
         return true;
     }
 
+    private static final int DARK_TILE = 0xFF1A1436;
+
     private boolean onOrdinaryTouch(android.view.MotionEvent e) {
         if (tapListener == null) return super.onTouchEvent(e);
         if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
@@ -107,6 +109,14 @@ public class CrosswordView extends View {
         Level l = session.level();
         fish = new boolean[l.rows][l.cols];
         for (int[] cell : cells) fish[cell[0]][cell[1]] = true;
+        invalidate();
+    }
+
+    /** Hides the letters in these cells behind darkness, until the next call. */
+    public void setDark(java.util.List<int[]> cells) {
+        Level l = session.level();
+        dark = new boolean[l.rows][l.cols];
+        for (int[] cell : cells) dark[cell[0]][cell[1]] = true;
         invalidate();
     }
 
@@ -135,6 +145,7 @@ public class CrosswordView extends View {
     public void setSession(GameSession s) {
         session = s;
         fish = null;
+        dark = null;
         frozen = null;
         pickListener = null;
         Level l = s.level();
@@ -233,6 +244,11 @@ public class CrosswordView extends View {
                 if (!reported[r][col]) {
                     reported[r][col] = true;
                     if (letterListener != null) letterListener.onLetterShown(reportedCount++);
+                }
+
+                if (dark != null && dark[r][col]) {
+                    PixelTheme.drawTile(c, paint, cx - half, cy - half, cx + half, cy + half, DARK_TILE, px, px * 2);
+                    continue;
                 }
 
                 float k = Math.min(1f, since / (float) FLIP_MS);
