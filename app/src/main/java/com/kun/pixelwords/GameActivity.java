@@ -22,6 +22,8 @@ import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.Album;
+import com.kun.pixelwords.game.Boss;
+import com.kun.pixelwords.game.BossFight;
 import com.kun.pixelwords.game.DailyArchive;
 import com.kun.pixelwords.game.Definitions;
 import com.kun.pixelwords.game.DuelBot;
@@ -94,6 +96,9 @@ public class GameActivity extends BaseActivity {
     private static final long SUNBURST_MS = 2500;
     private static final int CAT_HEARTS_FROM = 3;
     private static final long MEANING_SHOWN_MS = 5000;
+    private static final long BOSS_ENTRANCE_MS = 700;
+    private static final long BOSS_SHOUT_DELAY_MS = 800;
+    private static final float BOSS_FACE_DP = 40;
     private static final long MEANING_TIP_DELAY_MS = 1200;
 
     private Mode mode = Mode.CAMPAIGN;
@@ -113,7 +118,11 @@ public class GameActivity extends BaseActivity {
     private StatChip coinChip;
     private PixelButton hintBtn, powerBtn;
     private CatView wheelCat;
-    private LinearLayout meaningCard;
+    private LinearLayout meaningCard, bossRow;
+    private BossFight fight;        // the boss on the board, on a chapter's last level
+    private PixelBar bossBar;
+    private TextView bossName;
+    private FrameLayout bossFace;
     private TextView meaningWord, meaningText;
     private final Runnable hideMeaning = this::dismissMeaning;
     private String lastMeaningWord = "";
@@ -285,11 +294,11 @@ public class GameActivity extends BaseActivity {
                 break;
             default:
                 playLevel = replayLevel > 0 ? replayLevel : progress.level;
-                boolean hard = Journey.isHard(playLevel);
-                level = hard ? gen.forHard(playLevel) : gen.forProgression(playLevel);
+                boolean hard = Journey.isHard(playLevel), boss = Journey.isBoss(playLevel);
+                level = hard || boss ? gen.forHard(playLevel) : gen.forProgression(playLevel);
                 if (hard) mods = TileMods.forLevel(level);
                 ambient.setTheme(AmbientView.Theme.values()[Journey.themeIndex(Journey.chapterOf(playLevel))]);
-                titleText.setText((hard ? "HARD " : "LEVEL ") + playLevel);
+                titleText.setText((boss ? "BOSS " : hard ? "HARD " : "LEVEL ") + playLevel);
                 break;
         }
 
@@ -298,6 +307,7 @@ public class GameActivity extends BaseActivity {
         coachLevel = mode == Mode.CAMPAIGN && replayLevel == 0 && progress.level <= LAST_COACHED_LEVEL ? progress.level : 0;
         coachText.setVisibility(coachLevel > 0 ? View.VISIBLE : View.GONE);
         grid.setSession(session);
+        startFight();
         fishCells = huntOn() ? FishHunt.fishOn(level, Season.indexOf(today)) : new ArrayList<>();
         grid.setFish(fishCells);
         grid.refresh();
@@ -325,6 +335,49 @@ public class GameActivity extends BaseActivity {
             wheel.setLocked(false);
             roundLive = true;
         }
+    }
+
+    private void startFight() {
+        boolean boss = mode == Mode.CAMPAIGN && Journey.isBoss(playLevel);
+        fight = boss ? new BossFight(Journey.bossOf(playLevel), session) : null;
+        bossRow.setVisibility(boss ? View.VISIBLE : View.GONE);
+        if (!boss) return;
+        bossName.setText(fight.boss().title.toUpperCase(Locale.ROOT));
+        bossFace.removeAllViews();
+        bossFace.addView(com.kun.pixelwords.ui.PixelIcons.view(this, fight.boss().icon), fill());
+        bossBar.setSegments(fight.maxHealth());
+        bossBar.setValue(1f);
+        handler.postDelayed(() -> say(fight == null ? "" : fight.boss().title.toUpperCase(Locale.ROOT) + " BLOCKS THE WAY!", PixelTheme.ROSE), BOSS_ENTRANCE_MS);
+    }
+
+    /** Brings the screen up to date with the fight, and plays any attack that just landed. */
+    private void afterBossTurn(Boss.Attack attack) {
+        if (fight == null) return;
+        bossBar.animateTo(fight.health() / (float) fight.maxHealth());
+        grid.setDark(fight.darkCells());
+        wheel.setStolen(fight.stolenLetter());
+        grid.refresh();
+        if (attack == null || session.isComplete()) return;
+        if (attack == Boss.Attack.SCRAMBLE) wheel.shuffle(rnd);
+        Sfx.play(Sfx.Id.WORD_ALREADY, 0.7f);
+        Haptics.thud();
+        wheelCat.startle();
+        handler.postDelayed(() -> {
+            if (!finished) say(fight.boss().shout, PixelTheme.ROSE);
+        }, BOSS_SHOUT_DELAY_MS);
+        if (PixelTheme.reduceMotion()) return;
+        bossFace.setScaleX(1.5f);
+        bossFace.setScaleY(1.5f);
+        bossFace.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(new OvershootInterpolator(2.5f)).start();
+    }
+
+    /** The boss flinches as a word lands. */
+    private void hitBoss() {
+        if (fight == null || PixelTheme.reduceMotion()) return;
+        final float d = PixelTheme.dp(this, 5);
+        bossFace.animate().cancel();
+        bossFace.setTranslationX(d);
+        bossFace.animate().translationX(0f).setDuration(180).start();
     }
 
     /** Fish hide on new campaign levels and on the first daily of the day, while a hunt is on. */
@@ -450,6 +503,10 @@ public class GameActivity extends BaseActivity {
                 keepMegaProgress();
                 if (session.isComplete()) endRound(true);
                 else offerMeaningTip();
+                if (fight != null) {
+                    hitBoss();
+                    afterBossTurn(fight.onBoardChanged());
+                }
                 break;
             case FOUND_BONUS:
                 addCombo();
@@ -480,6 +537,7 @@ public class GameActivity extends BaseActivity {
                 Haptics.error();
                 shakeWheel();
                 wheelCat.wince();
+                if (fight != null) afterBossTurn(fight.onWrongWord());
                 if (mode == Mode.LIVES) {
                     run.wrongWord();
                     if (run.isOver()) {
@@ -752,6 +810,7 @@ public class GameActivity extends BaseActivity {
 
     private void afterReveal() {
         grid.refresh();
+        if (fight != null) afterBossTurn(fight.onBoardChanged());
         Sfx.play(Sfx.Id.HINT);
         Haptics.click();
         updateHud();
@@ -765,6 +824,7 @@ public class GameActivity extends BaseActivity {
         if (cell == null) return false;
         burstAt(cell[0], cell[1]);
         grid.refresh();
+        if (fight != null) afterBossTurn(fight.onBoardChanged());
         Sfx.play(Sfx.Id.HINT);
         Haptics.click();
         updateHud();
@@ -846,6 +906,7 @@ public class GameActivity extends BaseActivity {
             } else {
                 o.coins += Journey.coinsForLevel(playLevel);
                 o.chapterFinished = Journey.slotOf(playLevel) == Journey.LEVELS_PER_CHAPTER;
+                if (fight != null) o.prize = Journey.bossPrize(playLevel).grant(progress, today);
                 progress.level++;
                 Season.addXp(progress, today, Season.XP_LEVEL);
             }
@@ -1000,7 +1061,8 @@ public class GameActivity extends BaseActivity {
 
     private void showCampaignResults(Outcome o) {
         int s = stars(o.hints);
-        PixelModal m = new PixelModal(this).title("LEVEL " + o.levelNumber + " CLEAR!").icon("star").accent(PixelTheme.GOLD)
+        PixelModal m = new PixelModal(this).title(fight != null ? "BOSS BEATEN!" : "LEVEL " + o.levelNumber + " CLEAR!")
+                .icon(fight != null ? fight.boss().icon : "star").accent(PixelTheme.GOLD)
                 .quiet().cancelable(false)
                 .custom(cheeringCat())
                 .custom(new StarsView(this, s, 350))
@@ -1009,6 +1071,11 @@ public class GameActivity extends BaseActivity {
                 .stat("sparkle", "Bonus words", String.valueOf(o.bonus), PixelTheme.GOLD)
                 .stat("bulb", "Hints used", String.valueOf(o.hints), o.hints == 0 ? PixelTheme.MINT : PixelTheme.TEXT)
                 .countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
+        if (o.prize != null) m.stat(o.prize.icon(), o.prize.label(), "", PixelTheme.SKY);
+        if (fight != null) {
+            m.note(fight.boss().title + " runs off, and the path is clear.");
+            sunburst();
+        }
         addAchievements(m, o);
         if (s < 3) m.note("Clear a level with no hints for three stars.");
         if (replayLevel > 0) {
@@ -1436,6 +1503,9 @@ public class GameActivity extends BaseActivity {
         timerRow = tr;
         col.addView(tr, wrapWidth(8));
 
+        bossRow = bossRow();
+        col.addView(bossRow, wrapWidth(8));
+
         duelText = PixelTheme.display(this, "", PixelTheme.SIZE_SMALL, PixelTheme.TEXT);
         duelText.setGravity(Gravity.CENTER);
         duelText.setBackground(new PanelDrawable(0xE03A2E6E, Math.max(2f, dp(1))));
@@ -1558,6 +1628,30 @@ public class GameActivity extends BaseActivity {
 
         contentLayer.addView(col, fill());
 
+    }
+
+    /** The boss's face, its name and its health, above the board. */
+    private LinearLayout bossRow() {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setBackground(new PanelDrawable(0xE03A2E6E, Math.max(2f, dp(1))));
+        row.setPadding(dp(8), dp(6), dp(10), dp(8));
+        row.setVisibility(View.GONE);
+        bossFace = new FrameLayout(this);
+        row.addView(bossFace, new LinearLayout.LayoutParams(dp(BOSS_FACE_DP), dp(BOSS_FACE_DP)));
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        bossName = PixelTheme.display(this, "", PixelTheme.SIZE_CAPTION, PixelTheme.ROSE);
+        text.addView(bossName);
+        bossBar = new PixelBar(this);
+        bossBar.setColor(PixelTheme.ROSE);
+        LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(14));
+        barLp.topMargin = dp(6);
+        text.addView(bossBar, barLp);
+        LinearLayout.LayoutParams textLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        textLp.leftMargin = dp(10);
+        row.addView(text, textLp);
+        return row;
     }
 
     private LinearLayout.LayoutParams wrapWidth(int top) {
