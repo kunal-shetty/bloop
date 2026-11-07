@@ -26,9 +26,9 @@ public class HomeCard extends PressableView {
         super(context);
         this.item = item;
         paint.setFilterBitmap(false);
-        PixelTheme.styleBody(name, PixelTheme.bodyPx(context, 16));
+        PixelTheme.styleBody(name, PixelTheme.bodyPx(context, PixelTheme.SIZE_BODY));
         name.setTextAlign(Paint.Align.CENTER);
-        PixelTheme.styleDisplay(price, PixelTheme.displayPx(context, 9));
+        PixelTheme.styleDisplay(price, PixelTheme.displayPx(context, PixelTheme.SIZE_CAPTION));
         art = RoomView.art(context, item.key);
     }
 
