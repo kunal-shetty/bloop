@@ -118,11 +118,31 @@ public final class PixelModal {
         return row(statRow(iconName, label, PixelTheme.display(ctx, value, PixelTheme.SIZE_LABEL, valueColor)), 0, 3);
     }
 
+    /** The one number this result is about, large and in the middle. It rolls up from zero. */
+    public PixelModal hero(String label, int value, int valueColor) {
+        LinearLayout r = new LinearLayout(ctx);
+        r.setOrientation(LinearLayout.VERTICAL);
+        r.setGravity(Gravity.CENTER_HORIZONTAL);
+        r.setBackground(new PanelDrawable(PixelTheme.BG_MID, Math.max(2f, dp(1))));
+        r.setPadding(dp(10), dp(8), dp(10), dp(12));
+        r.addView(PixelTheme.display(ctx, label, PixelTheme.SIZE_CAPTION, PixelTheme.TEXT_DIM));
+        TextView v = PixelTheme.display(ctx, "0", PixelTheme.SIZE_HERO, valueColor);
+        v.setPadding(0, dp(8), 0, 0);
+        r.addView(v);
+        row(r, 0, 6);
+        rollUp(v, "", value, rows.size() - 1);
+        return this;
+    }
+
     /** A stat whose number rolls up from zero when the row appears. */
     public PixelModal countStat(String iconName, String label, final String prefix, final int value, int valueColor) {
         final TextView v = PixelTheme.display(ctx, prefix + "0", PixelTheme.SIZE_LABEL, valueColor);
         row(statRow(iconName, label, v), 0, 3);
-        final int index = rows.size() - 1;
+        rollUp(v, prefix, value, rows.size() - 1);
+        return this;
+    }
+
+    private void rollUp(final TextView v, final String prefix, final int value, final int index) {
         rowFinishers.add(() -> {
             ValueAnimator a = ValueAnimator.ofInt(0, value);
             a.setDuration(Math.min(800, 180 + value * 6L));
@@ -139,7 +159,6 @@ public final class PixelModal {
             });
             a.start();
         });
-        return this;
     }
 
     /** An on/off line in the settings list. */
