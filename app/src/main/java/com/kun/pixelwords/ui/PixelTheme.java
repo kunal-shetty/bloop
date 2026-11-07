@@ -35,6 +35,26 @@ public final class PixelTheme {
     /** VT323: readable body copy. Drawn on a 16-pixel grid. */
     public static Typeface BODY = Typeface.MONOSPACE;
 
+    // The type scale. Every piece of text picks one of these, and displayPx and bodyPx snap it to the font's grid.
+    /** Press Start 2P: captions under icons. */
+    public static final float SIZE_CAPTION = 8;
+    /** Press Start 2P: small labels and readouts. */
+    public static final float SIZE_SMALL = 10;
+    /** Press Start 2P: buttons in lists, card names and stat values. */
+    public static final float SIZE_LABEL = 12;
+    /** Press Start 2P: normal buttons and panel titles. */
+    public static final float SIZE_TITLE = 14;
+    /** Press Start 2P: the one button that matters on a small screen. */
+    public static final float SIZE_HEADING = 16;
+    /** Press Start 2P: PLAY and JOURNEY. */
+    public static final float SIZE_HERO = 20;
+    /** Press Start 2P: the countdown. */
+    public static final float SIZE_GIANT = 56;
+    /** VT323: everything you read. */
+    public static final float SIZE_BODY = 17;
+    /** VT323: text that needs a little more room. */
+    public static final float SIZE_BODY_LARGE = 19;
+
     private static final int STANDARD_MINT = MINT;
     private static final int STANDARD_ROSE = ROSE;
     private static final int COLOURBLIND_BLUE = 0xFF7FB2FF;
