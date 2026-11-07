@@ -10,9 +10,11 @@ import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.FrameLayout;
 
+import com.kun.pixelwords.audio.Sfx;
 import com.kun.pixelwords.fx.FxLayer;
 import com.kun.pixelwords.ui.PixelModal;
 import com.kun.pixelwords.ui.PixelTheme;
+import com.kun.pixelwords.ui.StatChip;
 
 /**
  * Shared screen scaffold, full-bleed under the notch. Layers, bottom to top:
@@ -101,6 +103,54 @@ public abstract class BaseActivity extends Activity {
     public void finish() {
         super.finish();
         slide(R.anim.page_stay_in, R.anim.page_out);
+    }
+
+    /** Goes into a puzzle. The screen stays dark until the game's star iris opens onto the board. */
+    @SuppressWarnings("deprecation")
+    protected void goToBoard(Intent intent) {
+        startActivity(intent);
+        if (PixelTheme.reduceMotion()) overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        else overridePendingTransition(0, 0);
+    }
+
+    // ------------------------------------------------------------------ rewards
+
+    private static final int MIN_FLYING_COINS = 3, MAX_FLYING_COINS = 10, COINS_PER_FLYER = 15;
+    private static final float FLYING_COIN_DP = 22;
+
+    /** Coins fly from the middle of the screen into the readout, which counts up to {@code balance}. */
+    protected void earn(StatChip chip, int balance) {
+        earn(null, chip, balance);
+    }
+
+    /** Coins fly from a view into the readout, which counts up to {@code balance}. */
+    protected void earn(View from, StatChip chip, int balance) {
+        int gained = balance - chip.value();
+        if (gained <= 0 || PixelTheme.reduceMotion() || chip.getWidth() == 0) {
+            chip.animateTo(balance);
+            return;
+        }
+        int[] layer = new int[2], target = new int[2];
+        fx.getLocationInWindow(layer);
+        chip.getLocationInWindow(target);
+        float fromX = fx.getWidth() / 2f, fromY = fx.getHeight() * 0.45f;
+        if (from != null) {
+            int[] start = new int[2];
+            from.getLocationInWindow(start);
+            fromX = start[0] - layer[0] + from.getWidth() / 2f;
+            fromY = start[1] - layer[1] + from.getHeight() / 2f;
+        }
+        int flyers = Math.max(MIN_FLYING_COINS, Math.min(MAX_FLYING_COINS, gained / COINS_PER_FLYER));
+        float toX = target[0] - layer[0] + chip.getHeight() / 2f, toY = target[1] - layer[1] + chip.getHeight() / 2f;
+        fx.flyCoins(fromX, fromY, toX, toY, flyers, PixelTheme.dp(this, FLYING_COIN_DP), new Runnable() {
+            private int landed;
+
+            @Override public void run() {
+                landed++;
+                Sfx.play(Sfx.Id.COUNT_TICK, 1f + landed * 0.06f);
+                chip.animateTo(chip.value() + (landed == flyers ? balance - chip.value() : gained / flyers));
+            }
+        });
     }
 
     // ------------------------------------------------------------------ modals
