@@ -7,6 +7,7 @@ import com.kun.pixelwords.game.Album;
 import com.kun.pixelwords.game.Bond;
 import com.kun.pixelwords.game.CatMood;
 import com.kun.pixelwords.game.DailySpin;
+import com.kun.pixelwords.game.Definitions;
 import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.Expedition;
 import com.kun.pixelwords.game.FishHunt;
@@ -99,6 +100,7 @@ public final class GeneratorSelfTest {
         testStreakMilestones();
         testComeback();
         testBond();
+        testDefinitions(gen);
         testLan();
         testCurve(gen);
 
@@ -1164,6 +1166,43 @@ public final class GeneratorSelfTest {
     }
 
     /** Every new field must survive a save, a cloud copy, and a merge in either order. */
+    private static void testDefinitions(LevelGenerator gen) throws IOException {
+        Definitions d;
+        try (InputStream in = new java.io.FileInputStream("../app/src/main/assets/definitions.txt")) {
+            d = Definitions.load(in);
+        }
+        check(d.size() > 5000, "the meanings file has loaded");
+        check(d.find("stone") != null && !d.find("stone").isInflected(), "a plain word has a meaning");
+        check(d.find("CATS") != null && d.find("cats").baseWord.equals("cat"), "an inflected word leads to its base word, in any case");
+        check(d.find("and") != null && d.find("and").partOfSpeech.equals("conj"), "everyday words have hand-written meanings");
+        check(d.find("zzzz") == null, "an unknown word has no meaning");
+
+        Definitions broken = Definitions.load(new java.io.ByteArrayInputStream("bad line\nok\tnoun\tok\tfine\n".getBytes()));
+        check(broken.size() == 1 && broken.find("ok") != null, "a broken line loses only itself");
+
+        int words = 0, defined = 0;
+        for (int level = 1; level <= 200; level++) {
+            for (Level.Placement p : gen.forProgression(level).placements) {
+                words++;
+                if (d.find(p.word) != null) defined++;
+            }
+        }
+        check(defined >= words * 0.98, "nearly every grid word has a meaning: " + defined + " of " + words);
+
+        Set<String> bad = new HashSet<>();
+        try (InputStream in = GeneratorSelfTest.class.getClassLoader().getResourceAsStream("badwords.txt");
+             java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(in))) {
+            for (String line = r.readLine(); line != null; line = r.readLine()) bad.add(line.trim().toLowerCase());
+        }
+        boolean clean = true;
+        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("../app/src/main/assets/definitions.txt"))) {
+            for (String line = r.readLine(); line != null; line = r.readLine()) {
+                for (String w : line.split("\\t")[3].toLowerCase().split("[^a-z]+")) if (bad.contains(w)) clean = false;
+            }
+        }
+        check(clean, "no meaning uses a word from the bad-word list");
+    }
+
     private static void testBond() {
         long day = 500;
         Progress p = new Progress();
