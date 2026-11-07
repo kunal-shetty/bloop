@@ -88,7 +88,7 @@ public class SpinActivity extends PageActivity {
     private void onStopped(DailySpin.Result result) {
         spinning = false;
         if (isFinishing()) return;
-        coins.animateTo(progress.coins);
+        earn(coins, progress.coins);
         refreshPage();
         celebrate();
         Haptics.celebrate();
