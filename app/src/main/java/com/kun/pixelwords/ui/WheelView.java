@@ -72,6 +72,8 @@ public class WheelView extends View {
         PixelTheme.styleDisplay(textPaint, 32f);
     }
 
+    private char stolenLetter;
+
     public void setListener(Listener l) {
         listener = l;
     }
@@ -86,7 +88,21 @@ public class WheelView extends View {
         invalidate();
     }
 
+    /** Takes one copy of a letter off the wheel, until the next call. 0 gives it back. */
+    public void setStolen(char letter) {
+        stolenLetter = Character.toUpperCase(letter);
+        path.clear();
+        touching = false;
+        invalidate();
+    }
+
+    /** The tile the stolen letter was on, or -1. */
+    private int stolenIndex() {
+        return stolenLetter == 0 ? -1 : letters.indexOf(stolenLetter);
+    }
+
     public void setLetters(String word) {
+        stolenLetter = 0;
         letters.clear();
         for (int i = 0; i < word.length(); i++) letters.add(Character.toUpperCase(word.charAt(i)));
         path.clear();
@@ -212,7 +228,9 @@ public class WheelView extends View {
 
     private int indexAt(float x, float y) {
         float reach = tile * 0.72f;
+        int stolen = stolenIndex();
         for (int i = 0; i < lx.length; i++) {
+            if (i == stolen) continue;
             float dx = x - lx[i], dy = y - ly[i];
             if (dx * dx + dy * dy <= reach * reach) return i;
         }
@@ -383,7 +401,14 @@ public class WheelView extends View {
 
         boolean animating = guiding;
         float cap = -textPaint.ascent() * 0.86f;
+        int stolen = stolenIndex();
         for (int i = 0; i < n; i++) {
+            if (i == stolen) {
+                float half = tile / 2f, icon = tile * 0.6f;
+                PixelTheme.drawSlot(c, paint, tileX(i) - half, tileY(i) - half, tileX(i) + half, tileY(i) + half, PixelTheme.BG_DEEP, px);
+                PixelIcons.draw(c, paint, "lock", tileX(i) - icon / 2f, tileY(i) - icon / 2f, icon);
+                continue;
+            }
             boolean on = path.contains(i);
             boolean guided = guiding && guideReached(i, guideAt);
             float size = tile;
