@@ -44,6 +44,8 @@ public class GoalCard extends PressableView {
         this.value = value;
         this.claimed = claimed;
         unlocked = value >= goal;
+        setContentDescription(name + ", " + Math.min(value, goal) + " of " + goal
+                + (claimed ? ", claimed" : unlocked ? ", ready to claim " + coins + " coins" : ""));
         invalidate();
     }
 
@@ -139,6 +141,7 @@ public class GoalCard extends PressableView {
     }
 
     private void drawShine(Canvas c, float w, float top, float bottom) {
+        if (PixelTheme.reduceMotion()) return;
         long t = SystemClock.uptimeMillis() % SHINE_EVERY_MS;
         if (t >= SHINE_SWEEP_MS) return;
         float band = w * 0.14f;
