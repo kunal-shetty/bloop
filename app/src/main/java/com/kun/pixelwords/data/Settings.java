@@ -49,6 +49,7 @@ public final class Settings {
     public static boolean colourblind() { return prefs.getBoolean("colourblind", false); }
     public static boolean largeText() { return prefs.getBoolean("largeText", false); }
     public static boolean leftHanded() { return prefs.getBoolean("leftHanded", false); }
+    public static boolean reduceMotion() { return prefs.getBoolean("reduceMotion", false); }
     public static boolean reminders() { return prefs.getBoolean("reminders", false); }
     public static int reminderHour() { return prefs.getInt("reminderHour", DEFAULT_REMINDER_HOUR); }
     /** True once the player has been offered reminders, so they are only asked one time. */
@@ -61,6 +62,7 @@ public final class Settings {
     public static void setColourblind(boolean on) { prefs.edit().putBoolean("colourblind", on).apply(); }
     public static void setLargeText(boolean on) { prefs.edit().putBoolean("largeText", on).apply(); }
     public static void setLeftHanded(boolean on) { prefs.edit().putBoolean("leftHanded", on).apply(); }
+    public static void setReduceMotion(boolean on) { prefs.edit().putBoolean("reduceMotion", on).apply(); }
     public static void setReminders(boolean on) { prefs.edit().putBoolean("reminders", on).apply(); }
     public static void setReminderHour(int hour) { prefs.edit().putInt("reminderHour", hour).apply(); }
     public static void setReminderOffered() { prefs.edit().putBoolean("reminderOffered", true).apply(); }
