@@ -22,6 +22,7 @@ import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.Album;
+import com.kun.pixelwords.game.Definitions;
 import com.kun.pixelwords.game.DuelBot;
 import com.kun.pixelwords.game.FishHunt;
 import com.kun.pixelwords.game.GameSession;
@@ -88,6 +89,8 @@ public class GameActivity extends BaseActivity {
     private static final long COUNTDOWN_STEP_MS = 780;
     private static final long SUNBURST_MS = 2500;
     private static final int CAT_HEARTS_FROM = 3;
+    private static final long MEANING_SHOWN_MS = 5000;
+    private static final long MEANING_TIP_DELAY_MS = 1200;
 
     private Mode mode = Mode.CAMPAIGN;
     private ProgressStore store;
@@ -106,6 +109,10 @@ public class GameActivity extends BaseActivity {
     private StatChip coinChip;
     private PixelButton hintBtn, powerBtn;
     private CatView wheelCat;
+    private LinearLayout meaningCard;
+    private TextView meaningWord, meaningText;
+    private final Runnable hideMeaning = this::dismissMeaning;
+    private String lastMeaningWord = "";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private CountDownTimer timer;
@@ -215,6 +222,7 @@ public class GameActivity extends BaseActivity {
         roundLive = false;
         combo = 0;
         comboText.setVisibility(View.INVISIBLE);
+        meaningCard.setVisibility(View.GONE);
         botScore = 0;
         usedExtraTime = false;
         sparkAnnounced = false;
@@ -430,6 +438,7 @@ public class GameActivity extends BaseActivity {
                 }
                 keepMegaProgress();
                 if (session.isComplete()) endRound(true);
+                else offerMeaningTip();
                 break;
             case FOUND_BONUS:
                 addCombo();
@@ -499,6 +508,56 @@ public class GameActivity extends BaseActivity {
         comboText.animate().cancel();
         comboText.animate().alpha(0f).scaleX(0.5f).scaleY(0.5f).setDuration(180)
                 .withEndAction(() -> comboText.setVisibility(View.INVISIBLE)).start();
+    }
+
+    /** Shows what a found word means, over the board. It never stops the clock, so it's safe in a race. */
+    private void onBoardTapped(int[] cell) {
+        if (cell == null || session == null) {
+            dismissMeaning();
+            return;
+        }
+        List<String> here = new ArrayList<>();
+        for (Level.Placement p : level.placements) {
+            if (!session.foundGridWords().contains(p.word)) continue;
+            for (int i = 0; i < p.word.length(); i++) {
+                if (p.rowAt(i) == cell[0] && p.colAt(i) == cell[1]) here.add(p.word);
+            }
+        }
+        if (here.isEmpty()) {
+            dismissMeaning();
+            return;
+        }
+        // A letter where two words cross shows each of them in turn.
+        int next = (here.indexOf(lastMeaningWord) + 1) % here.size();
+        showMeaning(here.get(next));
+    }
+
+    private void showMeaning(String word) {
+        lastMeaningWord = word;
+        Definitions.Entry entry = GameEngine.get().definitions() == null ? null : GameEngine.get().definitions().find(word);
+        meaningWord.setText(word.toUpperCase(Locale.ROOT) + (entry == null ? "" : "  " + entry.partOfSpeech));
+        meaningText.setText(entry == null ? "This one is a name, or too rare for the dictionary."
+                : entry.isInflected() ? "From \u201C" + entry.baseWord + "\u201D: " + entry.meaning : entry.meaning);
+        Sfx.play(Sfx.Id.UI_TAP);
+        meaningCard.animate().cancel();
+        meaningCard.setVisibility(View.VISIBLE);
+        meaningCard.setAlpha(1f);
+        handler.removeCallbacks(hideMeaning);
+        handler.postDelayed(hideMeaning, MEANING_SHOWN_MS);
+    }
+
+    private void dismissMeaning() {
+        handler.removeCallbacks(hideMeaning);
+        lastMeaningWord = "";
+        if (meaningCard.getVisibility() != View.VISIBLE) return;
+        meaningCard.animate().alpha(0f).setDuration(160).withEndAction(() -> meaningCard.setVisibility(View.GONE)).start();
+    }
+
+    /** Once ever, after a player's first found word on a level past the tutorial. */
+    private void offerMeaningTip() {
+        if (Settings.meaningTipShown() || coachLevel > 0) return;
+        Settings.setMeaningTipShown();
+        handler.postDelayed(() -> say("TAP A WORD TO SEE ITS MEANING", PixelTheme.SKY), MEANING_TIP_DELAY_MS);
     }
 
     /** A weekend board can take two days, so each word is saved as it's found. */
@@ -1362,6 +1421,7 @@ public class GameActivity extends BaseActivity {
         // Board, with the callout banner floating over its lower edge
         FrameLayout boardBox = new FrameLayout(this);
         grid = new CrosswordView(this);
+        grid.setTapListener(this::onBoardTapped);
         grid.setLetterListener(order -> {
             Sfx.play(Sfx.Id.TILE_POP, Math.min(2f, 1f + order * 0.09f), 0.8f);
             Haptics.tick();
@@ -1373,6 +1433,20 @@ public class GameActivity extends BaseActivity {
         banner.setVisibility(View.INVISIBLE);
         boardBox.addView(banner, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
+        meaningCard = new LinearLayout(this);
+        meaningCard.setOrientation(LinearLayout.VERTICAL);
+        meaningCard.setBackground(new PanelDrawable(PixelTheme.CREAM, Math.max(2f, dp(1))));
+        meaningCard.setPadding(dp(10), dp(8), dp(10), dp(9));
+        meaningCard.setVisibility(View.GONE);
+        meaningCard.setOnClickListener(v -> dismissMeaning());
+        meaningWord = PixelTheme.display(this, "", PixelTheme.SIZE_SMALL, PixelTheme.INK);
+        meaningText = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.INK);
+        meaningText.setPadding(0, dp(4), 0, 0);
+        meaningCard.addView(meaningWord);
+        meaningCard.addView(meaningText);
+        FrameLayout.LayoutParams meaningLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP);
+        boardBox.addView(meaningCard, meaningLp);
         comboText = PixelTheme.display(this, "", PixelTheme.SIZE_TITLE, PixelTheme.GOLD);
         comboText.setShadowLayer(0.01f, dp(2), dp(2), PixelTheme.INK);
         comboText.setVisibility(View.INVISIBLE);
