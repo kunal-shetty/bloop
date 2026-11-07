@@ -11,7 +11,6 @@ public final class Journey {
     public static final int LEVELS_PER_CHAPTER = 20;
     public static final int MAX_STARS = 3;
 
-    private static final String[] CHAPTER_NAMES = {"FROSTFALL", "PETAL DRIFT", "FIREFLY WOODS", "EMBER LEAVES"};
     private static final long HARD_SALT = 0x4A4F_5552_4E45_5901L;
     /** Levels at the start of a chapter stay normal, so a new region opens gently. */
     private static final int FIRST_HARD_SLOT = 6;
@@ -41,12 +40,7 @@ public final class Journey {
     }
 
     public static String chapterName(int chapter) {
-        return CHAPTER_NAMES[chapter % CHAPTER_NAMES.length];
-    }
-
-    /** Index of the chapter's scenery. There are as many sceneries as chapter names. */
-    public static int themeIndex(int chapter) {
-        return chapter % CHAPTER_NAMES.length;
+        return Region.forChapter(chapter).name;
     }
 
     /** Whether a level is one of its chapter's few hard levels. */
@@ -77,6 +71,11 @@ public final class Journey {
 
     public static Boss bossOf(int level) {
         return Boss.forChapter(chapterOf(level));
+    }
+
+    /** Fighting styles come round again, but every region's boss has its own name. */
+    public static String bossName(int level) {
+        return Region.forChapter(chapterOf(level)).bossName();
     }
 
     /** What beating a chapter's boss wins, the first time. */
