@@ -102,7 +102,7 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
         back.setClickSound(Sfx.Id.UI_BACK);
         back.setOnClickListener(v -> finish());
         bar.addView(back, new LinearLayout.LayoutParams(dp(46), dp(46)));
-        android.widget.TextView title = PixelTheme.display(this, "CAT SHOP", 14, PixelTheme.GOLD);
+        android.widget.TextView title = PixelTheme.display(this, "CAT SHOP", PixelTheme.SIZE_TITLE, PixelTheme.GOLD);
         title.setGravity(Gravity.CENTER);
         bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         coins = new StatChip(this, "coin");
@@ -137,7 +137,7 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
     private void addBreeds(LinearLayout list) {
         for (Shop.Breed breed : Shop.Breed.values()) {
             PixelButton b = new PixelButton(this, breed.title.toUpperCase(java.util.Locale.ROOT), PixelTheme.PANEL, PixelTheme.TEXT);
-            b.setLabelSize(11);
+            b.setLabelSize(PixelTheme.SIZE_LABEL);
             b.setIcon("heart");
             b.setOnClickListener(v -> onBreed(breed));
             breedButtons.put(breed, b);
@@ -208,7 +208,7 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
 
     private PixelButton storeButton(LinearLayout list, String label, String icon, int fill, int text) {
         PixelButton b = new PixelButton(this, label, fill, text);
-        b.setLabelSize(12);
+        b.setLabelSize(PixelTheme.SIZE_LABEL);
         b.setIcon(icon);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.bottomMargin = dp(8);
