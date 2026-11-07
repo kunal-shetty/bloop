@@ -34,10 +34,10 @@ public class GoalCard extends PressableView {
         this.coins = coins;
         this.goal = goal;
         paint.setFilterBitmap(false);
-        PixelTheme.styleBody(title, PixelTheme.bodyPx(context, 19));
-        PixelTheme.styleBody(count, PixelTheme.bodyPx(context, 16));
+        PixelTheme.styleBody(title, PixelTheme.bodyPx(context, PixelTheme.SIZE_BODY_LARGE));
+        PixelTheme.styleBody(count, PixelTheme.bodyPx(context, PixelTheme.SIZE_BODY));
         count.setTextAlign(Paint.Align.RIGHT);
-        PixelTheme.styleDisplay(label, PixelTheme.displayPx(context, 9));
+        PixelTheme.styleDisplay(label, PixelTheme.displayPx(context, PixelTheme.SIZE_CAPTION));
     }
 
     public void update(int value, boolean claimed) {
