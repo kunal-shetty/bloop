@@ -62,7 +62,7 @@ public final class CatMood {
         if (streak == 0 && p.streak.best > 0) return "I missed you! Let's start a new streak.";
         if (streak > 0 && p.streak.lastDay != today) return "Keep our " + streak + "-day streak going!";
         if (Journey.isHard(p.level)) return "The next level is hard. I believe in you!";
-        if (Journey.slotOf(p.level) == Journey.LEVELS_PER_CHAPTER) return "One more level to the trophy!";
+        if (Journey.isBoss(p.level)) return Journey.bossOf(p.level).title + " is waiting. We can win this!";
         if (Bond.isHungry(p, today)) return "Is it treat time? I think it's treat time.";
         return null;
     }
