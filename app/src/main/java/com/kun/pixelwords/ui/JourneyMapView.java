@@ -155,7 +155,7 @@ public class JourneyMapView extends View {
         number.setColor(current ? PixelTheme.INK : cleared || hard ? PixelTheme.TEXT : PixelTheme.TEXT_DIM);
         if (boss) {
             float face = node * 0.72f;
-            PixelIcons.draw(c, paint, Journey.bossOf(level).icon, x - face / 2f, y - face / 2f, face);
+            PixelIcons.draw(c, paint, PixelIcons.boss(Journey.regionOf(level)), x - face / 2f, y - face / 2f, face);
         } else {
             c.drawText(String.valueOf(level), x, y + number.getTextSize() * 0.35f, number);
         }
