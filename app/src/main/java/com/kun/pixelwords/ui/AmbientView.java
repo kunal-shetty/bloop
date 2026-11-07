@@ -41,6 +41,33 @@ public class AmbientView extends View {
         }
     }
 
+    /** The light at one time of day, laid over a scene. Night has none: the scene keeps its own colours. */
+    private enum Light {
+        DAWN(0xFF3C2C78, 0xFFFF9E7A, 0xFF4A3A6E, 0xFF2C2448, 0xFFFFD9A0, 0xFFFFE9C4, false),
+        DAY(0xFF2F86DA, 0xFFA8E2FF, 0xFF4E9E74, 0xFF2F6E56, 0xFFFFE27A, 0xFFFFFFFF, true),
+        DUSK(0xFF2B1A5A, 0xFFFF7A59, 0xFF4B2A5C, 0xFF2A1A3A, 0xFFFFC56B, 0xFFFFD08A, false);
+
+        final int skyTop, skyBottom, hillFar, hillNear, sun, particle;
+        final boolean noStars;
+
+        Light(int skyTop, int skyBottom, int hillFar, int hillNear, int sun, int particle, boolean noStars) {
+            this.skyTop = skyTop;
+            this.skyBottom = skyBottom;
+            this.hillFar = hillFar;
+            this.hillNear = hillNear;
+            this.sun = sun;
+            this.particle = particle;
+            this.noStars = noStars;
+        }
+
+        static Light at(int hour) {
+            if (hour >= 5 && hour < 8) return DAWN;
+            if (hour >= 8 && hour < 17) return DAY;
+            if (hour >= 17 && hour < 20) return DUSK;
+            return null;
+        }
+    }
+
     private static final int COUNT = 44;
     private static final int[][] BAYER = {{0, 8, 2, 10}, {12, 4, 14, 6}, {3, 11, 1, 9}, {15, 7, 13, 5}};
 
@@ -52,6 +79,7 @@ public class AmbientView extends View {
     private final Random rnd = new Random(1234);
     private final Rect dst = new Rect();
     private Theme theme = Theme.SNOW;
+    private Light light;
     private Bitmap scene;
     private long last;
     private boolean seeded;
@@ -75,6 +103,15 @@ public class AmbientView extends View {
         invalidate();
     }
 
+    /** Lights the scene for this hour of the day, from 0 to 23. Screens that don't call this stay at night. */
+    public void setHour(int hour) {
+        Light next = Light.at(hour);
+        if (next == light) return;
+        light = next;
+        scene = null;
+        invalidate();
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
@@ -93,6 +130,11 @@ public class AmbientView extends View {
         int sw = w / cell + 1, sh = h / cell + 1;
         int[] px = new int[sw * sh];
         Random r = new Random(theme.ordinal() * 91L + 7);
+        int skyTop = light != null ? light.skyTop : theme.skyTop;
+        int skyBottom = light != null ? light.skyBottom : theme.skyBottom;
+        int moon = light != null ? light.sun : theme.moon;
+        int hillFar = light != null ? light.hillFar : theme.hillFar;
+        int hillNear = light != null ? light.hillNear : theme.hillNear;
 
         // Sky: five flat bands with ordered dithering between them, for that classic console gradient.
         int bands = 5;
@@ -103,13 +145,14 @@ public class AmbientView extends View {
             float frac = f - band;
             for (int xx = 0; xx < sw; xx++) {
                 int step = frac * 16 > BAYER[yy & 3][xx & 3] ? band + 1 : band;
-                px[yy * sw + xx] = lerp(theme.skyTop, theme.skyBottom, step / (float) (bands - 1));
+                px[yy * sw + xx] = lerp(skyTop, skyBottom, step / (float) (bands - 1));
             }
         }
 
-        for (int i = 0; i < sw * sh / 500; i++) {
+        int stars = light != null && light.noStars ? 0 : sw * sh / 500;
+        for (int i = 0; i < stars; i++) {
             int sx = r.nextInt(sw), sy = r.nextInt((int) (sh * 0.55f));
-            px[sy * sw + sx] = r.nextInt(5) == 0 ? 0xFFFFFFFF : lerp(theme.skyTop, 0xFFFFFFFF, 0.55f);
+            px[sy * sw + sx] = r.nextInt(5) == 0 ? 0xFFFFFFFF : lerp(skyTop, 0xFFFFFFFF, 0.55f);
         }
 
         // Moon with a soft dithered halo.
@@ -118,18 +161,18 @@ public class AmbientView extends View {
             for (int xx = Math.max(0, mx - mr * 2); xx < Math.min(sw, mx + mr * 2); xx++) {
                 float d = (float) Math.hypot(xx - mx, yy - my);
                 if (d <= mr) {
-                    boolean crater = Math.hypot(xx - mx - mr * 0.3, yy - my + mr * 0.2) < mr * 0.25
-                            || Math.hypot(xx - mx + mr * 0.4, yy - my - mr * 0.3) < mr * 0.18;
-                    px[yy * sw + xx] = crater ? lerp(theme.moon, theme.skyBottom, 0.3f) : theme.moon;
+                    boolean crater = light == null && (Math.hypot(xx - mx - mr * 0.3, yy - my + mr * 0.2) < mr * 0.25
+                            || Math.hypot(xx - mx + mr * 0.4, yy - my - mr * 0.3) < mr * 0.18);
+                    px[yy * sw + xx] = crater ? lerp(moon, skyBottom, 0.3f) : moon;
                 } else if (d < mr * 1.6f && (xx + yy) % 2 == 0) {
-                    px[yy * sw + xx] = lerp(px[yy * sw + xx], theme.moon, 0.22f);
+                    px[yy * sw + xx] = lerp(px[yy * sw + xx], moon, 0.22f);
                 }
             }
         }
 
-        hills(px, sw, sh, theme.hillFar, 0.70f, 0.075f, 0.011f, 1.3f);
-        hills(px, sw, sh, lerp(theme.hillFar, theme.hillNear, 0.5f), 0.79f, 0.06f, 0.019f, 4.1f);
-        hills(px, sw, sh, theme.hillNear, 0.88f, 0.045f, 0.03f, 2.2f);
+        hills(px, sw, sh, hillFar, 0.70f, 0.075f, 0.011f, 1.3f);
+        hills(px, sw, sh, lerp(hillFar, hillNear, 0.5f), 0.79f, 0.06f, 0.019f, 4.1f);
+        hills(px, sw, sh, hillNear, 0.88f, 0.045f, 0.03f, 2.2f);
 
         scene = Bitmap.createBitmap(px, sw, sh, Bitmap.Config.ARGB_8888);
     }
@@ -175,7 +218,7 @@ public class AmbientView extends View {
             if (y[i] > h + 8 || x[i] < -16 || x[i] > w + 16 || y[i] < -16) respawn(i, w, h, false);
 
             float size = Math.max(2f, (2f + 3f * d) * dp);
-            int color = theme.particle;
+            int color = light != null ? light.particle : theme.particle;
             if (theme == Theme.FIREFLIES) {
                 float pulse = 0.5f + 0.5f * (float) Math.sin(phase[i] * 2f);
                 color = (color & 0x00FFFFFF) | ((int) (60 + 195 * pulse) << 24);
