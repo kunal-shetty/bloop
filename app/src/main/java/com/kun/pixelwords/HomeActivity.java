@@ -85,7 +85,7 @@ public class HomeActivity extends BaseActivity {
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(0, dp(2), 0, dp(16));
-        TextView tip = PixelTheme.body(this, "Drag furniture around the room. Tap an item you own to put it away.", 16, PixelTheme.TEXT_DIM);
+        TextView tip = PixelTheme.body(this, "Drag furniture around the room. Tap an item you own to put it away.", PixelTheme.SIZE_BODY, PixelTheme.TEXT_DIM);
         tip.setPadding(0, dp(6), 0, 0);
         list.addView(tip);
         addThemes(tabs.add("ROOMS", list));
@@ -113,7 +113,7 @@ public class HomeActivity extends BaseActivity {
         back.setClickSound(Sfx.Id.UI_BACK);
         back.setOnClickListener(v -> finish());
         bar.addView(back, new LinearLayout.LayoutParams(dp(46), dp(46)));
-        TextView title = PixelTheme.display(this, "CAT HOME", 14, PixelTheme.GOLD);
+        TextView title = PixelTheme.display(this, "CAT HOME", PixelTheme.SIZE_TITLE, PixelTheme.GOLD);
         title.setGravity(Gravity.CENTER);
         bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         coins = new StatChip(this, "coin");
@@ -152,7 +152,7 @@ public class HomeActivity extends BaseActivity {
     }
 
     private void addSlot(LinearLayout list, Home.Slot slot) {
-        TextView heading = PixelTheme.display(this, slot.title.toUpperCase(Locale.ROOT), 10, PixelTheme.CREAM);
+        TextView heading = PixelTheme.display(this, slot.title.toUpperCase(Locale.ROOT), PixelTheme.SIZE_SMALL, PixelTheme.CREAM);
         heading.setBackground(new PanelDrawable(0xE0251D4A, Math.max(2f, dp(1))));
         heading.setPadding(dp(10), dp(8), dp(10), dp(9));
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -185,7 +185,7 @@ public class HomeActivity extends BaseActivity {
     private void addThemes(LinearLayout list) {
         for (Home.Theme theme : Home.Theme.values()) {
             PixelButton b = new PixelButton(this, theme.title.toUpperCase(Locale.ROOT), PixelTheme.PANEL, PixelTheme.TEXT);
-            b.setLabelSize(11);
+            b.setLabelSize(PixelTheme.SIZE_LABEL);
             b.setIcon("home");
             b.setOnClickListener(v -> onTheme(theme));
             themeButtons.put(theme, b);
