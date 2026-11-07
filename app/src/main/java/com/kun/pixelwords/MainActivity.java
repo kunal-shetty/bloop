@@ -158,14 +158,16 @@ public class MainActivity extends BaseActivity {
         LinearLayout bar = new LinearLayout(this);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         coinChip = new StatChip(this, "coin");
+        coinChip.setSpokenName("Coins");
         hintChip = new StatChip(this, "bulb");
+        hintChip.setSpokenName("Hint tokens");
         bar.addView(coinChip);
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         hp.leftMargin = dp(8);
         bar.addView(hintChip, hp);
         bar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
 
-        PixelButton trophy = iconButton("trophy");
+        PixelButton trophy = iconButton("trophy", "Achievements");
         trophy.setOnClickListener(v -> go(new Intent(this, AchievementsActivity.class)));
         FrameLayout trophyBox = new FrameLayout(this);
         trophyBox.addView(trophy, fill());
@@ -175,12 +177,12 @@ public class MainActivity extends BaseActivity {
         trophyBox.addView(claimBadge, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END));
         bar.addView(trophyBox, new LinearLayout.LayoutParams(dp(46), dp(46)));
-        PixelButton help = iconButton("book");
+        PixelButton help = iconButton("book", "How to play");
         help.setOnClickListener(v -> showHowToPlay());
         LinearLayout.LayoutParams helpLp = new LinearLayout.LayoutParams(dp(46), dp(46));
         helpLp.leftMargin = dp(8);
         bar.addView(help, helpLp);
-        PixelButton gear = iconButton("gear");
+        PixelButton gear = iconButton("gear", "Settings");
         gear.setOnClickListener(v -> showSettings());
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(dp(46), dp(46));
         gp.leftMargin = dp(8);
@@ -188,9 +190,10 @@ public class MainActivity extends BaseActivity {
         return bar;
     }
 
-    private PixelButton iconButton(String icon) {
+    private PixelButton iconButton(String icon, String name) {
         PixelButton b = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         b.setIcon(icon);
+        b.setSpokenName(name);
         b.setIconSize(24);
         return b;
     }
@@ -261,6 +264,7 @@ public class MainActivity extends BaseActivity {
         for (int i = 0; i < all.length; i++) {
             LinearLayout cell = new LinearLayout(this);
             cell.setOrientation(LinearLayout.VERTICAL);
+            all[i].setSpokenName(names[i]);
             cell.addView(all[i], matchWrap(0));
             android.widget.TextView caption = PixelTheme.display(this, names[i], PixelTheme.SIZE_CAPTION, PixelTheme.TEXT);
             caption.setGravity(Gravity.CENTER);
@@ -334,6 +338,7 @@ public class MainActivity extends BaseActivity {
 
     /** Everything rises into place, one row after another. */
     private void playIntro() {
+        if (PixelTheme.reduceMotion()) return;
         float rise = dp(36);
         for (int i = 0; i < column.getChildCount(); i++) {
             View v = column.getChildAt(i);
@@ -510,6 +515,10 @@ public class MainActivity extends BaseActivity {
                     rebuild[0] = true;
                 })
                 .toggle("bulb", "LEFT-HANDED", "Moves the hint button to the left", Settings.leftHanded(), Settings::setLeftHanded)
+                .toggle("cloud", "REDUCE MOTION", "Less shaking, sliding and drifting", Settings.reduceMotion(), on -> {
+                    Settings.setReduceMotion(on);
+                    rebuild[0] = true;
+                })
                 .primary("DONE", null)
                 .onDismiss(() -> {
                     if (!rebuild[0]) return;
