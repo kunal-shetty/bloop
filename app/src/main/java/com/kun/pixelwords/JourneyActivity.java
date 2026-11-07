@@ -36,7 +36,6 @@ import java.util.Locale;
 public class JourneyActivity extends BaseActivity {
 
     private static final float CAT_DP = 68;
-    private static final long SUNBURST_MS = 2000;
 
     private ProgressStore store;
     private Progress progress;
@@ -276,19 +275,12 @@ public class JourneyActivity extends BaseActivity {
         Sfx.play(Sfx.Id.LEVEL_COMPLETE);
         Haptics.celebrate();
         fx.play("ui_confetti", fx.getWidth() / 2f, fx.getHeight() * 0.3f, PixelTheme.dp(this, 3), null);
-        sunburst();
         new PixelModal(this).title(chapters == 1 ? "CHAPTER COMPLETE!" : chapters + " CHAPTERS DONE!").icon("trophy").accent(PixelTheme.GOLD)
                 .body("Your cat is very proud of you.")
                 .stat("coin", "Coins", "+" + chapters * Scoring.COINS_PER_CHAPTER, PixelTheme.GOLD)
                 .stat("bulb", "Hint tokens", "+" + chapters * Scoring.HINTS_PER_CHAPTER, PixelTheme.GOLD)
                 .primary("KEEP GOING", null)
                 .show();
-    }
-
-    private void sunburst() {
-        float x = fx.getWidth() / 2f, y = fx.getHeight() * 0.2f;
-        Object glow = fx.loop("holy_sunburst", x, y, PixelTheme.dp(this, 3));
-        if (glow != null) fx.postDelayed(() -> fx.stop(glow), SUNBURST_MS);
     }
 
     /** 0 plays the next level; anything else replays that cleared level. */
