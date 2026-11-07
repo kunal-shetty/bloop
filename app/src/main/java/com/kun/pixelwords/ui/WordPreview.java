@@ -39,7 +39,7 @@ public class WordPreview extends View {
     public void resolve(int color, boolean shake) {
         verdict = color;
         verdictAt = SystemClock.uptimeMillis();
-        this.shake = shake;
+        this.shake = shake && !PixelTheme.reduceMotion();
         invalidate();
     }
 
