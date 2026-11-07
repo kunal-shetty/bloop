@@ -21,6 +21,7 @@ import com.kun.pixelwords.game.MegaBoard;
 import com.kun.pixelwords.game.NineLives;
 import com.kun.pixelwords.game.PiggyJar;
 import com.kun.pixelwords.game.PowerUps;
+import com.kun.pixelwords.game.Region;
 import com.kun.pixelwords.game.Reward;
 import com.kun.pixelwords.game.Season;
 import com.kun.pixelwords.game.Shop;
@@ -106,6 +107,7 @@ public final class GeneratorSelfTest {
         testDefinitions(gen);
         testDailyArchive();
         testBosses(gen);
+        testRegions();
         testLan();
         testCurve(gen);
 
@@ -1235,6 +1237,35 @@ public final class GeneratorSelfTest {
         }
         check(s.isComplete() && fight.health() == 0, "the fight always ends with the boss beaten");
         return attacks;
+    }
+
+    private static void testRegions() {
+        check(Region.forChapter(0).name.equals("FROSTFALL") && Region.forChapter(3).name.equals("EMBER LEAVES"), "the first four regions stay");
+        check(Region.forChapter(0).bossName().equals("Sir Frostwhisker"), "the first bosses keep their names");
+        check(Region.forChapter(4).name.equals(Region.forChapter(4).name), "regions are the same every time");
+        check(Region.forChapter(50).skyTop == Region.forChapter(50).skyTop, "a region's colours are the same every time");
+
+        // Far beyond any real save, and past the point the word pairs run out and get numbered.
+        int chapters = 8000;
+        Set<String> names = new HashSet<>(), bosses = new HashSet<>(), looks = new HashSet<>();
+        Set<Region.Weather> weather = new HashSet<>();
+        for (int chapter = 0; chapter < chapters; chapter++) {
+            Region r = Region.forChapter(chapter);
+            names.add(r.name);
+            bosses.add(r.bossName());
+            looks.add(r.skyTop + "/" + r.skyBottom + "/" + r.hillFar + "/" + r.hillNear + "/" + r.moon + "/" + r.moonX + "/" + r.hillWave);
+            weather.add(r.weather);
+            if (chapter >= 4) {
+                check(r.name.length() <= 24, "a region's name fits the map: " + r.name);
+                Region before = Region.forChapter(chapter - 1);
+                check(r.skyTop != before.skyTop && r.hillFar != before.hillFar, "no region looks like the one before it");
+            }
+        }
+        check(names.size() == chapters, "no region name ever comes back: " + names.size());
+        check(bosses.size() == chapters, "no boss name ever comes back: " + bosses.size());
+        check(looks.size() == chapters, "no region ever looks the same: " + looks.size());
+        check(weather.size() == Region.Weather.values().length, "every kind of weather turns up");
+        check(Region.forChapter(5_000_000).name.length() > 3, "a region exists however far a player gets");
     }
 
     private static void testBosses(LevelGenerator gen) {
