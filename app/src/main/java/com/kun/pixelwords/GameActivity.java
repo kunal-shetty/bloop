@@ -36,6 +36,7 @@ import com.kun.pixelwords.game.Scoring;
 import com.kun.pixelwords.game.Season;
 import com.kun.pixelwords.game.ShareCard;
 import com.kun.pixelwords.game.StreakLogic;
+import com.kun.pixelwords.game.StreakMilestone;
 import com.kun.pixelwords.game.TileMods;
 import com.kun.pixelwords.generator.Level;
 import com.kun.pixelwords.generator.LevelGenerator;
@@ -85,6 +86,7 @@ public class GameActivity extends BaseActivity {
     private static final int COMBO_SHEET_AT = 5;
     private static final int COMBO_SHOWN_FROM = 2;
     private static final long COUNTDOWN_STEP_MS = 780;
+    private static final long SUNBURST_MS = 2500;
 
     private Mode mode = Mode.CAMPAIGN;
     private ProgressStore store;
@@ -773,6 +775,7 @@ public class GameActivity extends BaseActivity {
             progress.dailiesCompleted++;
             o.streakGrew = true;
             o.freezeEarned = progress.streak.freezes > freezesBefore;
+            o.milestonePrizes = StreakMilestone.payDue(progress, today);
             Season.addXp(progress, today, Season.XP_DAILY);
         }
         if (solved && mode == Mode.MEGA && MegaBoard.claim(progress)) {
@@ -839,6 +842,7 @@ public class GameActivity extends BaseActivity {
         int found, bonus, hints, score, coins, levelNumber, streakBefore, mine, bot, previousBest;
         int stickers, fish, megaCoins;
         Reward prize;
+        List<Reward> milestonePrizes = new ArrayList<>();
         List<Achievement> achievements = new ArrayList<>();
     }
 
@@ -1009,6 +1013,11 @@ public class GameActivity extends BaseActivity {
             m.stat("flame", "Streak", o.streakBefore + " > " + after, PixelTheme.ROSE)
                     .countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
             if (o.freezeEarned) m.stat("freeze", "Freeze earned", "+1", PixelTheme.SKY);
+            if (!o.milestonePrizes.isEmpty()) {
+                m.heading("STREAK MILESTONE!");
+                for (Reward r : o.milestonePrizes) m.stat(r.icon(), r.label(), "", PixelTheme.GOLD);
+                sunburst();
+            }
             m.note("Come back tomorrow to keep your streak alive.");
             handler.postDelayed(() -> {
                 Sfx.play(Sfx.Id.STREAK_UP);
@@ -1021,6 +1030,12 @@ public class GameActivity extends BaseActivity {
         if (o.streakGrew) m.primary("SHARE", "share", () -> shareDaily(o)).secondary("MENU", this::finish);
         else m.primary("MENU", this::finish);
         m.show();
+    }
+
+    /** The rarest moments get a glow behind them. */
+    private void sunburst() {
+        Object glow = fx.loop("holy_sunburst", fx.getWidth() / 2f, fx.getHeight() * 0.12f, PixelTheme.dp(this, 2));
+        if (glow != null) handler.postDelayed(() -> fx.stop(glow), SUNBURST_MS);
     }
 
     /** Back at the menu after sharing: the results modal closes with its button, so nothing is left to return to. */
