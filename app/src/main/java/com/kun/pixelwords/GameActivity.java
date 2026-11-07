@@ -992,7 +992,27 @@ public class GameActivity extends BaseActivity {
         List<Achievement> achievements = new ArrayList<>();
     }
 
-    private void addAchievements(PixelModal m, Outcome o) {
+    /**
+     * Every results screen is laid out the same way, so a player always knows where to look: the cat if
+     * it went well, the stars, one big number, the details, what was won, then what to do next.
+     */
+    private PixelModal results(String title, String icon, int accent, boolean won, int stars, String heroLabel, int heroValue) {
+        PixelModal m = new PixelModal(this).title(title).icon(icon).accent(accent).quiet().cancelable(false);
+        if (won) m.custom(cheeringCat());
+        if (stars > 0) m.custom(new StarsView(this, stars, 350));
+        return m.hero(heroLabel, heroValue, PixelTheme.GOLD);
+    }
+
+    /** What the round won, in one place, whichever mode it was. */
+    private void addWinnings(PixelModal m, Outcome o, int coins) {
+        if (coins > 0) m.countStat("coin", "Coins earned", "+", coins, PixelTheme.GOLD);
+        if (o.prize != null) m.stat(o.prize.icon(), o.prize.label(), "", PixelTheme.SKY);
+        if (o.freezeEarned) m.stat("freeze", "Freeze earned", "+1", PixelTheme.SKY);
+        if (!o.milestonePrizes.isEmpty()) {
+            m.heading("STREAK MILESTONE!");
+            for (Reward r : o.milestonePrizes) m.stat(r.icon(), r.label(), "", PixelTheme.GOLD);
+            sunburst();
+        }
         if (o.bonus > 0 && replayLevel == 0) {
             m.stat("jar", "Piggy jar", progress.jarWords + " / " + PiggyJar.CAPACITY, PixelTheme.GOLD);
         }
@@ -1006,6 +1026,11 @@ public class GameActivity extends BaseActivity {
             fx.play("ui_achievement", fx.getWidth() / 2f, fx.getHeight() * 0.25f, PixelTheme.dp(this, 3), null);
             Sfx.play(Sfx.Id.STREAK_UP);
         }, 700);
+    }
+
+    private void addWords(PixelModal m, Outcome o) {
+        m.stat("book", "Words found", o.found + " / " + level.placements.size(), PixelTheme.MINT)
+                .stat("sparkle", "Bonus words", String.valueOf(o.bonus), PixelTheme.GOLD);
     }
 
     private static int stars(int hints) {
@@ -1061,22 +1086,15 @@ public class GameActivity extends BaseActivity {
 
     private void showCampaignResults(Outcome o) {
         int s = stars(o.hints);
-        PixelModal m = new PixelModal(this).title(fight != null ? "BOSS BEATEN!" : "LEVEL " + o.levelNumber + " CLEAR!")
-                .icon(fight != null ? fight.boss().icon : "star").accent(PixelTheme.GOLD)
-                .quiet().cancelable(false)
-                .custom(cheeringCat())
-                .custom(new StarsView(this, s, 350))
-                .countStat("trophy", "Score", "", o.score, PixelTheme.GOLD)
-                .stat("book", "Words found", o.found + " / " + level.placements.size(), PixelTheme.MINT)
-                .stat("sparkle", "Bonus words", String.valueOf(o.bonus), PixelTheme.GOLD)
-                .stat("bulb", "Hints used", String.valueOf(o.hints), o.hints == 0 ? PixelTheme.MINT : PixelTheme.TEXT)
-                .countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
-        if (o.prize != null) m.stat(o.prize.icon(), o.prize.label(), "", PixelTheme.SKY);
+        PixelModal m = results(fight != null ? "BOSS BEATEN!" : "LEVEL " + o.levelNumber + " CLEAR!",
+                fight != null ? fight.boss().icon : "star", PixelTheme.GOLD, true, s, "SCORE", o.score);
+        addWords(m, o);
+        m.stat("bulb", "Hints used", String.valueOf(o.hints), o.hints == 0 ? PixelTheme.MINT : PixelTheme.TEXT);
+        addWinnings(m, o, o.coins);
         if (fight != null) {
             m.note(fight.boss().title + " runs off, and the path is clear.");
             sunburst();
         }
-        addAchievements(m, o);
         if (s < 3) m.note("Clear a level with no hints for three stars.");
         if (replayLevel > 0) {
             m.note("Replays can win more stars, but they don't pay coins.")
@@ -1091,31 +1109,23 @@ public class GameActivity extends BaseActivity {
     }
 
     private void showMegaResults(Outcome o) {
-        PixelModal m = new PixelModal(this).title("MEGA BOARD CLEAR!").icon("star").accent(PixelTheme.GOLD)
-                .quiet().cancelable(false)
-                .custom(cheeringCat())
-                .countStat("coin", "Coins earned", "+", o.coins + o.megaCoins, PixelTheme.GOLD)
-                .stat("ticket", "Season XP", "+" + MegaBoard.SEASON_XP, PixelTheme.ROSE);
-        if (o.prize != null) m.stat(o.prize.icon(), o.prize.label(), "", PixelTheme.SKY);
-        addAchievements(m, o);
+        PixelModal m = results("MEGA BOARD CLEAR!", "star", PixelTheme.GOLD, true, 0, "SCORE", o.score);
+        m.stat("ticket", "Season XP", "+" + MegaBoard.SEASON_XP, PixelTheme.ROSE);
+        addWinnings(m, o, o.coins + o.megaCoins);
         m.primary("MENU", this::finish).show();
     }
 
     private void showLivesResults(Outcome o) {
         if (o.solved) {
-            PixelModal m = new PixelModal(this).title("BOARD CLEAR!").icon("heart").accent(PixelTheme.MINT)
-                    .quiet().cancelable(false)
-                    .countStat("trophy", "Run score", "", run.score(), PixelTheme.GOLD)
-                    .stat("heart", "Lives", String.valueOf(run.lives()), PixelTheme.ROSE);
+            PixelModal m = results("BOARD CLEAR!", "heart", PixelTheme.MINT, true, 0, "RUN SCORE", run.score());
+            m.stat("heart", "Lives", String.valueOf(run.lives()), PixelTheme.ROSE);
             if (o.lifeBack) m.note("You won a life back!");
-            addAchievements(m, o);
+            addWinnings(m, o, 0);
             m.primary("NEXT BOARD", "play", this::startRound)
                     .secondary("END RUN", () -> showRunOver(o))
                     .show();
         } else if (run.canContinue(progress)) {
-            new PixelModal(this).title("OUT OF LIVES").icon("heart").accent(PixelTheme.ROSE)
-                    .quiet().cancelable(false)
-                    .countStat("trophy", "Run score", "", run.score(), PixelTheme.GOLD)
+            results("OUT OF LIVES", "heart", PixelTheme.ROSE, false, 0, "RUN SCORE", run.score())
                     .note("Try this board again with " + NineLives.CONTINUE_LIVES + " lives. Once per run.")
                     .button("CONTINUE FOR " + NineLives.CONTINUE_COINS, PixelTheme.GOLD, PixelTheme.INK, "coin", null, this::continueRun)
                     .secondary("END RUN", () -> showRunOver(o))
@@ -1135,10 +1145,8 @@ public class GameActivity extends BaseActivity {
     private void showRunOver(Outcome o) {
         boolean record = recordRun(o.solved ? 0 : o.score);
         coinChip.animateTo(progress.coins);
-        PixelModal m = new PixelModal(this).title("RUN OVER").icon("heart").accent(PixelTheme.ROSE)
-                .quiet().cancelable(false)
-                .countStat("trophy", "Run score", "", run.score(), PixelTheme.GOLD)
-                .stat("star", "Boards cleared", String.valueOf(run.boards()), PixelTheme.MINT)
+        PixelModal m = results("RUN OVER", "heart", PixelTheme.ROSE, false, 0, "RUN SCORE", run.score());
+        m.stat("star", "Boards cleared", String.valueOf(run.boards()), PixelTheme.MINT)
                 .stat("sparkle", record ? "New best!" : "Your best", String.valueOf(progress.bestLives), PixelTheme.TEXT)
                 .countStat("coin", "Coins earned", "+", run.boards() * NineLives.COINS_PER_BOARD, PixelTheme.GOLD);
         run = null;
@@ -1158,44 +1166,26 @@ public class GameActivity extends BaseActivity {
     }
 
     private void showDailyResults(Outcome o) {
-        PixelModal m = new PixelModal(this).title("DAILY COMPLETE!").icon("calendar").accent(PixelTheme.MINT)
-                .quiet().cancelable(false)
-                .custom(cheeringCat())
-                .custom(new StarsView(this, stars(o.hints), 350))
-                .countStat("trophy", "Score", "", o.score, PixelTheme.GOLD);
+        PixelModal m = results("DAILY COMPLETE!", "calendar", PixelTheme.MINT, true, stars(o.hints), "SCORE", o.score);
         if (o.streakGrew) {
-            int after = progress.streak.streak;
-            m.stat("flame", "Streak", o.streakBefore + " > " + after, PixelTheme.ROSE)
-                    .countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
-            if (o.freezeEarned) m.stat("freeze", "Freeze earned", "+1", PixelTheme.SKY);
-            if (!o.milestonePrizes.isEmpty()) {
-                m.heading("STREAK MILESTONE!");
-                for (Reward r : o.milestonePrizes) m.stat(r.icon(), r.label(), "", PixelTheme.GOLD);
-                sunburst();
-            }
-            m.note("Come back tomorrow to keep your streak alive.");
+            m.stat("flame", "Streak", o.streakBefore + " > " + progress.streak.streak, PixelTheme.ROSE);
             handler.postDelayed(() -> {
                 Sfx.play(Sfx.Id.STREAK_UP);
                 Haptics.success();
             }, 1250);
-        } else {
-            m.note("You'd already solved today's puzzle, so this replay pays no coins and doesn't change your streak.");
         }
-        addAchievements(m, o);
+        addWinnings(m, o, o.streakGrew ? o.coins : 0);
+        m.note(o.streakGrew ? "Come back tomorrow to keep your streak alive."
+                : "You'd already solved today's puzzle, so this replay pays no coins and doesn't change your streak.");
         if (o.streakGrew) m.primary("SHARE", "share", () -> shareDaily(o)).secondary("MENU", this::finish);
         else m.primary("MENU", this::finish);
         m.show();
     }
 
     private void showArchiveResults(Outcome o) {
-        PixelModal m = new PixelModal(this).title(Days.monthAndDay(archiveDay) + " SOLVED!").icon("calendar").accent(PixelTheme.MINT)
-                .quiet().cancelable(false)
-                .custom(cheeringCat())
-                .custom(new StarsView(this, stars(o.hints), 350))
-                .countStat("trophy", "Score", "", o.score, PixelTheme.GOLD);
-        if (o.coins > 0) m.countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
-        else m.note("You'd already solved this one, so this replay pays nothing.");
-        addAchievements(m, o);
+        PixelModal m = results(Days.monthAndDay(archiveDay) + " SOLVED!", "calendar", PixelTheme.MINT, true, stars(o.hints), "SCORE", o.score);
+        addWinnings(m, o, o.coins);
+        if (o.coins == 0) m.note("You'd already solved this one, so this replay pays nothing.");
         m.primary("MORE PUZZLES", "calendar", this::finish).show();
     }
 
@@ -1214,35 +1204,26 @@ public class GameActivity extends BaseActivity {
     }
 
     private void showTimedResults(Outcome o) {
-        PixelModal m = new PixelModal(this).title(o.solved ? "BOARD CLEARED!" : "TIME'S UP!").icon("clock").accent(PixelTheme.SKY)
-                .quiet().cancelable(false)
-                .countStat("trophy", "Score", "", o.score, PixelTheme.GOLD);
+        PixelModal m = results(o.solved ? "BOARD CLEARED!" : "TIME'S UP!", "clock", PixelTheme.SKY, o.solved || o.record, 0, "SCORE", o.score);
         if (o.record) {
             m.stat("sparkle", "New record!", o.previousBest > 0 ? "WAS " + o.previousBest : "FIRST RUN", PixelTheme.MINT);
-            handler.postDelayed(() -> {
-                Sfx.play(Sfx.Id.STREAK_UP);
-            }, 1000);
+            handler.postDelayed(() -> Sfx.play(Sfx.Id.STREAK_UP), 1000);
         } else {
             m.stat("star", "Your best", String.valueOf(progress.bestTimed), PixelTheme.TEXT);
         }
-        m.stat("book", "Words found", o.found + " / " + level.placements.size(), PixelTheme.MINT)
-                .stat("sparkle", "Bonus words", String.valueOf(o.bonus), PixelTheme.GOLD);
-        if (o.coins > 0) m.countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
-        addAchievements(m, o);
+        addWords(m, o);
+        addWinnings(m, o, o.coins);
         addMissed(m);
         m.primary("AGAIN", "play", this::startRound).secondary("MENU", this::finish).show();
     }
 
     private void showDuelResults(Outcome o) {
         boolean won = o.mine > o.bot, draw = o.mine == o.bot;
-        PixelModal m = new PixelModal(this).title(won ? "YOU WIN!" : draw ? "IT'S A DRAW" : "BOT WINS")
-                .icon("swords").accent(won ? PixelTheme.MINT : draw ? PixelTheme.GOLD : PixelTheme.ROSE)
-                .quiet().cancelable(false)
-                .countStat("heart", "You", "", o.mine, won ? PixelTheme.MINT : PixelTheme.TEXT)
-                .countStat("close", "Bot", "", o.bot, won ? PixelTheme.TEXT : PixelTheme.ROSE)
+        PixelModal m = results(won ? "YOU WIN!" : draw ? "IT'S A DRAW" : "BOT WINS", "swords",
+                won ? PixelTheme.MINT : draw ? PixelTheme.GOLD : PixelTheme.ROSE, won, 0, "YOUR SCORE", o.mine);
+        m.countStat("close", "Bot", "", o.bot, won ? PixelTheme.TEXT : PixelTheme.ROSE)
                 .stat("trophy", "Your record", MainActivity.wins(progress.duelWins).toUpperCase(Locale.ROOT) + " / " + progress.duelsPlayed, PixelTheme.TEXT);
-        if (won) m.countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
-        addAchievements(m, o);
+        addWinnings(m, o, won ? o.coins : 0);
         addMissed(m);
         m.primary("REMATCH", "swords", this::startRound).secondary("MENU", this::finish).show();
     }
@@ -1295,16 +1276,14 @@ public class GameActivity extends BaseActivity {
 
     private void showRaceResults(Outcome o) {
         boolean won = wonRace(o.mine);
-        PixelModal m = new PixelModal(this).title(won ? "YOU WIN!" : "RACE OVER").icon("trophy")
-                .accent(won ? PixelTheme.MINT : PixelTheme.SKY).quiet().cancelable(false);
+        PixelModal m = results(won ? "YOU WIN!" : "RACE OVER", "trophy", won ? PixelTheme.MINT : PixelTheme.SKY, won, 0, "YOUR SCORE", o.mine);
         int place = 1;
         for (LanPlayer p : LanPlayer.ranked(race.players())) {
             m.stat(place == 1 ? "trophy" : "star", place + ". " + p.label(), String.valueOf(p.score),
                     isMe(p) ? PixelTheme.GOLD : PixelTheme.TEXT);
             place++;
         }
-        if (o.coins > 0) m.countStat("coin", "Coins earned", "+", o.coins, PixelTheme.GOLD);
-        addAchievements(m, o);
+        addWinnings(m, o, o.coins);
         addMissed(m);
         m.primary("MENU", this::finish).show();
     }
