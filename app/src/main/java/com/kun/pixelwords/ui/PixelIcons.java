@@ -8,6 +8,8 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.view.View;
 
+import com.kun.pixelwords.game.Region;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -575,6 +577,17 @@ public final class PixelIcons {
     }
 
     /** Forgets drawn icons, so they pick up a palette change. */
+    /** The name of a region's boss face, painting it first if it's a generated one. */
+    public static String boss(Region region) {
+        if (region.hasHandMadeBoss()) return region.handMadeBossIcon();
+        String name = "boss#" + region.chapter;
+        if (!CACHE.containsKey(name)) {
+            int size = Region.BOSS_ART_SIZE;
+            CACHE.put(name, Bitmap.createBitmap(region.bossArt(), size, size, Bitmap.Config.ARGB_8888));
+        }
+        return name;
+    }
+
     static void clearCache() {
         CACHE.clear();
     }
