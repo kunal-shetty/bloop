@@ -74,6 +74,16 @@ public final class PlayGamesService {
         PlayGames.getLeaderboardsClient(a).submitScore(leaderboardId, score);
     }
 
+    /** Google's own list of every leaderboard in the game. */
+    public static void showAllLeaderboards(final Activity a) {
+        PlayGames.getLeaderboardsClient(a).getAllLeaderboardsIntent()
+                .addOnSuccessListener(new OnSuccessListener<Intent>() {
+                    @Override public void onSuccess(Intent intent) {
+                        a.startActivityForResult(intent, REQUEST_LEADERBOARD);
+                    }
+                });
+    }
+
     public static void showLeaderboard(final Activity a, String leaderboardId) {
         if (PLACEHOLDER.equals(leaderboardId)) return;
         PlayGames.getLeaderboardsClient(a).getLeaderboardIntent(leaderboardId)
