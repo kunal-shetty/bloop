@@ -232,11 +232,23 @@ public class PlayActivity extends PageActivity {
 
     private void onLeaderboard() {
         if (PlayGamesService.isConfigured(this) && PlayGamesService.hasLeaderboards(this)) {
-            PlayGamesService.showAllLeaderboards(this);
+            PlayGamesService.showAllLeaderboards(this, reason -> showRanks(
+                    "Google's leaderboards couldn't open. Sign in from Settings, then Cloud Save, and try again."
+                            + (debuggable() ? "\n\n(" + reason + ")" : "")));
             return;
         }
+        showRanks("Global leaderboards need Google Play Games, which isn't connected in this build yet.");
+    }
+
+    /** Test builds show Google's reason when something fails; players never see it. */
+    private boolean debuggable() {
+        return (getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+    }
+
+    /** The player's own bests, for when Google's leaderboards aren't available. */
+    private void showRanks(String why) {
         new PixelModal(this).title("RANKS").icon("trophy").accent(0xFFC9A6FF)
-                .body("Global leaderboards need Google Play Games, which isn't connected in this build yet.")
+                .body(why)
                 .heading("YOUR BEST SO FAR")
                 .stat("clock", "Timed score", progress.bestTimed > 0 ? String.valueOf(progress.bestTimed) : "-", PixelTheme.GOLD)
                 .stat("heart", "Nine Lives", progress.bestLives > 0 ? String.valueOf(progress.bestLives) : "-", PixelTheme.ROSE)
