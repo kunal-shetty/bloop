@@ -65,7 +65,20 @@ public final class Shop {
         FISH_HAT(40, "fishhat", "Fish Hat", Slot.HEAD, Source.EVENT),
         EXPLORER_HAT(41, "explorer", "Explorer Hat", Slot.HEAD, Source.ALBUM),
         SCHOLAR_GLASSES(42, "scholar", "Scholar Glasses", Slot.FACE, Source.ALBUM),
-        HEART_COLLAR(43, "heartcollar", "Heart Collar", Slot.NECK, Source.BOND);
+        HEART_COLLAR(43, "heartcollar", "Heart Collar", Slot.NECK, Source.BOND),
+        SPROUT(44, "sprout", "Little Sprout", Slot.HEAD, 110),
+        CAP(45, "cap", "Sports Cap", Slot.HEAD, 160),
+        BERET(46, "beret", "Artist Beret", Slot.HEAD, 210),
+        HEADPHONES(47, "headphones", "Headphones", Slot.HEAD, 330),
+        VIKING_HELMET(48, "viking", "Viking Helmet", Slot.HEAD, 460),
+        UNICORN_HORN(49, "unicorn", "Unicorn Horn", Slot.HEAD, 520),
+        ROSY_CHEEKS(50, "blush", "Rosy Cheeks", Slot.FACE, 130),
+        RETRO_3D(51, "retro3d", "3D Glasses", Slot.FACE, 230),
+        MOUSTACHE(52, "mustache", "Fine Moustache", Slot.FACE, 270),
+        GOGGLES(53, "goggles", "Pilot Goggles", Slot.FACE, 360),
+        SAILOR_COLLAR(54, "sailor", "Sailor Collar", Slot.NECK, 260),
+        SPIKED_COLLAR(55, "spiked", "Spiked Collar", Slot.NECK, 310),
+        GEM_PENDANT(56, "pendant", "Gem Pendant", Slot.NECK, 480);
 
         public final int id;
         /** Short name used in file names: assets/cat/acc_&lt;key&gt;.png */
