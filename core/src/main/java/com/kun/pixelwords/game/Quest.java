@@ -120,7 +120,7 @@ public final class Quest {
     public boolean claim(Progress p) {
         if (!isClaimable(p)) return false;
         p.questClaimed |= bit;
-        p.coins += coins;
+        p.addCoins(coins);
         return true;
     }
 
