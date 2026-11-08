@@ -76,7 +76,7 @@ public final class Journey {
 
     /** What beating a chapter's boss wins, the first time. */
     public static Reward bossPrize(int level) {
-        return chapterOf(level) % 2 == 0 ? Reward.sticker() : Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 1);
+        return chapterOf(level) % 2 == 0 ? Reward.hints(2) : Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 1);
     }
 
     public static int coinsForLevel(int level) {
