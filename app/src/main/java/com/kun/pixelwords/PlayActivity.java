@@ -29,12 +29,11 @@ public class PlayActivity extends PageActivity {
     /** A softer green, so a finished mode steps back from the ones still waiting. */
     private static final int SOLVED_FILL = 0xFF4FB488;
 
-    private PixelButton journey;
     private ModeCard dailyCard, archiveCard, timedCard, duelCard, livesCard, megaCard, towerCard, rushCard;
 
     @Override
     protected String pageTitle() {
-        return "PLAY";
+        return "MODES";
     }
 
     @Override
@@ -44,14 +43,6 @@ public class PlayActivity extends PageActivity {
 
     @Override
     protected void fillPage(LinearLayout list) {
-        journey = new PixelButton(this, "JOURNEY", PixelTheme.GOLD, PixelTheme.INK);
-        journey.setLabelSize(PixelTheme.SIZE_HERO);
-        journey.setIcon("play");
-        journey.setIconSize(30);
-        journey.setShine(true);
-        journey.setOnClickListener(v -> go(new Intent(this, JourneyActivity.class)));
-        list.addView(journey, matchWrap(10));
-
         dailyCard = new ModeCard(this, "calendar", "DAILY", PixelTheme.MINT);
         dailyCard.setOnClickListener(v -> onDaily());
         timedCard = new ModeCard(this, "clock", "TIMED", PixelTheme.SKY);
@@ -75,6 +66,11 @@ public class PlayActivity extends PageActivity {
         list.addView(cardRow(timedCard, livesCard), matchWrap(10));
         list.addView(cardRow(megaCard, duelCard), matchWrap(10));
         list.addView(cardRow(towerCard, rushCard), matchWrap(10));
+
+        ModeCard shopCard = new ModeCard(this, "bag", "SHOP", 0xFFFF9A3C);
+        shopCard.setStatus("Dress up your cat");
+        shopCard.setOnClickListener(v -> go(new Intent(this, ShopActivity.class)));
+        list.addView(shopCard, matchWrap(10));
     }
 
     @Override
@@ -99,8 +95,6 @@ public class PlayActivity extends PageActivity {
     @Override
     protected void refreshPage() {
         long today = Days.today();
-        journey.setSubtitle(Journey.chapterName(Journey.chapterOf(progress.level)) + " - LEVEL " + progress.level
-                + "  (" + Journey.slotOf(progress.level) + "/" + Journey.LEVELS_PER_CHAPTER + ")");
         boolean doneToday = progress.streak.lastDay == today;
         dailyCard.setStatus(doneToday ? "Solved!" : "New puzzle");
         dailyCard.setBadge(doneToday ? "" : "NEW");
