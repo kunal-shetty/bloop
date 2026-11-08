@@ -117,6 +117,8 @@ public final class Progress {
     public int wearFace = 0;
     public int wearNeck = 0;
     public int wearBack = 0;
+    /** The boss trophy in the room, as its chapter plus one, or zero for the newest. See Trophies. */
+    public int trophyShown = 0;
     public StreakLogic.State streak = StreakLogic.State.fresh();
     /** Wall-clock millis of the last change; used to resolve cloud-save conflicts. */
     public long updatedAt = 0;
@@ -255,6 +257,7 @@ public final class Progress {
         put(sb, "wearFace", wearFace);
         put(sb, "wearNeck", wearNeck);
         put(sb, "wearBack", wearBack);
+        put(sb, "trophy", trophyShown);
         put(sb, "streak", streak.streak);
         put(sb, "bestStreak", streak.best);
         put(sb, "lastDay", streak.lastDay);
@@ -340,6 +343,7 @@ public final class Progress {
         p.wearFace = (int) get(m, "wearFace", 0);
         p.wearNeck = (int) get(m, "wearNeck", 0);
         p.wearBack = (int) get(m, "wearBack", 0);
+        p.trophyShown = (int) get(m, "trophy", 0);
         Shop.settleSlots(p);
         p.streak = new StreakLogic.State(
                 (int) get(m, "streak", 0), (int) get(m, "bestStreak", 0),
@@ -392,6 +396,7 @@ public final class Progress {
         out.wearFace = newer.wearFace;
         out.wearNeck = newer.wearNeck;
         out.wearBack = newer.wearBack;
+        out.trophyShown = newer.trophyShown;
         out.coins = newer.coins;
         out.paidCoins.putAll(newer.paidCoins);
         Purchases.absorb(out, older);
