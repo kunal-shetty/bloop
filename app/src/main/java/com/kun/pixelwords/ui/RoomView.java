@@ -12,6 +12,8 @@ import android.view.View;
 
 import com.kun.pixelwords.game.Home;
 import com.kun.pixelwords.game.Progress;
+import com.kun.pixelwords.game.Region;
+import com.kun.pixelwords.game.Trophies;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,6 +24,9 @@ import java.util.Map;
 public class RoomView extends View {
 
     private static final Map<String, Bitmap> CACHE = new HashMap<>();
+    /** Where the boss trophy stands, in room pixels: the floor's front corner, clear of the furniture. */
+    private static final int TROPHY_X = 100, TROPHY_Y = 90, TROPHY_W = 18, TROPHY_FACE = 16;
+    private static final int WOOD = 0xFF6B3F24, WOOD_DARK = 0xFF4A2A18, GOLD = 0xFFFFD34D, GOLD_DARK = 0xFFC48A12, INK = 0xFF0B0820;
 
     private final Paint paint = new Paint();
     private final Rect dst = new Rect();
@@ -97,6 +102,32 @@ public class RoomView extends View {
             Home.Item item = Home.placed(progress, slot);
             if (item != null) drawAt(c, item.key, Home.x(progress, slot), Home.y(progress, slot));
         }
+        int trophy = Trophies.shown(progress);
+        if (trophy >= 0) drawTrophy(c, Region.forChapter(trophy));
+    }
+
+    private void fill(Canvas c, int x, int y, int w, int h, int color) {
+        int s = scale();
+        paint.setColor(color);
+        c.drawRect(screenX(x), screenY(y), screenX(x) + w * s, screenY(y) + h * s, paint);
+    }
+
+    /** The boss's face on a gold plinth and a wooden base. */
+    private void drawTrophy(Canvas c, Region region) {
+        int x = TROPHY_X, y = TROPHY_Y + TROPHY_FACE;
+        fill(c, x + 1, y, TROPHY_W - 2, 4, INK);
+        fill(c, x + 2, y, TROPHY_W - 4, 3, GOLD);
+        fill(c, x + 2, y + 2, TROPHY_W - 4, 1, GOLD_DARK);
+        fill(c, x, y + 4, TROPHY_W, 5, INK);
+        fill(c, x + 1, y + 4, TROPHY_W - 2, 4, WOOD);
+        fill(c, x + 1, y + 7, TROPHY_W - 2, 1, WOOD_DARK);
+        fill(c, x + 7, y + 5, 4, 2, GOLD);
+        Bitmap face = PixelIcons.bitmap(PixelIcons.boss(region));
+        int n = face.getWidth(), s = scale();
+        int fx = screenX(x + (TROPHY_W - n) / 2), fy = screenY(y - n);
+        dst.set(fx, fy, fx + n * s, fy + n * s);
+        paint.setColor(0xFFFFFFFF);
+        c.drawBitmap(face, null, dst, paint);
     }
 
     /** The frontmost piece of furniture at a spot, or null. */
