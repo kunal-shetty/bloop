@@ -110,7 +110,7 @@ public final class Season {
 
     private static Reward freeReward(int tier) {
         if (tier == TIERS) return Reward.coins(300);
-        if (tier == 15) return Reward.sticker();
+        if (tier == 15) return Reward.hints(3);
         if (tier % 10 == 0) return Reward.powerUp(PowerUps.Kind.PICK_LETTER, 1);
         if (tier % 5 == 0) return Reward.hints(2);
         return Reward.coins(20 + tier * 2);
@@ -120,7 +120,7 @@ public final class Season {
         if (tier == TIERS) return Reward.item(theme.accessory);
         if (tier == 20) return Reward.furniture(theme.furniture);
         if (tier == 25 && theme == Theme.STARLIGHT) return Reward.breed(Shop.Breed.GALAXY);
-        if (tier == 10) return Reward.sticker();
+        if (tier == 10) return Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 2);
         if (tier % 5 == 0) return Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 1);
         if (tier % 3 == 0) return Reward.powerUp(PowerUps.Kind.PICK_LETTER, 1);
         return Reward.coins(40 + tier * 3);
