@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 
 import com.google.android.gms.games.AuthenticationResult;
 import com.kun.pixelwords.R;
@@ -13,6 +14,7 @@ import com.google.android.gms.games.SnapshotsClient;
 import com.google.android.gms.games.snapshot.Snapshot;
 import com.google.android.gms.games.snapshot.SnapshotMetadataChange;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
@@ -71,15 +73,32 @@ public final class PlayGamesService {
 
     public static void submitScore(Activity a, String leaderboardId, long score) {
         if (PLACEHOLDER.equals(leaderboardId)) return; // not configured yet
+        Log.i("PlayGamesService", "submitting " + score + " to " + leaderboardId);
         PlayGames.getLeaderboardsClient(a).submitScore(leaderboardId, score);
     }
 
-    /** Google's own list of every leaderboard in the game. */
-    public static void showAllLeaderboards(final Activity a) {
+    /** Google's own list of every leaderboard in the game. Calls {@code onFail} with Google's reason if it can't open. */
+    public static void showAllLeaderboards(final Activity a, final Callback<String> onFail) {
+        // Signing in first: it's instant when already signed in, and asks the player when they aren't.
+        signIn(a, new Callback<Boolean>() {
+            @Override public void onResult(Boolean ok) {
+                if (ok) openAllLeaderboards(a, onFail);
+                else onFail.onResult("not signed in");
+            }
+        });
+    }
+
+    private static void openAllLeaderboards(final Activity a, final Callback<String> onFail) {
         PlayGames.getLeaderboardsClient(a).getAllLeaderboardsIntent()
                 .addOnSuccessListener(new OnSuccessListener<Intent>() {
                     @Override public void onSuccess(Intent intent) {
                         a.startActivityForResult(intent, REQUEST_LEADERBOARD);
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override public void onFailure(Exception e) {
+                        Log.w("PlayGamesService", "leaderboards didn't open", e);
+                        onFail.onResult(String.valueOf(e.getMessage()));
                     }
                 });
     }
