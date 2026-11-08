@@ -50,7 +50,7 @@ public final class RedeemCode {
     private static final Entry[] CODES = {
             new Entry(0, 0x7cf1b43209b6a8e3L, FOREVER, Reward.coins(200), Reward.hints(2)),
             new Entry(1, 0xb4008750837a73beL, FOREVER, Reward.coins(150), Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 1)),
-            new Entry(2, 0xc2f6ecb4a613a361L, FOREVER, Reward.coins(300), Reward.sticker()),
+            new Entry(2, 0xc2f6ecb4a613a361L, FOREVER, Reward.coins(300), Reward.powerUp(PowerUps.Kind.PICK_LETTER, 1)),
     };
 
     private RedeemCode() {}
