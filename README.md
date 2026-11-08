@@ -55,6 +55,9 @@ tools/gen_defs.py    Rebuild the word meanings from a WordNet 3.1 dict folder
 - **Nine Lives:** `NineLives` holds one run. A wrong word costs a life, every fifth board wins one back, and there's one continue per run. Only the best score is saved.
 - **Breeds and rooms:** `Shop.Breed` recolours the cat through `tools/gen_cat.py`, and `Home.Theme` swaps the whole room. Both are saved by id.
 - **Rewards:** `Reward` is the one way anything is paid out. A duplicate turns into coins.
+- **Accessories:** four slots: hats, glasses, neckwear and back. Owned items are two 64-bit numbers (`owned`, `owned2`), so ids go up to 127. An item may add `acc_<key>_back.png`, drawn behind the tail and body, and an `_f1` frame of either layer, which makes it move. Capes and wings moved from neckwear to the back, and `Shop.settleSlots` moves them in old saves.
+- **Boss trophies:** `Trophies` gives one per boss beaten, worked out from the Journey level, so only the one on show in the room is saved.
+- **Room photo:** the share button in Cat Home snapshots the room and hands it out through `PhotoProvider`, which serves one file from the cache. No storage permission is needed.
 - **Daily Spin:** `DailySpin` gives one free spin a day from the date and player, so it can't be rerolled. The odds are shown on screen, and a legendary is guaranteed within 60 spins. There are no paid spins.
 - **Removed modes:** cat trips and the sticker album were taken out. Old saves still carry their keys (`exp*`, `page*`, `albumClaimed`), which load and are dropped on the next save. Their prizes became hints, power-ups and shop items.
 - **Season Pass:** `Season` runs 30-day seasons from a fixed date, so a new one needs no update or server. There are six themes, then they repeat. Unclaimed rewards are paid when a season ends. Premium costs coins for now: `Season.PREMIUM_WITH_COINS` is the switch for selling it instead.
