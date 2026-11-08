@@ -109,6 +109,7 @@ public final class DailySpin {
         Progress trial = new Progress();
         for (Reward r : LEGENDARIES) {
             trial.ownedItems = p.ownedItems;
+            trial.ownedItems2 = p.ownedItems2;
             trial.breedsOwned = p.breedsOwned;
             if (r.grant(trial, seed) == r) left.add(r);
         }
