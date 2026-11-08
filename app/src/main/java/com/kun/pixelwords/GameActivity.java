@@ -908,7 +908,10 @@ public class GameActivity extends BaseActivity {
             } else {
                 o.coins += Journey.coinsForLevel(playLevel);
                 o.chapterFinished = Journey.slotOf(playLevel) == Journey.LEVELS_PER_CHAPTER;
-                if (fight != null) o.prize = Journey.bossPrize(playLevel).grant(progress, today);
+                if (fight != null) {
+                    o.prize = Journey.bossPrize(playLevel).grant(progress, today);
+                    o.trophy = true;
+                }
                 progress.level++;
                 Season.addXp(progress, today, Season.XP_LEVEL);
             }
@@ -984,7 +987,7 @@ public class GameActivity extends BaseActivity {
 
     /** What happened in the round, gathered for the results modal. */
     private static final class Outcome {
-        boolean solved, record, streakGrew, freezeEarned, chapterFinished, lifeBack;
+        boolean solved, record, streakGrew, freezeEarned, chapterFinished, lifeBack, trophy;
         int found, bonus, hints, score, coins, levelNumber, streakBefore, mine, bot, previousBest;
         int fish, megaCoins;
         Reward prize;
@@ -1007,6 +1010,7 @@ public class GameActivity extends BaseActivity {
     private void addWinnings(PixelModal m, Outcome o, int coins) {
         if (coins > 0) m.countStat("coin", "Coins earned", "+", coins, PixelTheme.GOLD);
         if (o.prize != null) m.stat(o.prize.icon(), o.prize.label(), "", PixelTheme.SKY);
+        if (o.trophy) m.stat("trophy", "Boss trophy for your room", "", PixelTheme.GOLD);
         if (o.freezeEarned) m.stat("freeze", "Freeze earned", "+1", PixelTheme.SKY);
         if (!o.milestonePrizes.isEmpty()) {
             m.heading("STREAK MILESTONE!");
