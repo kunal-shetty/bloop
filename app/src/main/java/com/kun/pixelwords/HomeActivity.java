@@ -1,5 +1,10 @@
 package com.kun.pixelwords;
 
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -14,6 +19,7 @@ import com.kun.pixelwords.audio.Sfx;
 import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.game.Home;
 import com.kun.pixelwords.game.Progress;
+import com.kun.pixelwords.services.PhotoProvider;
 import com.kun.pixelwords.services.PlayGamesService;
 import com.kun.pixelwords.ui.AmbientView;
 import com.kun.pixelwords.ui.CatView;
@@ -25,6 +31,8 @@ import com.kun.pixelwords.ui.PixelTheme;
 import com.kun.pixelwords.ui.RoomView;
 import com.kun.pixelwords.ui.StatChip;
 import com.kun.pixelwords.ui.TabBar;
+
+import java.io.IOException;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -120,7 +128,70 @@ public class HomeActivity extends BaseActivity {
         coins = new StatChip(this, "coin");
         coins.setSpokenName("Coins");
         bar.addView(coins);
+        bar.addView(barButton("trophy", "Trophies", () -> startActivity(new Intent(this, TrophiesActivity.class))), barSpot());
+        bar.addView(barButton("share", "Share a photo of the room", this::sharePhoto), barSpot());
         return bar;
+    }
+
+    private PixelButton barButton(String icon, String name, Runnable action) {
+        PixelButton b = new PixelButton(this, "", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
+        b.setIcon(icon);
+        b.setSpokenName(name);
+        b.setIconSize(24);
+        b.setOnClickListener(v -> action.run());
+        return b;
+    }
+
+    private LinearLayout.LayoutParams barSpot() {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(46), dp(46));
+        lp.leftMargin = dp(6);
+        return lp;
+    }
+
+    /** How much bigger than one art pixel per screen pixel the shared photo is drawn. */
+    private static final int PHOTO_ART_SCALE = 6;
+
+    /** A snapshot of the room with the cat in it, framed with the game's name, sent to any app. */
+    private void sharePhoto() {
+        FrameLayout box = (FrameLayout) room.getParent();
+        if (box.getWidth() == 0) return;
+        Bitmap screen = Bitmap.createBitmap(box.getWidth(), box.getHeight(), Bitmap.Config.ARGB_8888);
+        box.draw(new Canvas(screen));
+        int s = room.scale(), size = Home.ROOM_SIZE * s;
+        Bitmap roomOnly = Bitmap.createBitmap(screen, room.getLeft() + room.screenX(0), room.getTop() + room.screenY(0), size, size);
+        int art = Home.ROOM_SIZE * PHOTO_ART_SCALE;
+        Bitmap big = Bitmap.createScaledBitmap(roomOnly, art, art, false);
+
+        int pad = PHOTO_ART_SCALE * 4, band = PHOTO_ART_SCALE * 14;
+        Bitmap photo = Bitmap.createBitmap(art + pad * 2, art + pad * 2 + band, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(photo);
+        c.drawColor(PixelTheme.INK);
+        Paint paint = new Paint();
+        paint.setColor(PixelTheme.GOLD);
+        c.drawRect(pad - PHOTO_ART_SCALE, pad - PHOTO_ART_SCALE, pad + art + PHOTO_ART_SCALE, pad + art + PHOTO_ART_SCALE, paint);
+        c.drawBitmap(big, pad, pad, null);
+        PixelTheme.styleDisplay(paint, band * 0.36f);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(PixelTheme.GOLD);
+        c.drawText("MY CAT'S HOME", photo.getWidth() / 2f, art + pad * 2 + band * 0.52f, paint);
+        paint.setColor(PixelTheme.TEXT_DIM);
+        PixelTheme.styleDisplay(paint, band * 0.2f);
+        c.drawText("BLOOP", photo.getWidth() / 2f, art + pad * 2 + band * 0.86f, paint);
+
+        Uri uri;
+        try {
+            uri = PhotoProvider.save(this, photo);
+        } catch (IOException e) {
+            new PixelModal(this).title("NO PHOTO").icon("close").accent(PixelTheme.ROSE)
+                    .body("The photo couldn't be saved. Free up a little space and try again.")
+                    .primary("OK", null).show();
+            return;
+        }
+        Intent send = new Intent(Intent.ACTION_SEND).setType("image/png")
+                .putExtra(Intent.EXTRA_STREAM, uri)
+                .putExtra(Intent.EXTRA_TEXT, "Come and see my cat's home in Bloop!")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivity(Intent.createChooser(send, "Share your cat's home"));
     }
 
     private View roomBox() {
