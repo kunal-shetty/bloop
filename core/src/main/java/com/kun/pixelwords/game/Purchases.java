@@ -43,7 +43,7 @@ public final class Purchases {
         long id = tokenId(purchaseToken);
         if (p.paidCoins.containsKey(id)) return false;
         p.paidCoins.put(id, coins);
-        p.coins += coins;
+        p.addCoins(coins);
         return true;
     }
 
@@ -53,7 +53,7 @@ public final class Purchases {
         for (Map.Entry<Long, Integer> grant : other.paidCoins.entrySet()) {
             if (into.paidCoins.containsKey(grant.getKey())) continue;
             into.paidCoins.put(grant.getKey(), grant.getValue());
-            into.coins += grant.getValue();
+            into.addCoins(grant.getValue());
         }
     }
 
