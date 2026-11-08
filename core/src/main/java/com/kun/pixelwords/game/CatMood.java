@@ -43,7 +43,7 @@ public final class CatMood {
     public static void collectGift(Progress p, long today, int coins) {
         p.catGiftsToday = giftsToday(p, today) + 1;
         p.catGiftDay = today;
-        p.coins += coins;
+        p.addCoins(coins);
     }
 
     private static int giftsToday(Progress p, long today) {
