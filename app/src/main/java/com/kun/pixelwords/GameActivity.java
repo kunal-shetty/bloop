@@ -1144,16 +1144,35 @@ public class GameActivity extends BaseActivity {
         addWinnings(m, o, o.coins);
         if (fight != null) m.note(Journey.regionOf(playLevel).bossName() + " runs off, and the path is clear.");
         if (s < 3) m.note("Clear a level with no hints for three stars.");
+        if (Features.MONETIZATION && replayLevel == 0 && o.coins > 0) {
+            m.button("DOUBLE COINS", PixelTheme.MINT, PixelTheme.INK, "film", Sfx.Id.UI_TAP, () -> doubleCoins(o));
+        }
+        campaignNext(m, o).show();
+    }
+
+    /** Where to go after a level: the map, a replay, or straight on to the next level. */
+    private PixelModal campaignNext(PixelModal m, Outcome o) {
         if (replayLevel > 0) {
-            m.note("Replays can win more stars, but they don't pay coins.")
+            return m.note("Replays can win more stars, but they don't pay coins.")
                     .primary("TO THE MAP", this::finish)
                     .secondary("PLAY AGAIN", this::startRound);
-        } else if (o.chapterFinished) {
-            m.primary("TO THE MAP", this::finish); // the chapter's reward is waiting there
-        } else {
-            m.primary("NEXT LEVEL", "play", this::nextLevel).secondary("MAP", this::finish);
         }
-        m.show();
+        if (o.chapterFinished) return m.primary("TO THE MAP", this::finish); // the chapter's reward is waiting there
+        return m.primary("NEXT LEVEL", "play", this::nextLevel).secondary("MAP", this::finish);
+    }
+
+    /** A rewarded video that pays the level's coins a second time. */
+    private void doubleCoins(Outcome o) {
+        AdsService.get(this).showRewarded(this, () -> handler.post(() -> {
+            progress.addCoins(o.coins);
+            store.save(progress);
+            PlayGamesService.saveProgress(this, progress.serialize());
+            coinChip.animateTo(progress.coins);
+            Sfx.play(Sfx.Id.COIN);
+            campaignNext(new PixelModal(this).title("COINS DOUBLED!").icon("coin").accent(PixelTheme.GOLD).cancelable(false)
+                    .countStat("coin", "Bonus coins", "+", o.coins, PixelTheme.GOLD), o).show();
+        }), () -> campaignNext(new PixelModal(this).title("NO VIDEO").icon("film").accent(PixelTheme.ROSE).cancelable(false)
+                .body("There isn't a video ready right now. Your coins from this level are safe."), o).show());
     }
 
     private void showMegaResults(Outcome o) {
