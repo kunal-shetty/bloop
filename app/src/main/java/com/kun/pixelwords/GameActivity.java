@@ -1000,7 +1000,7 @@ public class GameActivity extends BaseActivity {
                 progress.duelWins++;
             }
         }
-        progress.coins += o.coins;
+        progress.addCoins(o.coins);
         if (fresh) progress.totalWordsFound += o.found + o.bonus; // or replays could farm achievements
         o.achievements = Achievement.newlyUnlocked(hadBefore, progress);
         store.save(progress);
@@ -1415,7 +1415,7 @@ public class GameActivity extends BaseActivity {
     private void updateHud() {
         updateCoach();
         int earned = session == null || finished ? 0 : session.coinsEarned();
-        coinChip.animateTo(progress.coins + earned);
+        coinChip.animateTo(Math.min(Progress.MAX_COINS, progress.coins + earned));
         if (progress.hintTokens > 0) hintBtn.setBadge("x" + progress.hintTokens);
         else if (progress.coins >= Scoring.HINT_COST_COINS) hintBtn.setBadge(String.valueOf(Scoring.HINT_COST_COINS));
         else hintBtn.setBadge(Features.MONETIZATION ? "AD" : "");
