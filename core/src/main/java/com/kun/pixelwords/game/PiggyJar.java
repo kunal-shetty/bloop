@@ -34,7 +34,7 @@ public final class PiggyJar {
         p.jarOpensToday = p.jarDay == today ? p.jarOpensToday + 1 : 1;
         p.jarDay = today;
         p.jarWords = 0;
-        p.coins += COINS;
+        p.addCoins(COINS);
         return true;
     }
 }
