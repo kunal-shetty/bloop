@@ -82,7 +82,7 @@ public abstract class Run {
 
     /** Records the run. Returns true if it beat the player's best. */
     public boolean finish(Progress p) {
-        p.coins += coinsEarned();
+        p.addCoins(coinsEarned());
         boolean record = result() > best(p);
         if (record) setBest(p, result());
         return record;
