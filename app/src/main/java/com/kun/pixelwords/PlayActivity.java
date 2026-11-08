@@ -65,7 +65,7 @@ public class PlayActivity extends PageActivity {
 
         towerCard = new ModeCard(this, "tower", "TOWER", 0xFF8E7FD0);
         towerCard.setOnClickListener(v -> onTower());
-        rushCard = new ModeCard(this, "swords", "RUSH", 0xFFFF6B8B);
+        rushCard = new ModeCard(this, "boss_king", "RUSH", 0xFFE8604C);
         rushCard.setOnClickListener(v -> onRush());
 
         archiveCard = new ModeCard(this, "book", "PAST", 0xFFC9A6FF);
@@ -185,7 +185,7 @@ public class PlayActivity extends PageActivity {
                     .show();
             return;
         }
-        new PixelModal(this).title("BOSS RUSH").icon("swords").accent(PixelTheme.ROSE)
+        new PixelModal(this).title("BOSS RUSH").icon("boss_king").accent(0xFFE8604C)
                 .body("Every boss you've beaten, back to back, on one set of lives. They still fight back, "
                         + "and a wrong word costs a life as well.")
                 .stat("swords", "Bosses", String.valueOf(Trophies.count(progress)), PixelTheme.ROSE)
