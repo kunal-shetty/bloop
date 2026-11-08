@@ -303,6 +303,15 @@ public class HomeActivity extends BaseActivity {
         return p;
     }
 
+    /** Back from the trophy screen, which may have changed what stands in the room. */
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        progress = store.load();
+        cat.dress(progress);
+        refresh();
+    }
+
     private void refresh() {
         coins.animateTo(progress.coins);
         room.show(progress);
