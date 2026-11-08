@@ -949,7 +949,7 @@ public final class GeneratorSelfTest {
         check(Home.theme(p) == Home.Theme.COZY, "rooms can be swapped");
 
         Set<Integer> ids = new HashSet<>();
-        for (Shop.Item i : Shop.Item.values()) check(ids.add(i.id) && i.id < 64, "item id is unique and fits a bit: " + i);
+        for (Shop.Item i : Shop.Item.values()) check(ids.add(i.id) && i.id <= Shop.MAX_ITEM_ID, "item id is unique and fits a bit: " + i);
         ids.clear();
         for (Home.Slot slot : Home.Slot.values()) {
             for (Home.Item i : Home.itemsIn(slot)) check(ids.add(i.ordinal()), "furniture is listed once: " + i);
@@ -1595,6 +1595,16 @@ public final class GeneratorSelfTest {
         Progress merged = Progress.merge(p, other);
         check(Shop.owns(merged, bell) && Shop.owns(merged, crown), "purchases from both devices are kept on merge");
 
+        Progress wide = new Progress();
+        Shop.give(wide, Shop.Item.JETPACK);
+        Progress farRound = Progress.parse(wide.serialize());
+        check(Shop.owns(farRound, Shop.Item.JETPACK) && Shop.ownedCount(farRound) == 1, "owned items survive a save, whichever number holds them");
+        Progress caped = Progress.parse("owned=" + (1L << Shop.Item.CAPE.id | 1L << Shop.Item.SCARF.id) + "\nwearNeck=" + Shop.Item.CAPE.id + "\n");
+        check(Shop.wearing(caped, Shop.Slot.BACK) == Shop.Item.CAPE && Shop.wearing(caped, Shop.Slot.NECK) == null,
+                "a cape worn as neckwear in an old save moves to the back");
+        Shop.wear(caped, Shop.Item.SCARF);
+        check(Shop.isWearing(caped, Shop.Item.SCARF) && Shop.isWearing(caped, Shop.Item.CAPE), "a scarf and a cape go together");
+
         Shop.takeOff(round, Shop.Slot.NECK);
         check(Shop.wearing(round, Shop.Slot.NECK) == null && Shop.owns(round, bell), "taking off keeps ownership");
 
@@ -1602,7 +1612,7 @@ public final class GeneratorSelfTest {
         java.io.File dir = new java.io.File("../app/src/main/assets/cat");
         for (Shop.Item i : Shop.Item.values()) {
             check(ids.add(i.id), "unique shop id: " + i);
-            check(i.id > 0 && i.id < 63, "shop id fits the save bitmask: " + i);
+            check(i.id > 0 && i.id <= Shop.MAX_ITEM_ID, "shop id fits the save bitmask: " + i);
             if (dir.isDirectory()) check(new java.io.File(dir, "acc_" + i.key + ".png").isFile(), "art exists for " + i);
         }
         for (Shop.Breed b : Shop.Breed.values()) {
