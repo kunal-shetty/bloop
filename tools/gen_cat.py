@@ -778,6 +778,110 @@ BREEDS = {
 }
 
 
+# ---- back slot. The main layer is drawn in front of the body (straps); the BACK_LAYERS part is drawn
+# behind the tail and body, so only what sticks out past the cat shows.
+def box(x0, y0, w, h, fill, shade, rows=None):
+    """An outlined block with a shaded left edge, optionally with a pattern of rows inside."""
+    art = []
+    for y in range(h):
+        if y in (0, h - 1):
+            art.append("." + "k" * (w - 2) + ".")
+            continue
+        inner = (rows[(y - 1) % len(rows)] * w)[:w - 3] if rows else fill * (w - 3)
+        art.append("k" + shade + inner + "k")
+    return sprite(x0, y0, art)
+
+
+def straps(color):
+    return sprite(8, 22, ["k" + color + "k.........k" + color + "k"] * 3
+                  + ["kgk.........kgk"] + ["k" + color + "k.........k" + color + "k"] * 3)
+
+
+ACCESSORIES.update({
+    "backpack": straps("R"),
+    "teddy": straps("C"),
+    "shell": straps("M"),
+    "jetpack": straps("e"),
+    "balloon": sprite(23, 1, [
+        ".kk..kk.",
+        "krrkkrrk",
+        "krWrrrrk",
+        "krrrrrRk",
+        ".krrrRk.",
+        "..krRk..",
+        "...kk...",
+        "...k....",
+        "....k...",
+        "....k...",
+        "...k....",
+        "...k....",
+        "....k...",
+        "....k...",
+        "...k....",
+        "...k....",
+        "....k...",
+        "....k...",
+        "...k....",
+        "...k....",
+        "....k...",
+    ]),
+})
+
+JET_FLAME = [".fyf.", "..f..", "..F.."]
+JET_FLAME_2 = [".FfF.", ".fyf.", "..f.."]
+
+
+def jetpack(flame):
+    tank = ["..k..", ".kek.", "keWek", "keeek", "keeek", "keeek", "keeek", "keeek", "keeek", "kVVVk", ".kkk."]
+    return over(sprite(0, 16, tank), sprite(27, 16, tank), sprite(0, 27, flame), sprite(27, 27, flame))
+
+
+BACK_LAYERS = {
+    "backpack": box(1, 15, 30, 14, "r", "R", ["rrrrrrrrrr", "rrrrrrrrrr", "kkkkkkkkkk", "rrgrrrrrgr"]),
+    "teddy": sprite(23, 4, [
+        ".kk...kk.",
+        "kcCk.kCck",
+        "kcckkkcck",
+        ".kcccccck",
+        "kckccckck",
+        "kccyyycck",
+        "kccykycck",
+        ".kccccck.",
+        "..kkkkk..",
+    ]),
+    "shell": box(0, 13, 32, 17, "M", "M", ["MmmMMmmMMm", "mMMmmMMmmM", "MmmMMmmMMm", "kkkkkkkkkk"]),
+    "jetpack": jetpack(JET_FLAME),
+}
+
+
+# ---- moving accessories: a second frame, saved as <name>_f1.png. The cat swaps between the two.
+def shifted(im, dx, dy):
+    out = blank()
+    out.paste(im, (dx, dy), im)
+    return out
+
+
+def chars(mapping):
+    rgb = {PALETTE[a]: PALETTE[b] for a, b in mapping.items()}
+    return swap(rgb)
+
+
+FRAMES = {
+    "halo": lambda: shifted(ACCESSORIES["halo"], 0, -1),
+    "wings": lambda: shifted(ACCESSORIES["wings"], 0, -1),
+    "balloon": lambda: shifted(ACCESSORIES["balloon"], 0, -1),
+    "phoenix": lambda: recolor(ACCESSORIES["phoenix"], chars({"f": "F", "F": "f", "g": "y"})),
+    "galaxycrown": lambda: recolor(ACCESSORIES["galaxycrown"], chars({"g": "W", "s": "g", "r": "s"})),
+    "stars": lambda: recolor(ACCESSORIES["stars"], chars({"g": "W", "y": "g"})),
+    "bolt": lambda: recolor(ACCESSORIES["bolt"], chars({"g": "W"})),
+    "unicorn": lambda: recolor(ACCESSORIES["unicorn"], chars({"y": "W", "r": "v"})),
+    "sprout": lambda: sprite(13, 5, ["kk...kk", "kmk.kMk", ".kmkMk.", ".kMk...", ".kMk...", ".kMk..."]),
+}
+BACK_FRAMES = {
+    "jetpack": lambda: jetpack(JET_FLAME_2),
+}
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     body = over(from_art(BODY), FACE_DETAIL)
@@ -786,6 +890,12 @@ def main():
         im.save(os.path.join(OUT, name + ".png"))
     for key, im in ACCESSORIES.items():
         im.save(os.path.join(OUT, "acc_" + key + ".png"))
+    for key, im in BACK_LAYERS.items():
+        im.save(os.path.join(OUT, "acc_" + key + "_back.png"))
+    for key, make in FRAMES.items():
+        make().save(os.path.join(OUT, "acc_" + key + "_f1.png"))
+    for key, make in BACK_FRAMES.items():
+        make().save(os.path.join(OUT, "acc_" + key + "_back_f1.png"))
     for breed, shade in BREEDS.items():
         recolor(body, shade).save(os.path.join(OUT, "body_" + breed + ".png"))
         for name, im in TAIL.items():
@@ -795,10 +905,16 @@ def main():
     if len(sys.argv) > 1:
         keys = [None] + list(ACCESSORIES)
         scale, cols = 6, 8
-        rows = (len(keys) + 2 + len(BREEDS)) // cols + 1
+        rows = (len(keys) + len(FRAMES) + 2 + len(BREEDS)) // cols + 1
         sheet = Image.new("RGB", (cols * 32 * scale, rows * 32 * scale), (58, 46, 110))
         base = over(TAIL["tail_0"], body, EYES["eyes_open"])
-        cells = [base if k is None else over(base, ACCESSORIES[k]) for k in keys]
+
+        def dressed(k, front, back):
+            return over(back.get(k, blank()), TAIL["tail_0"], body, EYES["eyes_open"], front)
+
+        cells = [base if k is None else dressed(k, ACCESSORIES[k], BACK_LAYERS) for k in keys]
+        backs = {k: make() for k, make in BACK_FRAMES.items()}
+        cells += [dressed(k, make(), {**BACK_LAYERS, **backs}) for k, make in FRAMES.items()]
         cells.append(over(TAIL["tail_1"], body, EYES["eyes_happy"]))
         cells.append(over(TAIL["tail_2"], body, EYES["eyes_closed"], ACCESSORIES["crown"], ACCESSORIES["hearts"], ACCESSORIES["scarf"]))
         for shade in BREEDS.values():
