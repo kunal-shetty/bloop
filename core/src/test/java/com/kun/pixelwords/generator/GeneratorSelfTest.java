@@ -3,7 +3,6 @@ package com.kun.pixelwords.generator;
 import com.kun.pixelwords.game.Achievement;
 import com.kun.pixelwords.game.AdPolicy;
 import com.kun.pixelwords.game.Comeback;
-import com.kun.pixelwords.game.Album;
 import com.kun.pixelwords.game.Bond;
 import com.kun.pixelwords.game.Boss;
 import com.kun.pixelwords.game.BossFight;
@@ -12,7 +11,6 @@ import com.kun.pixelwords.game.DailyArchive;
 import com.kun.pixelwords.game.DailySpin;
 import com.kun.pixelwords.game.Definitions;
 import com.kun.pixelwords.game.DuelBot;
-import com.kun.pixelwords.game.Expedition;
 import com.kun.pixelwords.game.FishHunt;
 import com.kun.pixelwords.game.GameSession;
 import com.kun.pixelwords.game.Home;
@@ -97,8 +95,7 @@ public final class GeneratorSelfTest {
         testBreedsAndThemes();
         testRewards();
         testDailySpin();
-        testExpedition();
-        testAlbum(dict);
+        testOldSaveExtras();
         testSeason();
         testFishHunt(gen);
         testNewSaveFields();
@@ -1026,65 +1023,12 @@ public final class GeneratorSelfTest {
         }
     }
 
-    private static void testExpedition() {
-        long hour = 60 * 60 * 1000L, now = 1_800_000_000_000L;
-        Progress p = new Progress();
-        check(!Expedition.isAway(p) && Expedition.collect(p, now).isEmpty(), "nothing to collect from home");
-        check(Expedition.start(p, Expedition.Place.FOREST, now), "the cat leaves");
-        check(!Expedition.start(p, Expedition.Place.BEACH, now), "one trip at a time");
-        check(!Expedition.isBack(p, now + 3 * hour) && Expedition.collect(p, now + 3 * hour).isEmpty(), "not back early");
-        check(!Expedition.isBack(p, now - hour), "a clock moved back doesn't end a trip");
-        check(Expedition.rushCost(p, now + hour) == 60, "rushing costs by the hours left: " + Expedition.rushCost(p, now + hour));
-        check(!Expedition.rush(p, now + hour), "rushing needs coins");
-        p.coins = 60;
-        check(Expedition.rush(p, now + hour) && p.coins == 0 && Expedition.isBack(p, now + hour), "rushing brings the cat home");
-        Progress atHome = Progress.parse(p.serialize());
-        check(!Expedition.collect(p, now + hour).isEmpty(), "souvenirs are collected");
-        check(p.coins >= 90 && !Expedition.isAway(p), "the trip pays and ends");
-        check(Expedition.collect(p, now + 2 * hour).isEmpty(), "a trip pays once");
-
-        p.updatedAt = 2;
-        atHome.updatedAt = 1;
-        Progress merged = Progress.merge(p, atHome);
-        check(!Expedition.isAway(merged), "an old copy of the save can't bring a paid trip back");
-        check(Expedition.collect(merged, now + 2 * hour).isEmpty(), "and can't pay it twice");
-        p.updatedAt = 1;
-        atHome.updatedAt = 2;
-        check(!Expedition.isAway(Progress.merge(p, atHome)), "even when the old copy is the newer save");
-
-        Progress same = new Progress(), again = new Progress();
-        Expedition.start(same, Expedition.Place.MOUNTAIN, now);
-        Expedition.start(again, Expedition.Place.MOUNTAIN, now);
-        Expedition.collect(same, now + 8 * hour);
-        Expedition.collect(again, now + 8 * hour);
-        check(same.coins == again.coins && same.hintTokens == 4, "what a trip brings is fixed when it leaves");
-    }
-
-    private static void testAlbum(Dictionary dict) {
-        for (Album.Page page : Album.Page.values()) {
-            check(page.words.length == Album.WORDS_PER_PAGE, page + " has a full page");
-            for (String w : page.words) check(dict.isCommon(w), w + " can turn up in a puzzle");
-        }
-        Progress p = new Progress();
-        check(Album.collect(p, "CAT") && !Album.collect(p, "cat"), "a sticker is new once");
-        check(!Album.collect(p, "zebra"), "other words aren't stickers");
-        check(Album.collected(p, Album.Page.ANIMALS) == 1, "stickers count");
-        check(Album.claim(p, Album.Page.ANIMALS) == null, "an unfinished page doesn't pay");
-        for (String w : Album.Page.NATURE.words) Album.collect(p, w);
-        check(Album.isClaimable(p, Album.Page.NATURE) && Album.claimableCount(p) == 1, "a full page is ready");
-        Reward prize = Album.claim(p, Album.Page.NATURE);
-        check(prize != null && Shop.owns(p, Shop.Item.EXPLORER_HAT) && p.coins == 150, "a page pays coins and its prize");
-        check(Album.claim(p, Album.Page.NATURE) == null, "a page pays once");
-
-        Progress r = new Progress();
-        int stickers = Album.Page.values().length * Album.WORDS_PER_PAGE;
-        Set<String> seen = new HashSet<>();
-        for (int i = 0; i < stickers; i++) seen.add(Reward.sticker().grant(r, i).label());
-        int got = 0;
-        for (Album.Page page : Album.Page.values()) got += Album.collected(r, page);
-        check(got >= stickers - 2 && seen.size() >= stickers - 2, "sticker rewards are always new ones: " + got);
-        for (int i = 0; i < 4; i++) Reward.sticker().grant(r, i);
-        check(Reward.sticker().grant(r, 1).kind == Reward.Kind.COINS, "a full album pays coins");
+    private static void testOldSaveExtras() {
+        Progress p = Progress.parse("level=4\nexpPlace=2\nexpStart=500\npage0=7\nalbumClaimed=3\nowned=" + (1L << 41) + "\n");
+        check(p.level == 4 && Shop.owns(p, Shop.Item.EXPLORER_HAT), "a save from before trips and the album were removed still loads");
+        check(!p.serialize().contains("expPlace") && !p.serialize().contains("page0"), "their old fields are dropped on the next save");
+        check(Shop.Item.EXPLORER_HAT.source == Shop.Source.COINS && Shop.Item.SCHOLAR_GLASSES.source == Shop.Source.COINS,
+                "the old album prizes are in the shop now");
     }
 
     private static void testSeason() {
@@ -1418,12 +1362,6 @@ public final class GeneratorSelfTest {
         p.bondXp = Bond.xpFor(3);
         check(Bond.level(p) == 3 && Bond.xpToNext(p) == Bond.xpFor(4) - Bond.xpFor(3), "levels start exactly on their threshold");
         check(Bond.giftBonus(p) == 5, "a closer cat brings more coins");
-        p.bondXp = Bond.xpFor(4);
-        p.coins = 0;
-        check(!Expedition.isUnlocked(new Progress(), Expedition.Place.COVE), "the cove starts locked");
-        check(!Expedition.start(new Progress(), Expedition.Place.COVE, 1000), "a new cat can't go to the cove");
-        check(Expedition.start(p, Expedition.Place.COVE, 1000), "a close cat can go to the cove");
-        check(Expedition.collect(p, 1000 + 12 * 60 * 60 * 1000L).size() >= 2, "the cove pays coins and a hint");
         p.bondXp = Bond.xpFor(Bond.EXTRA_TREAT_LEVEL);
         check(Bond.treatsPerDay(p) == 4, "a close cat takes one more treat a day");
 
@@ -1460,7 +1398,7 @@ public final class GeneratorSelfTest {
         int hints = p.hintTokens;
         StreakMilestone.payDue(p, 3);
         check(p.coins == 50 + 100 + 200 + 400, "everything up to the best streak is paid, even after a break");
-        check(p.hintTokens == hints + 2 && p.revealTokens == 2, "hints and power-ups are paid too");
+        check(p.hintTokens == hints + 2 + 3 && p.revealTokens == 2, "hints and power-ups are paid too");
         check(StreakMilestone.DAYS_7.isPaid(p) && !StreakMilestone.DAYS_60.isPaid(p), "paid milestones are remembered");
 
         Progress q = new Progress();
@@ -1523,22 +1461,19 @@ public final class GeneratorSelfTest {
         p.revealTokens = 1; p.pickTokens = 2; p.timeTokens = 3;
         p.megaWeek = 8; p.megaFound = 1L << 40; p.megaSolvedWeek = 7; p.bestLives = 900;
         p.breedsOwned = 6; p.breed = 2; p.spinDay = 21; p.spinsDry = 11;
-        p.expPlace = 2; p.expStart = 500; p.expEnd = 900; p.expClaimed = 100;
-        p.album[0] = 7; p.album[7] = 1L << 8; p.albumClaimed = 3;
         p.seasonId = 5; p.seasonXp = 321; p.seasonClaimedFree = 8; p.seasonClaimedPremium = 16; p.seasonPremium = true;
         p.fishEvent = 5; p.fishCount = 44; p.fishClaimed = 3;
         p.updatedAt = 9;
         check(Progress.parse(p.serialize()).serialize().equals(p.serialize()), "new fields round-trip");
         check(Progress.parse(new Progress().serialize()).jarWords == 0, "an empty save has an empty jar");
         Progress old = Progress.parse("level=9\ncoins=5\n");
-        check(old.level == 9 && old.seasonId == 0 && old.album[0] == 0 && Shop.breed(old) == Shop.Breed.ORANGE, "an old save loads");
+        check(old.level == 9 && old.seasonId == 0 && Shop.breed(old) == Shop.Breed.ORANGE, "an old save loads");
 
         Progress q = Progress.parse(p.serialize());
         q.updatedAt = 3;
-        q.themesOwned = 8; q.breedsOwned = 8; q.album[0] = 8; q.albumClaimed = 4; q.bestLives = 1000; q.megaFound = 1;
+        q.themesOwned = 8; q.breedsOwned = 8; q.bestLives = 1000; q.megaFound = 1;
         Progress m = Progress.merge(p, q);
         check(m.themesOwned == 14 && m.breedsOwned == 14, "owned things add up");
-        check(m.album[0] == 15 && m.album[7] == 1L << 8 && m.albumClaimed == 7, "stickers add up");
         check(m.bestLives == 1000 && m.megaFound == (1L << 40 | 1), "bests and found words merge up");
         check(m.jarWords == 12 && m.revealTokens == 1, "balances follow the newer save");
         check(Progress.merge(p, q).serialize().equals(Progress.merge(q, p).serialize()), "the merge is order-independent");
