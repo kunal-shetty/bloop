@@ -37,7 +37,7 @@ public final class CatMood {
     /** Coins the cat is offering today, or 0 if it has nothing, or has given all it can. */
     public static int rollGift(Progress p, long today, Random rnd) {
         if (giftsToday(p, today) >= MAX_GIFTS_PER_DAY || rnd.nextFloat() >= GIFT_CHANCE) return 0;
-        return MIN_GIFT_COINS + rnd.nextInt(MAX_GIFT_COINS - MIN_GIFT_COINS + 1) + Bond.giftBonus(p);
+        return MIN_GIFT_COINS + rnd.nextInt(MAX_GIFT_COINS - MIN_GIFT_COINS + 1) + (Bond.ENABLED ? Bond.giftBonus(p) : 0);
     }
 
     public static void collectGift(Progress p, long today, int coins) {
@@ -53,7 +53,7 @@ public final class CatMood {
     public static String line(Progress p, long today, Random rnd) {
         String topical = topical(p, today);
         if (topical != null && rnd.nextFloat() < TOPICAL_CHANCE) return topical;
-        if (Bond.level(p) >= Bond.CHATTER_LEVEL && rnd.nextBoolean()) return CLOSE_CHATTER[rnd.nextInt(CLOSE_CHATTER.length)];
+        if (Bond.ENABLED && Bond.level(p) >= Bond.CHATTER_LEVEL && rnd.nextBoolean()) return CLOSE_CHATTER[rnd.nextInt(CLOSE_CHATTER.length)];
         return CHATTER[rnd.nextInt(CHATTER.length)];
     }
 
@@ -63,7 +63,7 @@ public final class CatMood {
         if (streak > 0 && p.streak.lastDay != today) return "Keep our " + streak + "-day streak going!";
         if (Journey.isHard(p.level)) return "The next level is hard. I believe in you!";
         if (Journey.isBoss(p.level)) return Journey.regionOf(p.level).bossName() + " is waiting. We can win this!";
-        if (Bond.isHungry(p, today)) return "Is it treat time? I think it's treat time.";
+        if (Bond.ENABLED && Bond.isHungry(p, today)) return "Is it treat time? I think it's treat time.";
         return null;
     }
 }
