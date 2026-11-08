@@ -36,6 +36,8 @@ public final class Progress {
     public int duelsPlayed = 0;
     /** Shop items bought, as a bit per Shop.Item id. */
     public long ownedItems = 0;
+    /** Owned accessories with ids 64 to 127. See Shop. */
+    public long ownedItems2 = 0;
     /** Achievement rewards already paid, as a bit per Achievement id. */
     public long claimedAchievements = 0;
     /** How many finished chapters have paid their reward. Chapters pay in order. */
@@ -114,6 +116,7 @@ public final class Progress {
     public int wearHead = 0;
     public int wearFace = 0;
     public int wearNeck = 0;
+    public int wearBack = 0;
     public StreakLogic.State streak = StreakLogic.State.fresh();
     /** Wall-clock millis of the last change; used to resolve cloud-save conflicts. */
     public long updatedAt = 0;
@@ -198,6 +201,7 @@ public final class Progress {
         put(sb, "duelWins", duelWins);
         put(sb, "duelsPlayed", duelsPlayed);
         put(sb, "owned", ownedItems);
+        put(sb, "owned2", ownedItems2);
         put(sb, "claimed", claimedAchievements);
         put(sb, "chapters", chaptersRewarded);
         put(sb, "qWeek", questWeek);
@@ -250,6 +254,7 @@ public final class Progress {
         put(sb, "wearHead", wearHead);
         put(sb, "wearFace", wearFace);
         put(sb, "wearNeck", wearNeck);
+        put(sb, "wearBack", wearBack);
         put(sb, "streak", streak.streak);
         put(sb, "bestStreak", streak.best);
         put(sb, "lastDay", streak.lastDay);
@@ -281,6 +286,7 @@ public final class Progress {
         p.duelWins = (int) Math.max(0, get(m, "duelWins", 0));
         p.duelsPlayed = (int) Math.max(0, get(m, "duelsPlayed", 0));
         p.ownedItems = get(m, "owned", 0);
+        p.ownedItems2 = get(m, "owned2", 0);
         p.claimedAchievements = get(m, "claimed", 0);
         p.chaptersRewarded = (int) Math.max(0, get(m, "chapters", 0));
         p.questWeek = get(m, "qWeek", 0);
@@ -333,6 +339,8 @@ public final class Progress {
         p.wearHead = (int) get(m, "wearHead", 0);
         p.wearFace = (int) get(m, "wearFace", 0);
         p.wearNeck = (int) get(m, "wearNeck", 0);
+        p.wearBack = (int) get(m, "wearBack", 0);
+        Shop.settleSlots(p);
         p.streak = new StreakLogic.State(
                 (int) get(m, "streak", 0), (int) get(m, "bestStreak", 0),
                 get(m, "lastDay", -1), (int) get(m, "freezes", 0));
@@ -359,6 +367,7 @@ public final class Progress {
         out.duelWins = Math.max(a.duelWins, b.duelWins);
         out.duelsPlayed = Math.max(a.duelsPlayed, b.duelsPlayed);
         out.ownedItems = a.ownedItems | b.ownedItems; // a purchase on any device is kept
+        out.ownedItems2 = a.ownedItems2 | b.ownedItems2;
         out.claimedAchievements = a.claimedAchievements | b.claimedAchievements; // a reward is only ever paid once
         out.chaptersRewarded = Math.max(a.chaptersRewarded, b.chaptersRewarded);
         out.homeOwned = a.homeOwned | b.homeOwned; // a purchase on any device is kept
@@ -382,6 +391,7 @@ public final class Progress {
         out.wearHead = newer.wearHead;
         out.wearFace = newer.wearFace;
         out.wearNeck = newer.wearNeck;
+        out.wearBack = newer.wearBack;
         out.coins = newer.coins;
         out.paidCoins.putAll(newer.paidCoins);
         Purchases.absorb(out, older);
