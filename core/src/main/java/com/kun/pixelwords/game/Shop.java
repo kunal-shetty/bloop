@@ -6,14 +6,18 @@ import java.util.List;
 /**
  * The cat's accessory shop: the catalogue plus the rules for buying and wearing. The cat wears at most
  * one item per slot. Saves keep each item's {@code id}, so never reuse or renumber one: add new items
- * with the next free id.
+ * with the next free id, up to {@link #MAX_ITEM_ID}. Ids 0-63 live in {@code ownedItems} and 64-127 in
+ * {@code ownedItems2}.
  */
 public final class Shop {
+
+    /** Two 64-bit numbers of owned flags. */
+    public static final int MAX_ITEM_ID = 127;
 
     private Shop() {}
 
     public enum Slot {
-        HEAD("Hats"), FACE("Glasses"), NECK("Neckwear");
+        HEAD("Hats"), FACE("Glasses"), NECK("Neckwear"), BACK("Backpacks");
 
         public final String title;
 
@@ -33,7 +37,7 @@ public final class Shop {
         HEART_GLASSES(8, "hearts", "Heart Glasses", Slot.FACE, 200),
         MONOCLE(9, "monocle", "Fancy Monocle", Slot.FACE, 250),
         WIZARD_HAT(10, "wizard", "Wizard Hat", Slot.HEAD, 300),
-        CAPE(11, "cape", "Hero Cape", Slot.NECK, 350),
+        CAPE(11, "cape", "Hero Cape", Slot.BACK, 350),
         CROWN(12, "crown", "Royal Crown", Slot.HEAD, 500),
         TOP_HAT(13, "tophat", "Top Hat", Slot.HEAD, 400),
         PIRATE_HAT(14, "pirate", "Pirate Hat", Slot.HEAD, 450),
@@ -51,17 +55,17 @@ public final class Shop {
         MEDAL(26, "medal", "Gold Medal", Slot.NECK, 420),
         NECKTIE(27, "tie", "Necktie", Slot.NECK, 190),
         LEI(28, "lei", "Flower Lei", Slot.NECK, 240),
-        WINGS(29, "wings", "Angel Wings", Slot.NECK, 600),
+        WINGS(29, "wings", "Angel Wings", Slot.BACK, 600),
         HALO(30, "halo", "Halo", Slot.HEAD, 550),
         GALAXY_CROWN(31, "galaxycrown", "Galaxy Crown", Slot.HEAD, Source.SPIN),
         GOLD_SHADES(32, "goldshades", "Gold Shades", Slot.FACE, Source.SPIN),
-        PHOENIX_CAPE(33, "phoenix", "Phoenix Cape", Slot.NECK, Source.SPIN),
+        PHOENIX_CAPE(33, "phoenix", "Phoenix Cape", Slot.BACK, Source.SPIN),
         ICE_CROWN(34, "icecrown", "Ice Crown", Slot.HEAD, Source.SEASON),
         BLOSSOM_HAT(35, "blossom", "Blossom Hat", Slot.HEAD, Source.SEASON),
         SUN_HAT(36, "sunhat", "Sun Hat", Slot.HEAD, Source.SEASON),
         BOLT_SHADES(37, "bolt", "Bolt Shades", Slot.FACE, Source.SEASON),
         PUMPKIN_HAT(38, "pumpkin", "Pumpkin Hat", Slot.HEAD, Source.SEASON),
-        STAR_CLOAK(39, "cloak", "Star Cloak", Slot.NECK, Source.SEASON),
+        STAR_CLOAK(39, "cloak", "Star Cloak", Slot.BACK, Source.SEASON),
         FISH_HAT(40, "fishhat", "Fish Hat", Slot.HEAD, Source.EVENT),
         EXPLORER_HAT(41, "explorer", "Explorer Hat", Slot.HEAD, 340),
         SCHOLAR_GLASSES(42, "scholar", "Scholar Glasses", Slot.FACE, 290),
@@ -78,10 +82,18 @@ public final class Shop {
         GOGGLES(53, "goggles", "Pilot Goggles", Slot.FACE, 360),
         SAILOR_COLLAR(54, "sailor", "Sailor Collar", Slot.NECK, 260),
         SPIKED_COLLAR(55, "spiked", "Spiked Collar", Slot.NECK, 310),
-        GEM_PENDANT(56, "pendant", "Gem Pendant", Slot.NECK, 480);
+        GEM_PENDANT(56, "pendant", "Gem Pendant", Slot.NECK, 480),
+        BACKPACK(57, "backpack", "Red Backpack", Slot.BACK, 220),
+        BALLOON(58, "balloon", "Heart Balloon", Slot.BACK, 300),
+        TEDDY(59, "teddy", "Teddy Pal", Slot.BACK, 380),
+        TURTLE_SHELL(60, "shell", "Turtle Shell", Slot.BACK, 420),
+        JETPACK(61, "jetpack", "Jetpack", Slot.BACK, 650);
 
         public final int id;
-        /** Short name used in file names: assets/cat/acc_&lt;key&gt;.png */
+        /**
+         * Short name used in file names: assets/cat/acc_&lt;key&gt;.png, drawn over the body. Optional extras:
+         * acc_&lt;key&gt;_back.png behind the tail and body, and an _f1 version of either for a second frame.
+         */
         public final String key;
         public final String title;
         public final Slot slot;
@@ -104,10 +116,6 @@ public final class Shop {
             this.slot = slot;
             this.price = price;
             this.source = source;
-        }
-
-        private long bit() {
-            return 1L << id;
         }
     }
 
@@ -161,7 +169,29 @@ public final class Shop {
     }
 
     public static boolean owns(Progress p, Item item) {
-        return (p.ownedItems & item.bit()) != 0;
+        return item.id < 64 ? (p.ownedItems >>> item.id & 1) != 0 : (p.ownedItems2 >>> (item.id - 64) & 1) != 0;
+    }
+
+    private static void own(Progress p, Item item) {
+        if (item.id < 64) p.ownedItems |= 1L << item.id;
+        else p.ownedItems2 |= 1L << (item.id - 64);
+    }
+
+    public static int ownedCount(Progress p) {
+        return Long.bitCount(p.ownedItems) + Long.bitCount(p.ownedItems2);
+    }
+
+    /**
+     * Capes and wings used to be neckwear. A save from then may wear one in the neck slot, so this moves
+     * it to the back, where it now belongs.
+     */
+    static void settleSlots(Progress p) {
+        for (Item i : Item.values()) {
+            if (i.id == p.wearNeck && i.slot == Slot.BACK) {
+                if (p.wearBack == 0) p.wearBack = i.id;
+                p.wearNeck = 0;
+            }
+        }
     }
 
     public static boolean canAfford(Progress p, Item item) {
@@ -172,7 +202,7 @@ public final class Shop {
     public static boolean buy(Progress p, Item item) {
         if (item.source != Source.COINS || owns(p, item) || !canAfford(p, item)) return false;
         p.coins -= item.price;
-        p.ownedItems |= item.bit();
+        own(p, item);
         wear(p, item);
         return true;
     }
@@ -180,7 +210,7 @@ public final class Shop {
     /** Hands over an item without charging. False if the player already has it. */
     public static boolean give(Progress p, Item item) {
         if (owns(p, item)) return false;
-        p.ownedItems |= item.bit();
+        own(p, item);
         return true;
     }
 
@@ -219,7 +249,7 @@ public final class Shop {
     }
 
     public static Item wearing(Progress p, Slot slot) {
-        int id = slot == Slot.HEAD ? p.wearHead : slot == Slot.FACE ? p.wearFace : p.wearNeck;
+        int id = slot == Slot.HEAD ? p.wearHead : slot == Slot.FACE ? p.wearFace : slot == Slot.NECK ? p.wearNeck : p.wearBack;
         for (Item i : Item.values()) if (i.id == id && i.slot == slot) return i;
         return null;
     }
@@ -240,6 +270,7 @@ public final class Shop {
     private static void setSlot(Progress p, Slot slot, int id) {
         if (slot == Slot.HEAD) p.wearHead = id;
         else if (slot == Slot.FACE) p.wearFace = id;
-        else p.wearNeck = id;
+        else if (slot == Slot.NECK) p.wearNeck = id;
+        else p.wearBack = id;
     }
 }
