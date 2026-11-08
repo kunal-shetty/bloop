@@ -127,6 +127,7 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
         addRows(tabs.add("HATS", list), Shop.itemsIn(Shop.Slot.HEAD));
         addRows(tabs.add("GLASSES", list), Shop.itemsIn(Shop.Slot.FACE));
         addRows(tabs.add("NECK", list), Shop.itemsIn(Shop.Slot.NECK));
+        addRows(tabs.add("BACK", list), Shop.itemsIn(Shop.Slot.BACK));
         if (Features.MONETIZATION) addStore(tabs.add("COINS", list));
         scroll.addView(list);
         tabs.attach(scroll);
