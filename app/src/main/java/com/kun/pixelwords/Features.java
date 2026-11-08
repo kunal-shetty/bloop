@@ -9,5 +9,5 @@ public final class Features {
      * Ads and real-money purchases. Off until the game is verified on Play. Set this to true to bring
      * back ad breaks, videos, consent and the coin store: nothing else needs to change.
      */
-    public static final boolean MONETIZATION = false;
+    public static final boolean MONETIZATION = true;
 }
