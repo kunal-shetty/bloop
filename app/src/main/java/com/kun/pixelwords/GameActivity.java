@@ -1157,7 +1157,7 @@ public class GameActivity extends BaseActivity {
     }
 
     private String runIcon() {
-        return mode == Mode.TOWER ? "tower" : mode == Mode.RUSH ? "swords" : "heart";
+        return mode == Mode.TOWER ? "tower" : mode == Mode.RUSH ? "boss_king" : "heart";
     }
 
     /** What the run is ranked by, for the big number on its results. */
