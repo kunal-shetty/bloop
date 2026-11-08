@@ -7,11 +7,11 @@
     <string name="reminder_streak">Solve today\'s puzzle to keep your %1$d-day streak.</string>
     <string name="reminder_fresh">Today\'s puzzle is ready. Come and solve it!</string>
 
-    <!-- TODO: fill these in from the Google Play Console / AdMob console. -->
+    <!-- Real IDs for release builds. Debug builds use Google's test ads from src/debug/res/values/admob.xml. -->
     <string name="play_games_app_id" translatable="false">586585717230</string>
-    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
-    <string name="admob_rewarded_unit" translatable="false">ca-app-pub-3940256099942544/5224354917</string>
-    <string name="admob_interstitial_unit" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
+    <string name="admob_app_id" translatable="false">ca-app-pub-8190629103974608~3018292331</string>
+    <string name="admob_rewarded_unit" translatable="false">ca-app-pub-8190629103974608/9200557303</string>
+    <string name="admob_interstitial_unit" translatable="false">ca-app-pub-8190629103974608/2759447044</string>
 
     <string name="leaderboard_daily" translatable="false">CgkI7vPumYkREAIQAQ</string>
     <string name="leaderboard_timed" translatable="false">CgkI7vPumYkREAIQAg</string>
