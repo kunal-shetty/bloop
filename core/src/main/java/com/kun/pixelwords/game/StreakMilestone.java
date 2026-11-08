@@ -13,9 +13,9 @@ public enum StreakMilestone {
 
     DAYS_3(0, 3, Reward.coins(50)),
     DAYS_7(1, 7, Reward.coins(100), Reward.hints(2)),
-    DAYS_14(2, 14, Reward.coins(200), Reward.sticker()),
+    DAYS_14(2, 14, Reward.coins(200), Reward.hints(3)),
     DAYS_30(3, 30, Reward.coins(400), Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 2)),
-    DAYS_60(4, 60, Reward.coins(600), Reward.powerUp(PowerUps.Kind.PICK_LETTER, 3), Reward.sticker()),
+    DAYS_60(4, 60, Reward.coins(600), Reward.powerUp(PowerUps.Kind.PICK_LETTER, 3), Reward.hints(5)),
     DAYS_100(5, 100, Reward.coins(1000), Reward.item(Shop.Item.GOLD_SHADES)),
     DAYS_200(6, 200, Reward.coins(2000), Reward.item(Shop.Item.GALAXY_CROWN)),
     DAYS_365(7, 365, Reward.coins(5000), Reward.breed(Shop.Breed.GALAXY));
