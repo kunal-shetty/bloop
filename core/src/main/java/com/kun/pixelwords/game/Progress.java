@@ -14,6 +14,8 @@ import java.util.TreeMap;
 public final class Progress {
 
     public static final int FORMAT_VERSION = 1;
+    /** The most coins a player can hold. Anything paid past this is lost, so the counter always fits. */
+    public static final int MAX_COINS = 999_999;
 
     private static final String STARS_KEY = "stars";
     private static final String HOME_KEY = "home";
@@ -132,6 +134,11 @@ public final class Progress {
     }
 
     /** Keeps the better of the old and new result, so a replay can only ever improve a level. */
+    /** Pays (or, given a negative amount, charges) coins, never going past {@link #MAX_COINS}. */
+    public void addCoins(int amount) {
+        coins = (int) Math.max(0, Math.min(MAX_COINS, (long) coins + amount));
+    }
+
     public void recordStars(int level, int stars) {
         if (level < 1 || stars <= starsFor(level)) return;
         if (level > levelStars.length) levelStars = Arrays.copyOf(levelStars, level);
@@ -197,7 +204,7 @@ public final class Progress {
         StringBuilder sb = new StringBuilder();
         put(sb, "v", FORMAT_VERSION);
         put(sb, "level", level);
-        put(sb, "coins", coins);
+        put(sb, "coins", Math.min(MAX_COINS, coins));
         put(sb, "hints", hintTokens);
         put(sb, "words", totalWordsFound);
         put(sb, "dailies", dailiesCompleted);
@@ -285,7 +292,7 @@ public final class Progress {
             }
         }
         p.level = (int) Math.max(1, get(m, "level", 1));
-        p.coins = (int) Math.max(0, get(m, "coins", 0));
+        p.coins = (int) Math.min(MAX_COINS, Math.max(0, get(m, "coins", 0)));
         p.hintTokens = (int) Math.max(0, get(m, "hints", 3));
         p.totalWordsFound = (int) Math.max(0, get(m, "words", 0));
         p.dailiesCompleted = (int) Math.max(0, get(m, "dailies", 0));
