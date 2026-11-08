@@ -30,7 +30,10 @@ import com.kun.pixelwords.game.FishHunt;
 import com.kun.pixelwords.game.GameSession;
 import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.MegaBoard;
+import com.kun.pixelwords.game.BossRush;
 import com.kun.pixelwords.game.NineLives;
+import com.kun.pixelwords.game.Run;
+import com.kun.pixelwords.game.WordTower;
 import com.kun.pixelwords.game.PiggyJar;
 import com.kun.pixelwords.game.PowerUps;
 import com.kun.pixelwords.game.Progress;
@@ -79,7 +82,7 @@ public class GameActivity extends BaseActivity {
     /** The past daily to play, in ARCHIVE mode. */
     public static final String EXTRA_DAY = "day";
 
-    public enum Mode { CAMPAIGN, DAILY, TIMED, DUEL, LAN, MEGA, LIVES, ARCHIVE }
+    public enum Mode { CAMPAIGN, DAILY, TIMED, DUEL, LAN, MEGA, LIVES, ARCHIVE, TOWER, RUSH }
 
     private static final int TIMED_SECONDS = 120;
     private static final int DUEL_SECONDS = 90;
@@ -146,7 +149,7 @@ public class GameActivity extends BaseActivity {
     private List<DuelBot.Event> botScript;
     private boolean firstDailyToday;
     private boolean usedExtraTime;  // this Timed run bought seconds, so it can't set a record
-    private NineLives run;          // the Nine Lives run, in LIVES mode
+    private Run run;                // the run under way, in LIVES, TOWER and RUSH modes
     private long runSeed;
     private boolean runRecorded;
     private List<int[]> fishCells = new ArrayList<>();
@@ -213,7 +216,7 @@ public class GameActivity extends BaseActivity {
     @Override
     protected void onBack() {
         if (finished) {
-            if (mode == Mode.LIVES) recordRun(0);
+            if (isRun()) recordRun(0);
             finish();
         } else if (mode == Mode.LAN) confirmLeaveRace();
         else showPause();
@@ -292,6 +295,27 @@ public class GameActivity extends BaseActivity {
                 ambient.setTheme(AmbientView.Theme.values()[run.boards() % AmbientView.Theme.values().length]);
                 titleText.setText("BOARD " + (run.boards() + 1));
                 break;
+            case TOWER:
+                if (run == null) {
+                    run = new WordTower();
+                    runSeed = rnd.nextLong();
+                    runRecorded = false;
+                }
+                level = gen.forTower(runSeed, run.boards());
+                ambient.setTheme(AmbientView.Theme.values()[run.boards() / 2 % AmbientView.Theme.values().length]);
+                titleText.setText("FLOOR " + ((WordTower) run).floor());
+                break;
+            case RUSH:
+                if (run == null) {
+                    runSeed = rnd.nextLong();
+                    run = new BossRush(progress, runSeed);
+                    runRecorded = false;
+                }
+                BossRush rush = (BossRush) run;
+                level = gen.forRush(runSeed, rush.boards(), Journey.lastLevel(rush.chapter()));
+                ambient.setRegion(Region.forChapter(rush.chapter()));
+                titleText.setText("RUSH " + (rush.boards() + 1));
+                break;
             default:
                 playLevel = replayLevel > 0 ? replayLevel : progress.level;
                 boolean hard = Journey.isHard(playLevel), boss = Journey.isBoss(playLevel);
@@ -319,7 +343,7 @@ public class GameActivity extends BaseActivity {
         timerBar.setValue(1f);
         boolean timed = limit() > 0;
         timerRow.setVisibility(timed ? View.VISIBLE : View.GONE);
-        duelText.setVisibility(mode == Mode.DUEL || mode == Mode.LAN || mode == Mode.LIVES ? View.VISIBLE : View.GONE);
+        duelText.setVisibility(mode == Mode.DUEL || mode == Mode.LAN || isRun() ? View.VISIBLE : View.GONE);
         powerBtn.setVisibility(mode == Mode.DUEL || mode == Mode.LAN ? View.GONE : View.VISIBLE);
         secondsLeft = limit();
         updateHud();
@@ -337,14 +361,26 @@ public class GameActivity extends BaseActivity {
         }
     }
 
+    /** Nine Lives, the Word Tower and Boss Rush: boards one after another on one set of lives. */
+    private boolean isRun() {
+        return mode == Mode.LIVES || mode == Mode.TOWER || mode == Mode.RUSH;
+    }
+
+    /** The region whose boss is on this board, or null if there's no boss. */
+    private Region bossRegion() {
+        if (mode == Mode.RUSH && run != null) return Region.forChapter(((BossRush) run).chapter());
+        return mode == Mode.CAMPAIGN && Journey.isBoss(playLevel) ? Journey.regionOf(playLevel) : null;
+    }
+
     private void startFight() {
-        boolean boss = mode == Mode.CAMPAIGN && Journey.isBoss(playLevel);
-        fight = boss ? new BossFight(Journey.regionOf(playLevel), session) : null;
+        Region region = bossRegion();
+        boolean boss = region != null;
+        fight = boss ? new BossFight(region, session) : null;
         bossRow.setVisibility(boss ? View.VISIBLE : View.GONE);
         if (!boss) return;
-        bossName.setText(Journey.regionOf(playLevel).bossName().toUpperCase(Locale.ROOT));
+        bossName.setText(region.bossName().toUpperCase(Locale.ROOT));
         bossFace.removeAllViews();
-        bossFace.addView(PixelIcons.view(this, PixelIcons.boss(Journey.regionOf(playLevel))), fill());
+        bossFace.addView(PixelIcons.view(this, PixelIcons.boss(region)), fill());
         bossBar.setSegments(fight.maxHealth());
         bossBar.setValue(1f);
         handler.postDelayed(() -> {
@@ -540,7 +576,7 @@ public class GameActivity extends BaseActivity {
                 shakeWheel();
                 wheelCat.wince();
                 if (fight != null) afterBossTurn(fight.onWrongWord());
-                if (mode == Mode.LIVES) {
+                if (isRun()) {
                     run.wrongWord();
                     if (run.isOver()) {
                         updateHud();
@@ -846,7 +882,7 @@ public class GameActivity extends BaseActivity {
         if (timed) m.stat("clock", "Time left", clock(secondsLeft), PixelTheme.SKY);
         m.note(timed ? "The clock is stopped. If you quit, this run won't count."
                         : mode == Mode.MEGA ? "Your found words are saved, so you can come back to this board."
-                        : mode == Mode.LIVES ? "If you quit, the run ends here."
+                        : isRun() ? "If you quit, the run ends here."
                         : "If you quit, this puzzle restarts next time and its bonus words are lost.")
                 .primary("RESUME", "play", null)
                 .button("QUIT TO MENU", PixelTheme.ROSE, PixelTheme.INK, null, Sfx.Id.UI_BACK, this::quit)
@@ -857,11 +893,11 @@ public class GameActivity extends BaseActivity {
     private void quit() {
         finished = true;
         stopClock();
-        if (mode == Mode.LIVES) recordRun(session.score(0));
+        if (isRun()) recordRun(session.score(0));
         finish();
     }
 
-    /** Ends a Nine Lives run. Safe to call twice, so the run can never be paid again. */
+    /** Ends a run. Safe to call twice, so the run can never be paid again. */
     private boolean recordRun(int lastBoard) {
         if (run == null || runRecorded) return false;
         runRecorded = true;
@@ -869,6 +905,10 @@ public class GameActivity extends BaseActivity {
         boolean record = run.finish(progress);
         store.save(progress);
         PlayGamesService.saveProgress(this, progress.serialize());
+        if (run.result() > 0) {
+            int board = mode == Mode.TOWER ? R.string.leaderboard_tower : mode == Mode.RUSH ? R.string.leaderboard_rush : R.string.leaderboard_lives;
+            PlayGamesService.submitScore(this, getString(board), run.result());
+        }
         return record;
     }
 
@@ -934,7 +974,7 @@ public class GameActivity extends BaseActivity {
             o.prize = Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 1).grant(progress, today);
             o.megaCoins = MegaBoard.COINS;
         }
-        if (mode == Mode.LIVES && solved) {
+        if (isRun() && solved) {
             o.lifeBack = run.boardCleared(o.score);
         }
         if (mode == Mode.TIMED && !usedExtraTime) {
@@ -1078,7 +1118,9 @@ public class GameActivity extends BaseActivity {
                 showMegaResults(o);
                 break;
             case LIVES:
-                showLivesResults(o);
+            case TOWER:
+            case RUSH:
+                showRunResults(o);
                 break;
             default:
                 showCampaignResults(o);
@@ -1114,19 +1156,41 @@ public class GameActivity extends BaseActivity {
         m.primary("MENU", this::finish).show();
     }
 
-    private void showLivesResults(Outcome o) {
+    private String runIcon() {
+        return mode == Mode.TOWER ? "tower" : mode == Mode.RUSH ? "swords" : "heart";
+    }
+
+    /** What the run is ranked by, for the big number on its results. */
+    private String runHeadline() {
+        return mode == Mode.TOWER ? "FLOORS" : mode == Mode.RUSH ? "BOSSES" : "RUN SCORE";
+    }
+
+    private String runBoardsLabel() {
+        return mode == Mode.TOWER ? "Floors climbed" : mode == Mode.RUSH ? "Bosses beaten" : "Boards cleared";
+    }
+
+    private void showRunResults(Outcome o) {
         if (o.solved) {
-            PixelModal m = results("BOARD CLEAR!", "heart", PixelTheme.MINT, true, 0, "RUN SCORE", run.score());
+            String title = mode == Mode.TOWER ? "FLOOR " + run.boards() + " CLEARED!" : mode == Mode.RUSH ? "BOSS BEATEN!" : "BOARD CLEAR!";
+            String next = mode == Mode.TOWER ? "NEXT FLOOR" : mode == Mode.RUSH ? "NEXT BOSS" : "NEXT BOARD";
+            PixelModal m = results(title, runIcon(), PixelTheme.MINT, true, 0, runHeadline(), run.result());
             m.stat("heart", "Lives", String.valueOf(run.lives()), PixelTheme.ROSE);
             if (o.lifeBack) m.note("You won a life back!");
+            if (mode == Mode.TOWER) {
+                int longer = LevelGenerator.specForTower(run.boards()).minWordLength;
+                if (longer > LevelGenerator.specForTower(run.boards() - 1).minWordLength) {
+                    m.note("The words get longer from here: " + longer + " letters or more.");
+                }
+            }
+            if (mode == Mode.RUSH) m.note("Next up: " + Region.forChapter(((BossRush) run).chapter()).bossName() + ".");
             addWinnings(m, o, 0);
-            m.primary("NEXT BOARD", "play", this::startRound)
+            m.primary(next, "play", this::startRound)
                     .secondary("END RUN", () -> showRunOver(o))
                     .show();
         } else if (run.canContinue(progress)) {
-            results("OUT OF LIVES", "heart", PixelTheme.ROSE, false, 0, "RUN SCORE", run.score())
-                    .note("Try this board again with " + NineLives.CONTINUE_LIVES + " lives. Once per run.")
-                    .button("CONTINUE FOR " + NineLives.CONTINUE_COINS, PixelTheme.GOLD, PixelTheme.INK, "coin", null, this::continueRun)
+            results("OUT OF LIVES", runIcon(), PixelTheme.ROSE, false, 0, runHeadline(), run.result())
+                    .note("Try this board again with " + run.continueLives + (run.continueLives == 1 ? " life" : " lives") + ". Once per run.")
+                    .button("CONTINUE FOR " + run.continueCoins, PixelTheme.GOLD, PixelTheme.INK, "coin", null, this::continueRun)
                     .secondary("END RUN", () -> showRunOver(o))
                     .show();
         } else {
@@ -1144,10 +1208,10 @@ public class GameActivity extends BaseActivity {
     private void showRunOver(Outcome o) {
         boolean record = recordRun(o.solved ? 0 : o.score);
         coinChip.animateTo(progress.coins);
-        PixelModal m = results("RUN OVER", "heart", PixelTheme.ROSE, false, 0, "RUN SCORE", run.score());
-        m.stat("star", "Boards cleared", String.valueOf(run.boards()), PixelTheme.MINT)
-                .stat("sparkle", record ? "New best!" : "Your best", String.valueOf(progress.bestLives), PixelTheme.TEXT)
-                .countStat("coin", "Coins earned", "+", run.boards() * NineLives.COINS_PER_BOARD, PixelTheme.GOLD);
+        PixelModal m = results("RUN OVER", runIcon(), PixelTheme.ROSE, false, 0, runHeadline(), run.result());
+        m.stat("star", runBoardsLabel(), String.valueOf(run.boards()), PixelTheme.MINT)
+                .stat("sparkle", record ? "New best!" : "Your best", String.valueOf(run.best(progress)), PixelTheme.TEXT)
+                .countStat("coin", "Coins earned", "+", run.coinsEarned(), PixelTheme.GOLD);
         run = null;
         m.primary("AGAIN", "play", this::startRound).secondary("MENU", this::finish).show();
     }
@@ -1370,6 +1434,12 @@ public class GameActivity extends BaseActivity {
         if (mode == Mode.LIVES && run != null) {
             int board = session == null || finished ? 0 : session.score(0); // a finished board is already in the run's score
             duelText.setText("LIVES " + run.lives() + "   SCORE " + (run.score() + board));
+        }
+        if (mode == Mode.TOWER && run != null) {
+            duelText.setText("LIVES " + run.lives() + "   FLOOR " + ((WordTower) run).floor() + "   BEST " + run.best(progress));
+        }
+        if (mode == Mode.RUSH && run != null) {
+            duelText.setText("LIVES " + run.lives() + "   BEATEN " + run.boards());
         }
         if (mode == Mode.DUEL && session != null) {
             duelText.setText("YOU " + (session.gridPoints() + session.bonusPoints()) + "   VS   BOT " + botScore);
