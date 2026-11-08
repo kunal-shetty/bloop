@@ -92,7 +92,7 @@ public enum Achievement {
             case BEST_STREAK: return p.streak.best;
             case BEST_TIMED: return p.bestTimed;
             case DUEL_WINS: return p.duelWins;
-            default: return Long.bitCount(p.ownedItems);
+            default: return Shop.ownedCount(p);
         }
     }
 
