@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 
 import com.kun.pixelwords.game.Home;
+import com.kun.pixelwords.game.Season;
 import com.kun.pixelwords.game.Progress;
 
 /** One piece of furniture for sale: the item, its name, and its price or whether it's in the room. */
@@ -74,8 +75,8 @@ public class HomeCard extends PressableView {
             price.setColor(inRoom ? PixelTheme.CREAM : PixelTheme.TEXT_DIM);
             c.drawText(label, (w - price.measureText(label)) / 2f, rowY, price);
         } else if (!Home.forSale(item)) {
-            String label = "SPECIAL";
-            price.setColor(PixelTheme.SKY);
+            String label = Season.EXCLUSIVES_LOCKED ? "LOCKED" : "SPECIAL";
+            price.setColor(Season.EXCLUSIVES_LOCKED ? PixelTheme.TEXT_DIM : PixelTheme.SKY);
             c.drawText(label, (w - price.measureText(label)) / 2f, rowY, price);
         } else {
             String label = String.valueOf(item.price);
