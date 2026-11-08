@@ -528,6 +528,7 @@ public class GameActivity extends BaseActivity {
                 Level.Placement p = placementOf(word);
                 if (p != null) burstAt(p.rowAt(p.word.length() / 2), p.colAt(p.word.length() / 2));
                 grid.refresh();
+                if (p != null) grid.pulse(p);
                 Sfx.play(Sfx.Id.WORD_FOUND, Math.min(1.5f, 1f + (combo - 1) * 0.08f));
                 Haptics.success();
                 wheelCat.hop();
@@ -564,6 +565,8 @@ public class GameActivity extends BaseActivity {
             case ALREADY_FOUND:
                 preview.resolve(PixelTheme.TEXT_DIM, false);
                 say("ALREADY FOUND", PixelTheme.TEXT_DIM);
+                Level.Placement again = placementOf(word);
+                if (again != null) grid.pulse(again); // shows where it is
                 Sfx.play(Sfx.Id.WORD_ALREADY);
                 Haptics.click();
                 break;
@@ -921,8 +924,12 @@ public class GameActivity extends BaseActivity {
         wheel.setLocked(true);
         timerBar.setAlarm(false);
         wheelCat.setWorried(false);
-        if (solved) wheelCat.hop();
-        else wheelCat.wince();
+        if (solved) {
+            wheelCat.hop();
+            grid.ripple();
+        } else {
+            wheelCat.wince();
+        }
 
         // Everything is banked immediately, so leaving during the celebration loses nothing.
         final Outcome o = new Outcome();
@@ -1174,7 +1181,8 @@ public class GameActivity extends BaseActivity {
             String title = mode == Mode.TOWER ? "FLOOR " + run.boards() + " CLEARED!" : mode == Mode.RUSH ? "BOSS BEATEN!" : "BOARD CLEAR!";
             String next = mode == Mode.TOWER ? "NEXT FLOOR" : mode == Mode.RUSH ? "NEXT BOSS" : "NEXT BOARD";
             PixelModal m = results(title, runIcon(), PixelTheme.MINT, true, 0, runHeadline(), run.result());
-            m.stat("heart", "Lives", String.valueOf(run.lives()), PixelTheme.ROSE);
+            m.stat("heart", "Lives", String.valueOf(run.lives()), PixelTheme.ROSE)
+                    .stat("coin", "Coins so far", "+" + run.coinsEarned(), PixelTheme.GOLD);
             if (o.lifeBack) m.note("You won a life back!");
             if (mode == Mode.TOWER) {
                 int longer = LevelGenerator.specForTower(run.boards()).minWordLength;
@@ -1209,8 +1217,9 @@ public class GameActivity extends BaseActivity {
         boolean record = recordRun(o.solved ? 0 : o.score);
         coinChip.animateTo(progress.coins);
         PixelModal m = results("RUN OVER", runIcon(), PixelTheme.ROSE, false, 0, runHeadline(), run.result());
-        m.stat("star", runBoardsLabel(), String.valueOf(run.boards()), PixelTheme.MINT)
-                .stat("sparkle", record ? "New best!" : "Your best", String.valueOf(run.best(progress)), PixelTheme.TEXT)
+        // The big number already counts floors or bosses; only Nine Lives ranks by something else.
+        if (mode == Mode.LIVES) m.stat("star", runBoardsLabel(), String.valueOf(run.boards()), PixelTheme.MINT);
+        m.stat("sparkle", record ? "New best!" : "Your best", String.valueOf(run.best(progress)), record ? PixelTheme.GOLD : PixelTheme.TEXT)
                 .countStat("coin", "Coins earned", "+", run.coinsEarned(), PixelTheme.GOLD);
         run = null;
         m.primary("AGAIN", "play", this::startRound).secondary("MENU", this::finish).show();
