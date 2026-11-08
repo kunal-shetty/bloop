@@ -1,6 +1,6 @@
 # Bloop
 
-A Words-of-Wonder-style word-wheel crossword for Android, in pure Java, with a pixel-art world, a pixel cat you can dress up and collect breeds for, a room to furnish, daily streaks, a daily spin, cat trips, a sticker album, a monthly Season Pass, Fish Hunt events, Nine Lives, a weekend Mega Board, word duels, timed mode, boss fights, regions that never repeat, word meanings, past daily puzzles, gift codes, leaderboards and cloud save.
+A Words-of-Wonder-style word-wheel crossword for Android, in pure Java, with a pixel-art world, a pixel cat you can dress up and collect breeds for, a room to furnish, daily streaks, a daily spin, a monthly Season Pass, Fish Hunt events, Nine Lives, a weekend Mega Board, word duels, timed mode, boss fights, regions that never repeat, word meanings, past daily puzzles, gift codes, leaderboards and cloud save.
 
 ## What's in the box
 
@@ -21,7 +21,6 @@ tools/gen_music.py   Regenerate the background music (needs numpy and soundfile)
 tools/gen_cat.py     Regenerate the cat and its accessories (needs Pillow)
 tools/gen_icon.py    Regenerate the launcher icon (needs Pillow)
 tools/gen_home.py    Regenerate the cat home art (needs Pillow)
-tools/gen_album.py   Regenerate the sticker album banners (needs Pillow)
 tools/gen_defs.py    Rebuild the word meanings from a WordNet 3.1 dict folder
 ```
 
@@ -57,8 +56,7 @@ tools/gen_defs.py    Rebuild the word meanings from a WordNet 3.1 dict folder
 - **Breeds and rooms:** `Shop.Breed` recolours the cat through `tools/gen_cat.py`, and `Home.Theme` swaps the whole room. Both are saved by id.
 - **Rewards:** `Reward` is the one way anything is paid out. A duplicate turns into coins.
 - **Daily Spin:** `DailySpin` gives one free spin a day from the date and player, so it can't be rerolled. The odds are shown on screen, and a legendary is guaranteed within 60 spins. There are no paid spins.
-- **Cat trips:** `Expedition` fixes what a trip brings back when it leaves. `expClaimed` stops a cloud merge paying a trip twice.
-- **Sticker Album:** `Album` holds eight pages of nine words. Never reorder a page's words, because each one is a bit in the save.
+- **Removed modes:** cat trips and the sticker album were taken out. Old saves still carry their keys (`exp*`, `page*`, `albumClaimed`), which load and are dropped on the next save. Their prizes became hints, power-ups and shop items.
 - **Season Pass:** `Season` runs 30-day seasons from a fixed date, so a new one needs no update or server. There are six themes, then they repeat. Unclaimed rewards are paid when a season ends. Premium costs coins for now: `Season.PREMIUM_WITH_COINS` is the switch for selling it instead.
 - **Fish Hunt:** `FishHunt` runs for seven days in the middle of each season. Fish positions come from the level and the event.
 - **Screens:** the menu stays small: PLAY opens `PlayActivity`, which lists every mode, and players on the first three levels go straight to the Journey. Cloud save lives in Settings, and the shop shows one tab at a time.
