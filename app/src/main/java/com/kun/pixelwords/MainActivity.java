@@ -25,12 +25,10 @@ import com.kun.pixelwords.data.Days;
 import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
-import com.kun.pixelwords.game.Album;
 import com.kun.pixelwords.game.Bond;
 import com.kun.pixelwords.game.CatMood;
 import com.kun.pixelwords.game.Comeback;
 import com.kun.pixelwords.game.DailySpin;
-import com.kun.pixelwords.game.Expedition;
 import com.kun.pixelwords.game.FishHunt;
 import com.kun.pixelwords.game.MegaBoard;
 import com.kun.pixelwords.game.PiggyJar;
@@ -81,8 +79,8 @@ public class MainActivity extends BaseActivity {
     private static final int CAT_DP = 240;
 
     private PixelButton playBtn, bondBtn;
-    private PixelButton spinBtn, tripsBtn, passBtn, albumBtn, jarBtn;
-    private TextView spinState, tripsState, passState, albumState, jarState;
+    private PixelButton spinBtn, passBtn, jarBtn;
+    private TextView spinState, passState, jarState;
     private StatChip coinChip, hintChip;
     private CatView cat;
     private TextView streakText, streakSub, claimBadge, catBubble;
@@ -273,16 +271,12 @@ public class MainActivity extends BaseActivity {
         LinearLayout row = new LinearLayout(this);
         spinBtn = extraButton("wheel", 0xFFC9A6FF);
         spinBtn.setOnClickListener(v -> go(new Intent(this, SpinActivity.class)));
-        tripsBtn = extraButton("paw", PixelTheme.MINT);
-        tripsBtn.setOnClickListener(v -> go(new Intent(this, ExpeditionActivity.class)));
         passBtn = extraButton("ticket", PixelTheme.ROSE);
         passBtn.setOnClickListener(v -> go(new Intent(this, SeasonActivity.class)));
-        albumBtn = extraButton("sticker", PixelTheme.SKY);
-        albumBtn.setOnClickListener(v -> go(new Intent(this, AlbumActivity.class)));
         jarBtn = extraButton("jar", PixelTheme.GOLD);
         jarBtn.setOnClickListener(v -> showJar());
-        PixelButton[] all = {spinBtn, tripsBtn, passBtn, albumBtn, jarBtn};
-        String[] names = {"SPIN", "TRIPS", "PASS", "ALBUM", "JAR"};
+        PixelButton[] all = {spinBtn, passBtn, jarBtn};
+        String[] names = {"SPIN", "PASS", "JAR"};
         TextView[] states = new TextView[all.length];
         for (int i = 0; i < all.length; i++) {
             LinearLayout cell = new LinearLayout(this);
@@ -301,10 +295,8 @@ public class MainActivity extends BaseActivity {
             row.addView(cell, lp);
         }
         spinState = states[0];
-        tripsState = states[1];
-        passState = states[2];
-        albumState = states[3];
-        jarState = states[4];
+        passState = states[1];
+        jarState = states[2];
         return row;
     }
 
@@ -316,20 +308,10 @@ public class MainActivity extends BaseActivity {
         button.setContentDescription(button.getContentDescription() + ", " + text);
     }
 
-    /** Whole hours left, rounded up, so a trip never reads as "0H" while the cat is still away. */
-    private static String hoursLeft(long millis) {
-        return (millis + Days.MILLIS_PER_HOUR - 1) / Days.MILLIS_PER_HOUR + "H LEFT";
-    }
-
     private void refreshExtras(long today) {
-        long now = System.currentTimeMillis();
         showState(spinBtn, spinState, DailySpin.canSpin(progress, today) ? "READY" : "DONE", DailySpin.canSpin(progress, today));
-        boolean away = Expedition.isAway(progress), back = Expedition.isBack(progress, now);
-        showState(tripsBtn, tripsState, back ? "HOME!" : away ? hoursLeft(Expedition.millisLeft(progress, now)) : "SEND", back);
         int passReady = Season.claimableCount(progress) + FishHunt.claimableCount(progress);
         showState(passBtn, passState, passReady > 0 ? passReady + " READY" : "TIER " + Season.tiersReached(progress), passReady > 0);
-        int albumReady = Album.claimableCount(progress);
-        showState(albumBtn, albumState, albumReady > 0 ? albumReady + " READY" : "COLLECT", albumReady > 0);
         boolean jarReady = PiggyJar.canOpen(progress, today);
         showState(jarBtn, jarState, jarReady ? "READY" : Math.min(progress.jarWords, PiggyJar.CAPACITY) + "/" + PiggyJar.CAPACITY, jarReady);
     }
@@ -814,7 +796,7 @@ public class MainActivity extends BaseActivity {
                 .heading("SHOP")
                 .body("Spend your coins on accessories, breeds and rooms for your cat, or on treats to raise your bond.")
                 .heading("EVERY DAY")
-                .body("Spin the wheel, send your cat on a trip, collect stickers, and climb the Season Pass.")
+                .body("Spin the wheel, fill the piggy jar, and climb the Season Pass.")
                 .primary("LET'S GO", null)
                 .show();
     }
