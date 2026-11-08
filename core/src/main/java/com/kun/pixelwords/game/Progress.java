@@ -77,6 +77,9 @@ public final class Progress {
     public long megaSolvedWeek = 0;
     /** Best score in Nine Lives. */
     public int bestLives = 0;
+    /** Most floors climbed in the Word Tower, and most bosses beaten in one Boss Rush. */
+    public int bestTower = 0;
+    public int bestRush = 0;
     /** Cat breeds owned, as a bit per Shop.Breed id, and the one in use. */
     public long breedsOwned = 0;
     public int breed = 0;
@@ -230,6 +233,8 @@ public final class Progress {
         put(sb, "megaFound", megaFound);
         put(sb, "megaSolved", megaSolvedWeek);
         put(sb, "bestLives", bestLives);
+        put(sb, "bestTower", bestTower);
+        put(sb, "bestRush", bestRush);
         put(sb, "breeds", breedsOwned);
         put(sb, "breed", breed);
         put(sb, "spinDay", spinDay);
@@ -316,6 +321,8 @@ public final class Progress {
         p.megaFound = get(m, "megaFound", 0);
         p.megaSolvedWeek = get(m, "megaSolved", 0);
         p.bestLives = (int) Math.max(0, get(m, "bestLives", 0));
+        p.bestTower = (int) Math.max(0, get(m, "bestTower", 0));
+        p.bestRush = (int) Math.max(0, get(m, "bestRush", 0));
         p.breedsOwned = get(m, "breeds", 0);
         p.breed = (int) get(m, "breed", 0);
         p.spinDay = get(m, "spinDay", 0);
@@ -427,6 +434,8 @@ public final class Progress {
         out.megaFound = a.megaWeek == b.megaWeek ? a.megaFound | b.megaFound : mega.megaFound;
         out.megaSolvedWeek = Math.max(a.megaSolvedWeek, b.megaSolvedWeek);
         out.bestLives = Math.max(a.bestLives, b.bestLives);
+        out.bestTower = Math.max(a.bestTower, b.bestTower);
+        out.bestRush = Math.max(a.bestRush, b.bestRush);
         out.breedsOwned = a.breedsOwned | b.breedsOwned;
         out.breed = newer.breed;
         out.spinDay = Math.max(a.spinDay, b.spinDay);
