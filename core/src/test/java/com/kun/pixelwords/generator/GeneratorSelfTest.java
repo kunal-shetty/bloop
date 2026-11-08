@@ -1625,14 +1625,15 @@ public final class GeneratorSelfTest {
     }
 
     private static void testAdPolicy() {
-        long gap = AdPolicy.MIN_MILLIS_BETWEEN_AD_BREAKS;
+        long gap = AdPolicy.REWARDED_GRACE_MILLIS;
         Progress p = new Progress();
         p.level = AdPolicy.FIRST_AD_BREAK_LEVEL;
         check(!AdPolicy.adBreakDue(p, 99, gap), "new players see no ad breaks");
         p.level = AdPolicy.FIRST_AD_BREAK_LEVEL + 1;
-        check(AdPolicy.adBreakDue(p, AdPolicy.LEVELS_PER_AD_BREAK, gap), "an ad break is due after enough levels");
-        check(!AdPolicy.adBreakDue(p, AdPolicy.LEVELS_PER_AD_BREAK - 1, gap), "ad breaks wait for enough levels");
-        check(!AdPolicy.adBreakDue(p, 99, gap - 1), "ad breaks wait for enough time");
+        check(AdPolicy.WINS_PER_AD_BREAK == 5, "an ad break every five wins");
+        check(AdPolicy.adBreakDue(p, AdPolicy.WINS_PER_AD_BREAK, gap), "an ad break is due after five wins");
+        check(!AdPolicy.adBreakDue(p, AdPolicy.WINS_PER_AD_BREAK - 1, gap), "four wins aren't enough");
+        check(!AdPolicy.adBreakDue(p, 99, gap - 1), "no ad break straight after a video the player chose to watch");
         p.adsRemoved = true;
         check(!AdPolicy.adBreakDue(p, 99, gap), "remove_ads stops ad breaks");
 
