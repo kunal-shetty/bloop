@@ -63,8 +63,8 @@ public final class Shop {
         PUMPKIN_HAT(38, "pumpkin", "Pumpkin Hat", Slot.HEAD, Source.SEASON),
         STAR_CLOAK(39, "cloak", "Star Cloak", Slot.NECK, Source.SEASON),
         FISH_HAT(40, "fishhat", "Fish Hat", Slot.HEAD, Source.EVENT),
-        EXPLORER_HAT(41, "explorer", "Explorer Hat", Slot.HEAD, Source.ALBUM),
-        SCHOLAR_GLASSES(42, "scholar", "Scholar Glasses", Slot.FACE, Source.ALBUM),
+        EXPLORER_HAT(41, "explorer", "Explorer Hat", Slot.HEAD, 340),
+        SCHOLAR_GLASSES(42, "scholar", "Scholar Glasses", Slot.FACE, 290),
         HEART_COLLAR(43, "heartcollar", "Heart Collar", Slot.NECK, Source.BOND),
         SPROUT(44, "sprout", "Little Sprout", Slot.HEAD, 110),
         CAP(45, "cap", "Sports Cap", Slot.HEAD, 160),
@@ -145,7 +145,7 @@ public final class Shop {
     /** Where something comes from. Only {@link #COINS} things can be bought. */
     public enum Source {
         COINS(""), SPIN("Won on the Daily Spin"), SEASON("A Season Pass reward"),
-        EVENT("A Fish Hunt reward"), ALBUM("A Sticker Album reward"), BOND("Reach bond level " + Bond.MAX_LEVEL + " with your cat");
+        EVENT("A Fish Hunt reward"), BOND("Reach bond level " + Bond.MAX_LEVEL + " with your cat");
 
         public final String how;
 
