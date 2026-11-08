@@ -1,16 +1,14 @@
 package com.kun.pixelwords.game;
 
 /**
- * Anything the game can hand out. The spin, the Season Pass, the album, trips and Fish Hunt all pay
+ * Anything the game can hand out. The spin, the Season Pass, bosses, streaks and Fish Hunt all pay
  * through this, so a reward the player already has always turns into coins in the same way.
  */
 public final class Reward {
 
     public static final int DUPLICATE_COINS = 200;
-    /** Paid for a sticker reward once the album is full. */
-    public static final int FULL_ALBUM_COINS = 20;
 
-    public enum Kind { COINS, HINTS, POWER_UP, ITEM, BREED, FURNITURE, STICKER }
+    public enum Kind { COINS, HINTS, POWER_UP, ITEM, BREED, FURNITURE }
 
     public final Kind kind;
     public final int amount;
@@ -55,10 +53,6 @@ public final class Reward {
         return new Reward(Kind.FURNITURE, 1, null, null, null, item, item.title);
     }
 
-    public static Reward sticker() {
-        return new Reward(Kind.STICKER, 1, null, null, null, null, "New sticker");
-    }
-
     /** What to show the player. */
     public String label() {
         return label;
@@ -72,14 +66,13 @@ public final class Reward {
             case POWER_UP: return powerUp.icon;
             case ITEM: return "bag";
             case BREED: return "heart";
-            case FURNITURE: return "home";
-            default: return "sparkle";
+            default: return "home";
         }
     }
 
     /**
      * Pays the reward and returns what the player actually got, which is coins if they already had it.
-     * {@code seed} chooses the sticker, so a retry on the same seed gets the same one.
+     * {@code seed} is kept so callers stay the same if a random reward comes back.
      */
     public Reward grant(Progress p, long seed) {
         switch (kind) {
@@ -96,15 +89,8 @@ public final class Reward {
                 return Shop.give(p, item) ? this : duplicate(p);
             case BREED:
                 return Shop.give(p, breed) ? this : duplicate(p);
-            case FURNITURE:
-                return Home.give(p, furniture) ? this : duplicate(p);
             default:
-                String word = Album.awardRandom(p, seed);
-                if (word == null) {
-                    p.coins += FULL_ALBUM_COINS;
-                    return coins(FULL_ALBUM_COINS);
-                }
-                return new Reward(Kind.STICKER, 1, null, null, null, null, "Sticker: " + word);
+                return Home.give(p, furniture) ? this : duplicate(p);
         }
     }
 
