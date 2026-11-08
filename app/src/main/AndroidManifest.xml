@@ -84,6 +84,18 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".TrophiesActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- Serves the photo of the cat's home to the app it is shared with. -->
+        <provider
+            android:name=".services.PhotoProvider"
+            android:authorities="${applicationId}.photos"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
+        <activity
             android:name=".AchievementsActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
