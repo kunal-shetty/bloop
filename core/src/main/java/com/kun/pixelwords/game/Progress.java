@@ -18,7 +18,6 @@ public final class Progress {
     private static final String STARS_KEY = "stars";
     private static final String HOME_KEY = "home";
     private static final String PAID_KEY = "paid";
-    private static final String ALBUM_KEY = "page";
     private static final String DAILY_LOG_KEY = "dlog";
     private static final int STARS_PER_CHUNK = 30;
     private static final int MAX_STARS_STORED = 3;
@@ -82,14 +81,6 @@ public final class Progress {
     /** The last day spun, and spins since the last legendary. See DailySpin. */
     public long spinDay = 0;
     public int spinsDry = 0;
-    /** The trip under way, and the start of the last one paid. See Expedition. */
-    public int expPlace = 0;
-    public long expStart = 0;
-    public long expEnd = 0;
-    public long expClaimed = 0;
-    /** Stickers, one number per Album.Page with a bit per word, and pages paid. */
-    public final long[] album = new long[Album.Page.values().length];
-    public long albumClaimed = 0;
     /** The season under way. See Season. */
     public long seasonId = 0;
     public int seasonXp = 0;
@@ -237,12 +228,6 @@ public final class Progress {
         put(sb, "breed", breed);
         put(sb, "spinDay", spinDay);
         put(sb, "spinsDry", spinsDry);
-        put(sb, "expPlace", expPlace);
-        put(sb, "expStart", expStart);
-        put(sb, "expEnd", expEnd);
-        put(sb, "expClaimed", expClaimed);
-        for (int i = 0; i < album.length; i++) put(sb, ALBUM_KEY + i, album[i]);
-        put(sb, "albumClaimed", albumClaimed);
         put(sb, "seasonId", seasonId);
         put(sb, "seasonXp", seasonXp);
         put(sb, "seasonFree", seasonClaimedFree);
@@ -326,12 +311,6 @@ public final class Progress {
         p.breed = (int) get(m, "breed", 0);
         p.spinDay = get(m, "spinDay", 0);
         p.spinsDry = (int) Math.max(0, get(m, "spinsDry", 0));
-        p.expPlace = (int) get(m, "expPlace", 0);
-        p.expStart = get(m, "expStart", 0);
-        p.expEnd = get(m, "expEnd", 0);
-        p.expClaimed = get(m, "expClaimed", 0);
-        for (int i = 0; i < p.album.length; i++) p.album[i] = get(m, ALBUM_KEY + i, 0);
-        p.albumClaimed = get(m, "albumClaimed", 0);
         p.seasonId = get(m, "seasonId", 0);
         p.seasonXp = (int) Math.max(0, get(m, "seasonXp", 0));
         p.seasonClaimedFree = get(m, "seasonFree", 0);
@@ -437,13 +416,6 @@ public final class Progress {
         out.breed = newer.breed;
         out.spinDay = Math.max(a.spinDay, b.spinDay);
         out.spinsDry = newer.spinsDry;
-        Progress trip = a.expStart != b.expStart ? (a.expStart > b.expStart ? a : b) : newer;
-        out.expClaimed = Math.max(a.expClaimed, b.expClaimed);
-        out.expStart = trip.expStart;
-        out.expEnd = a.expStart == b.expStart ? Math.min(a.expEnd, b.expEnd) : trip.expEnd;
-        out.expPlace = trip.expStart > out.expClaimed ? trip.expPlace : 0;
-        for (int i = 0; i < out.album.length; i++) out.album[i] = a.album[i] | b.album[i];
-        out.albumClaimed = a.albumClaimed | b.albumClaimed;
         boolean sameSeason = a.seasonId == b.seasonId;
         Progress season = !sameSeason ? (a.seasonId > b.seasonId ? a : b) : newer;
         out.seasonId = season.seasonId;
