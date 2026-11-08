@@ -716,7 +716,8 @@ public final class GeneratorSelfTest {
         for (int n = 4; n <= 240; n += 3) h = h * 31 + levelHash(gen.forHard(n));
         for (long d = 20400; d < 20430; d++) h = h * 31 + levelHash(gen.forDaily(d));
         for (long s = 1; s <= 30; s++) h = h * 31 + levelHash(gen.forDuel(s * 7919));
-        check(h == 7444352991985563297L, "existing levels are unchanged: " + h);
+        // Changed on purpose on 2026-11-08: every chapter now climbs from easy to hard (LevelGenerator.specForLevel).
+        check(h == -4102016199446747428L, "existing levels are unchanged: " + h);
     }
 
     private static long levelHash(Level l) {
@@ -1717,21 +1718,36 @@ public final class GeneratorSelfTest {
         }
     }
 
-    /** Word length, word count and grid limit must only ever climb. */
+    /** Every chapter starts easy and climbs to its boss; the first chapters are gentler. */
     private static void testCurve(LevelGenerator gen) {
-        LevelGenerator.Spec prev = LevelGenerator.specForLevel(4);
-        for (int n = 5; n <= 400; n++) {
-            LevelGenerator.Spec s = LevelGenerator.specForLevel(n);
-            check(s.letterCount >= prev.letterCount && s.maxGrid >= prev.maxGrid, "difficulty never drops at level " + n);
-            check(s.letterCount > prev.letterCount || s.targetWords >= prev.targetWords, "word count only drops when words get longer, level " + n);
-            prev = s;
+        check(LevelGenerator.CHAPTER_LEVELS == Journey.LEVELS_PER_CHAPTER, "the curve knows how long a chapter is");
+        for (int chapter = 0; chapter < 60; chapter++) {
+            int first = Journey.firstLevel(chapter);
+            LevelGenerator.Spec prev = null;
+            for (int n = first; n <= Journey.lastLevel(chapter); n++) {
+                LevelGenerator.Spec s = LevelGenerator.specForLevel(n);
+                if (prev != null) {
+                    check(s.letterCount >= prev.letterCount && s.targetWords >= prev.targetWords, "difficulty never drops inside a chapter, level " + n);
+                }
+                prev = s;
+            }
+            for (int n = first; n < first + 3; n++) check(LevelGenerator.specForLevel(n).letterCount <= 5, "a chapter opens with easy levels: " + n);
+            if (chapter >= 2) {
+                check(LevelGenerator.specForLevel(first + 3).letterCount == 6, "the fourth level of a chapter jumps to 6 letters");
+                check(LevelGenerator.specForLevel(Journey.lastLevel(chapter)).letterCount == 8, "a chapter ends on 8 letters");
+            }
         }
-        check(LevelGenerator.specForLevel(400).letterCount == 8 && LevelGenerator.specForLevel(400).maxGrid == 10, "curve reaches 8 letters on a 10x10 grid");
-        for (int n : new int[]{200, 300, 400}) {
-            Level l = gen.forProgression(n);
-            check(l.letters.length() == 8, "late level uses 8 letters: " + n);
-            check(l.placements.size() >= 8, "late level has plenty of words: " + n + " has " + l.placements.size());
+        check(LevelGenerator.specForLevel(Journey.lastLevel(0) - 1).letterCount <= 6, "the first chapter stays gentle");
+        check(LevelGenerator.specForLevel(Journey.lastLevel(1) - 1).letterCount <= 7, "so does the second");
+        long slowest = 0;
+        for (int n : new int[]{41, 42, 43, 44, 55, 59, 60, 199, 200, 399, 400}) {
+            long t0 = System.nanoTime();
+            Level l = Journey.isHard(n) || Journey.isBoss(n) ? gen.forHard(n) : gen.forProgression(n);
+            slowest = Math.max(slowest, System.nanoTime() - t0);
+            check(l.placements.size() >= 3, "level " + n + " is playable: " + l.placements.size() + " words");
         }
+        check(gen.forProgression(59).placements.size() >= 8, "late chapter levels have plenty of words");
+        check(slowest < 2_000_000_000L, "every level builds in under two seconds: " + slowest / 1_000_000 + " ms");
     }
 
     // ------------------------------------------------------------------ validation
