@@ -100,8 +100,8 @@ public class ItemCard extends PressableView {
             price.setColor(worn ? PixelTheme.CREAM : PixelTheme.TEXT_DIM);
             c.drawText(label, (w - price.measureText(label)) / 2f, rowY, price);
         } else if (item.source != Shop.Source.COINS) {
-            String label = "SPECIAL";
-            price.setColor(PixelTheme.SKY);
+            String label = item.source.locked() ? "LOCKED" : "SPECIAL";
+            price.setColor(item.source.locked() ? PixelTheme.TEXT_DIM : PixelTheme.SKY);
             c.drawText(label, (w - price.measureText(label)) / 2f, rowY, price);
         } else {
             String label = String.valueOf(item.price);
