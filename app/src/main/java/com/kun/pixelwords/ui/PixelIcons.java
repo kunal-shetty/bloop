@@ -148,19 +148,6 @@ public final class PixelIcons {
                 "kxxxxkxxxxxk",
                 "kkkkkkkkkkkk",
                 "............"});
-        ART.put("sticker", new String[]{
-                "kkkkkkkkkkk.",
-                "kwwwwwwwwwk.",
-                "kwwssswwwwwk",
-                "kwssssswwwwk",
-                "kwssssswwwwk",
-                "kwwssswwwwwk",
-                "kwwwwwwwwkkk",
-                "kwwwwwwwkddk",
-                "kwwwwwwkddk.",
-                "kwwwwwkddk..",
-                "kkkkkkkkk...",
-                "............"});
         ART.put("fish", new String[]{
                 "............",
                 "...kkkkk..kk",
