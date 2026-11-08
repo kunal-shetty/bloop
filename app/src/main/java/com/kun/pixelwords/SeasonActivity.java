@@ -176,13 +176,13 @@ public class SeasonActivity extends PageActivity {
             new PixelModal(this).title("PREMIUM PASS").icon("ticket").accent(PixelTheme.ROSE)
                     .stat("coin", "Price", String.valueOf(Season.PREMIUM_COINS), PixelTheme.GOLD)
                     .stat("coin", "Your coins", String.valueOf(progress.coins), PixelTheme.ROSE)
-                    .note("Premium adds a second reward on every tier, with an exclusive accessory at the top.")
+                    .note("Premium adds a second reward on every tier, with " + (Season.EXCLUSIVES_LOCKED ? "a big coin prize" : "an exclusive accessory") + " at the top.")
                     .primary("OK", null)
                     .show();
             return;
         }
         new PixelModal(this).title("UNLOCK PREMIUM?").icon("ticket").accent(PixelTheme.GOLD)
-                .body("Adds a second reward on every tier this season, with an exclusive accessory at the top.")
+                .body("Adds a second reward on every tier this season, with " + (Season.EXCLUSIVES_LOCKED ? "a big coin prize" : "an exclusive accessory") + " at the top.")
                 .stat("coin", "Price", String.valueOf(Season.PREMIUM_COINS), PixelTheme.GOLD)
                 .stat("coin", "Coins left after", String.valueOf(progress.coins - Season.PREMIUM_COINS), PixelTheme.TEXT)
                 .button("UNLOCK", PixelTheme.GOLD, PixelTheme.INK, "ticket", null, () -> {
