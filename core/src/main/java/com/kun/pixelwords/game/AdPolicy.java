@@ -33,7 +33,7 @@ public final class AdPolicy {
         if (coinVideosLeft(p, today) == 0) return false;
         p.coinVideosToday = p.coinVideoDay == today ? p.coinVideosToday + 1 : 1;
         p.coinVideoDay = today;
-        p.coins += Scoring.REWARDED_AD_COINS;
+        p.addCoins(Scoring.REWARDED_AD_COINS);
         return true;
     }
 }
