@@ -7,7 +7,7 @@ import java.util.List;
 /** One puzzle: a wheel of letters, a crossword grid of target words, and a set of bonus words. */
 public final class Level {
 
-    public enum Kind { FIXED, PROGRESSION, DAILY, DUEL, MEGA, LIVES }
+    public enum Kind { FIXED, PROGRESSION, DAILY, DUEL, MEGA, LIVES, TOWER, RUSH }
 
     /** A word placed in the grid. Row/col are 0-based from the top-left of the grid. */
     public static final class Placement {
