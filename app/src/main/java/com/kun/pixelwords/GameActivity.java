@@ -21,7 +21,6 @@ import com.kun.pixelwords.data.GameEngine;
 import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
-import com.kun.pixelwords.game.Album;
 import com.kun.pixelwords.game.Boss;
 import com.kun.pixelwords.game.BossFight;
 import com.kun.pixelwords.game.DailyArchive;
@@ -929,7 +928,7 @@ public class GameActivity extends BaseActivity {
         }
         if (solved && mode == Mode.MEGA && MegaBoard.claim(progress)) {
             Season.addXp(progress, today, MegaBoard.SEASON_XP);
-            o.prize = Reward.sticker().grant(progress, today);
+            o.prize = Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 1).grant(progress, today);
             o.megaCoins = MegaBoard.COINS;
         }
         if (mode == Mode.LIVES && solved) {
@@ -976,11 +975,9 @@ public class GameActivity extends BaseActivity {
         handler.postDelayed(() -> showResults(o), solved ? 1150 : 900);
     }
 
-    /** Drops bonus words in the jar, sticks in new stickers and banks fish. */
+    /** Drops bonus words in the jar and banks fish. */
     private void bankCollections(Outcome o, long today) {
         PiggyJar.add(progress, session.foundBonusWords().size());
-        for (String word : session.foundGridWords()) if (Album.collect(progress, word)) o.stickers++;
-        for (String word : session.foundBonusWords()) if (Album.collect(progress, word)) o.stickers++;
         o.fish = fishFound();
         if (o.fish > 0) FishHunt.add(progress, today, o.fish);
     }
@@ -989,7 +986,7 @@ public class GameActivity extends BaseActivity {
     private static final class Outcome {
         boolean solved, record, streakGrew, freezeEarned, chapterFinished, lifeBack;
         int found, bonus, hints, score, coins, levelNumber, streakBefore, mine, bot, previousBest;
-        int stickers, fish, megaCoins;
+        int fish, megaCoins;
         Reward prize;
         List<Reward> milestonePrizes = new ArrayList<>();
         List<Achievement> achievements = new ArrayList<>();
@@ -1018,7 +1015,6 @@ public class GameActivity extends BaseActivity {
         if (o.bonus > 0 && replayLevel == 0) {
             m.stat("jar", "Piggy jar", progress.jarWords + " / " + PiggyJar.CAPACITY, PixelTheme.GOLD);
         }
-        if (o.stickers > 0) m.stat("sticker", "New stickers", "+" + o.stickers, PixelTheme.SKY);
         if (o.fish > 0) m.stat("fish", "Fish caught", "+" + o.fish, PixelTheme.SKY);
         if (o.achievements.isEmpty()) return;
         m.heading("ACHIEVEMENT UNLOCKED");
