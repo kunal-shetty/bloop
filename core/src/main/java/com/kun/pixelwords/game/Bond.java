@@ -38,6 +38,11 @@ public final class Bond {
         }
     }
 
+    /**
+     * Off for now: no treats, no bond levels and no bond perks show anywhere, and the Heart Collar is locked.
+     * The code and saved bond stay, so switching this back on brings it all back.
+     */
+    public static final boolean ENABLED = false;
     public static final int MAX_LEVEL = 10;
     public static final int CHATTER_LEVEL = 2;
     public static final int FIRST_GIFT_LEVEL = 3;
