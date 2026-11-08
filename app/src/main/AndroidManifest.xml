@@ -79,17 +79,7 @@
             android:screenOrientation="portrait" />
 
         <activity
-            android:name=".ExpeditionActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
-        <activity
             android:name=".SeasonActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
-        <activity
-            android:name=".AlbumActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
 
