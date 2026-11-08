@@ -76,7 +76,7 @@ public enum Achievement {
     public boolean claim(Progress p) {
         if (!isClaimable(p)) return false;
         p.claimedAchievements |= bit();
-        p.coins += tier.coins;
+        p.addCoins(tier.coins);
         return true;
     }
 
