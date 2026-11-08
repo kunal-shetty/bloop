@@ -29,15 +29,15 @@ import java.util.Calendar;
 public final class Reminders {
 
     private static final String CHANNEL = "daily_reminder";
+    /** The channel cat trips used before they were removed. Deleted so it leaves the system settings. */
     private static final String TRIP_CHANNEL = "cat_trips";
     private static final int NOTIFICATION_ID = 1;
-    private static final int TRIP_NOTIFICATION_ID = 2;
-    private static final int TRIP_REQUEST = 1;
 
     private Reminders() {}
 
     /** Books the next reminder, or cancels it if the player has them switched off. */
     public static void schedule(Context context) {
+        if (Build.VERSION.SDK_INT >= 26) context.getSystemService(NotificationManager.class).deleteNotificationChannel(TRIP_CHANNEL);
         AlarmManager alarms = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         PendingIntent alarm = alarmIntent(context);
         if (!Settings.reminders()) {
@@ -71,45 +71,6 @@ public final class Reminders {
                 .setContentIntent(PendingIntent.getActivity(context, 0, open,
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         manager.notify(NOTIFICATION_ID, builder.build());
-    }
-
-    /** Books a nudge for when the cat gets home from a trip. */
-    public static void scheduleTripHome(Context context, long atMillis) {
-        AlarmManager alarms = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, tripIntent(context));
-    }
-
-    public static void cancelTripHome(Context context) {
-        AlarmManager alarms = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarms.cancel(tripIntent(context));
-    }
-
-    private static PendingIntent tripIntent(Context context) {
-        Intent intent = new Intent(context, ReminderReceiver.class).setAction(ReminderReceiver.ACTION_TRIP);
-        return PendingIntent.getBroadcast(context, TRIP_REQUEST, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-    }
-
-    /** Says the cat is home, unless the trip was already collected. */
-    static void postTripHome(Context context) {
-        if (!mayNotify(context) || new ProgressStore(context).load().expPlace == 0) return;
-        NotificationManager manager = context.getSystemService(NotificationManager.class);
-        Notification.Builder builder;
-        if (Build.VERSION.SDK_INT >= 26) {
-            manager.createNotificationChannel(new NotificationChannel(TRIP_CHANNEL,
-                    context.getString(R.string.trip_channel), NotificationManager.IMPORTANCE_DEFAULT));
-            builder = new Notification.Builder(context, TRIP_CHANNEL);
-        } else {
-            builder = legacyBuilder(context);
-        }
-        Intent open = new Intent(context, SplashActivity.class);
-        builder.setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(context.getString(R.string.trip_title))
-                .setContentText(context.getString(R.string.trip_text))
-                .setAutoCancel(true)
-                .setContentIntent(PendingIntent.getActivity(context, TRIP_REQUEST, open,
-                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
-        manager.notify(TRIP_NOTIFICATION_ID, builder.build());
     }
 
     /** False only on Android 13+ when the player has not allowed notifications. */
