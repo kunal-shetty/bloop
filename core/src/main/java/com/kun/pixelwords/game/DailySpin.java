@@ -48,7 +48,7 @@ public final class DailySpin {
             new Segment(Reward.powerUp(PowerUps.Kind.PICK_LETTER, 1), 100, false),
             new Segment(Reward.coins(150), 60, false),
             new Segment(Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 1), 70, false),
-            new Segment(Reward.sticker(), 40, false),
+            new Segment(Reward.hints(2), 40, false),
             new Segment(null, 10, true));
 
     private static final List<Reward> LEGENDARIES = Arrays.asList(
