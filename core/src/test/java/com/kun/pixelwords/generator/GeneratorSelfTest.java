@@ -24,6 +24,7 @@ import com.kun.pixelwords.game.Region;
 import com.kun.pixelwords.game.Reward;
 import com.kun.pixelwords.game.Season;
 import com.kun.pixelwords.game.Shop;
+import com.kun.pixelwords.game.Trophies;
 import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Purchases;
 import com.kun.pixelwords.game.Quest;
@@ -96,6 +97,7 @@ public final class GeneratorSelfTest {
         testRewards();
         testDailySpin();
         testOldSaveExtras();
+        testTrophies();
         testSeason();
         testFishHunt(gen);
         testNewSaveFields();
@@ -1021,6 +1023,22 @@ public final class GeneratorSelfTest {
             check(s.legendary || s.reward != null, "every slice has a prize");
             check(s.oddsLabel().endsWith("%"), "odds read as a percent");
         }
+    }
+
+    private static void testTrophies() {
+        Progress p = new Progress();
+        check(Trophies.count(p) == 0 && Trophies.shown(p) == -1, "no trophies before the first boss");
+        p.level = Journey.LEVELS_PER_CHAPTER;
+        check(Trophies.count(p) == 0, "being on the boss level isn't beating it");
+        p.level = Journey.LEVELS_PER_CHAPTER * 3 + 5;
+        check(Trophies.count(p) == 3 && Trophies.shown(p) == 2, "a trophy per boss, and the newest is on show");
+        Trophies.show(p, 0);
+        check(Trophies.shown(p) == 0, "an older trophy can go on show");
+        Trophies.show(p, 3);
+        check(Trophies.shown(p) == 0, "a trophy not won yet can't");
+        check(Trophies.shown(Progress.parse(p.serialize())) == 0, "the trophy on show is saved");
+        p.trophyShown = 99;
+        check(Trophies.shown(p) == 2, "a bad saved trophy falls back to the newest");
     }
 
     private static void testOldSaveExtras() {
