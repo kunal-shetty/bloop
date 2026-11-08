@@ -25,7 +25,6 @@ import com.kun.pixelwords.data.Days;
 import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.data.Settings;
 import com.kun.pixelwords.game.Achievement;
-import com.kun.pixelwords.game.Bond;
 import com.kun.pixelwords.game.CatMood;
 import com.kun.pixelwords.game.Comeback;
 import com.kun.pixelwords.game.DailySpin;
@@ -62,8 +61,6 @@ public class MainActivity extends BaseActivity {
     private static final int[] REMINDER_HOURS = {9, 13, 19, 21};
     private static final int REQUEST_NOTIFICATIONS = 1;
     /** The chest takes over four seconds at its own pace, which is too long to watch every time. */
-    private static final float JAR_CHEST_SPEED = 2f;
-    private static final long JAR_COINS_AT_MS = 900;
     private static final int MAX_CODE_LENGTH = 24;
     private static final long KEYBOARD_DELAY_MS = 250;
     private static final long CAT_SPEAKS_AFTER_MS = 900;
@@ -78,9 +75,9 @@ public class MainActivity extends BaseActivity {
     /** The cat's size on the menu. It shrinks to fit on a short screen. */
     private static final int CAT_DP = 240;
 
-    private PixelButton playBtn, bondBtn;
-    private PixelButton spinBtn, passBtn, jarBtn;
-    private TextView spinState, passState, jarState;
+    private PixelButton playBtn, modesBtn;
+    private PixelButton homeBtn, spinBtn, passBtn;
+    private TextView homeState, spinState, passState;
     private StatChip coinChip, hintChip;
     private CatView cat;
     private TextView streakText, streakSub, claimBadge, catBubble;
@@ -140,6 +137,8 @@ public class MainActivity extends BaseActivity {
         scroll.addView(column);
 
         column.addView(topBar(), matchWrap(0));
+        // Home, Spin and the Pass sit up top, over the cat's head, where they're always in view.
+        column.addView(extrasRow(), matchWrap(10));
 
         // The cat takes all the spare height, sitting just above the panels below.
         cat = new CatView(this, CAT_DP);
@@ -155,17 +154,9 @@ public class MainActivity extends BaseActivity {
         catBox.addView(catBubble, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
         catBox.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> sitBubbleOverCat(v.getHeight()));
-        bondBtn = new PixelButton(this, "", PixelTheme.ROSE, PixelTheme.INK);
-        bondBtn.setLabelSize(PixelTheme.SIZE_CAPTION);
-        bondBtn.setIcon("heart");
-        bondBtn.setIconSize(16);
-        bondBtn.setOnClickListener(v -> showBond());
-        // Top corner: the cat sits at the bottom of its box and is wide enough to reach the bottom corners.
-        catBox.addView(bondBtn, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.START));
         column.addView(catBox, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(136), 1f));
 
-        column.addView(streakAndShop(), matchWrap(8));
+        column.addView(streakPanel(), matchWrap(8));
 
         playBtn = new PixelButton(this, "PLAY", PixelTheme.GOLD, PixelTheme.INK);
         playBtn.setLabelSize(PixelTheme.SIZE_HERO);
@@ -175,7 +166,13 @@ public class MainActivity extends BaseActivity {
         playBtn.setOnClickListener(v -> onPlay());
         column.addView(playBtn, matchWrap(10));
 
-        column.addView(extrasRow(), matchWrap(10));
+        modesBtn = new PixelButton(this, "MODES", 0xFF8E7FD0, PixelTheme.INK);
+        modesBtn.setLabelSize(PixelTheme.SIZE_LABEL);
+        modesBtn.setIcon("star");
+        modesBtn.setIconSize(22);
+        modesBtn.setSubtitle("Daily, Tower, Rush, Shop + more");
+        modesBtn.setOnClickListener(v -> go(new Intent(this, PlayActivity.class)));
+        column.addView(modesBtn, matchWrap(8));
 
         contentLayer.addView(scroll, fill());
     }
@@ -219,8 +216,8 @@ public class MainActivity extends BaseActivity {
         return b;
     }
 
-    /** Streak summary on the left, the shop on the right. */
-    private View streakAndShop() {
+    /** The streak, across the width of the screen. Tap it for the details. */
+    private View streakPanel() {
         LinearLayout row = new LinearLayout(this);
 
         LinearLayout streak = new LinearLayout(this);
@@ -245,10 +242,7 @@ public class MainActivity extends BaseActivity {
         text.addView(streakText);
         text.addView(streakSub);
         streak.addView(text);
-        row.addView(streak, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1.6f));
-
-        row.addView(sideButton("SHOP", "bag", 0xFFFF9A3C, ShopActivity.class), sideParams());
-        row.addView(sideButton("HOME", "home", PixelTheme.SKY, HomeActivity.class), sideParams());
+        row.addView(streak, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         return row;
     }
 
@@ -264,20 +258,20 @@ public class MainActivity extends BaseActivity {
     }
 
     private void onPlay() {
-        go(new Intent(this, isNewPlayer() ? JourneyActivity.class : PlayActivity.class));
+        go(new Intent(this, JourneyActivity.class));
     }
 
     /** The daily extras. A badge on one means something is waiting there. */
     private View extrasRow() {
         LinearLayout row = new LinearLayout(this);
+        homeBtn = extraButton("home", PixelTheme.SKY);
+        homeBtn.setOnClickListener(v -> go(new Intent(this, HomeActivity.class)));
         spinBtn = extraButton("wheel", 0xFFC9A6FF);
         spinBtn.setOnClickListener(v -> go(new Intent(this, SpinActivity.class)));
         passBtn = extraButton("ticket", PixelTheme.ROSE);
         passBtn.setOnClickListener(v -> go(new Intent(this, SeasonActivity.class)));
-        jarBtn = extraButton("jar", PixelTheme.GOLD);
-        jarBtn.setOnClickListener(v -> showJar());
-        PixelButton[] all = {spinBtn, passBtn, jarBtn};
-        String[] names = {"SPIN", "PASS", "JAR"};
+        PixelButton[] all = {homeBtn, spinBtn, passBtn};
+        String[] names = {"HOME", "SPIN", "PASS"};
         TextView[] states = new TextView[all.length];
         for (int i = 0; i < all.length; i++) {
             LinearLayout cell = new LinearLayout(this);
@@ -295,9 +289,9 @@ public class MainActivity extends BaseActivity {
             if (i > 0) lp.leftMargin = dp(6);
             row.addView(cell, lp);
         }
-        spinState = states[0];
-        passState = states[1];
-        jarState = states[2];
+        homeState = states[0];
+        spinState = states[1];
+        passState = states[2];
         return row;
     }
 
@@ -310,11 +304,10 @@ public class MainActivity extends BaseActivity {
     }
 
     private void refreshExtras(long today) {
+        showState(homeBtn, homeState, "YOUR ROOM", false);
         showState(spinBtn, spinState, DailySpin.canSpin(progress, today) ? "READY" : "DONE", DailySpin.canSpin(progress, today));
         int passReady = Season.claimableCount(progress) + FishHunt.claimableCount(progress);
         showState(passBtn, passState, passReady > 0 ? passReady + " READY" : "TIER " + Season.tiersReached(progress), passReady > 0);
-        boolean jarReady = PiggyJar.canOpen(progress, today);
-        showState(jarBtn, jarState, jarReady ? "READY" : Math.min(progress.jarWords, PiggyJar.CAPACITY) + "/" + PiggyJar.CAPACITY, jarReady);
     }
 
     private PixelButton extraButton(String icon, int fill) {
@@ -322,60 +315,6 @@ public class MainActivity extends BaseActivity {
         b.setIcon(icon);
         b.setIconSize(24);
         return b;
-    }
-
-    private void showJar() {
-        long today = Days.today();
-        PixelBar bar = new PixelBar(this);
-        bar.setSegments(20);
-        bar.setColor(PixelTheme.GOLD);
-        bar.setValue(progress.jarWords / (float) PiggyJar.CAPACITY);
-        FrameLayout barBox = new FrameLayout(this); // the modal stretches a row's width but not its height
-        barBox.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(18)));
-        PixelModal m = new PixelModal(this).title("PIGGY JAR").icon("jar").accent(PixelTheme.GOLD)
-                .body("Every bonus word you find drops into the jar. Fill it to open it for coins.")
-                .custom(barBox)
-                .stat("sparkle", "Words", progress.jarWords + " / " + PiggyJar.CAPACITY, PixelTheme.GOLD)
-                .stat("coin", "A full jar pays", String.valueOf(PiggyJar.COINS), PixelTheme.GOLD);
-        if (PiggyJar.canOpen(progress, today)) {
-            m.primary("OPEN THE JAR", "coin", this::openJar).secondary("LATER", null);
-        } else {
-            if (PiggyJar.isFull(progress)) m.note("That's today's jars opened. It stays full until tomorrow.");
-            m.primary("OK", null);
-        }
-        m.show();
-    }
-
-    private void openJar() {
-        if (!PiggyJar.open(progress, Days.today())) return;
-        store.save(progress);
-        PlayGamesService.saveProgress(this, progress.serialize());
-        Sfx.play(Sfx.Id.BUY);
-        Haptics.celebrate();
-        int shown = coinChip.value();
-        refresh();
-        coinChip.setValue(shown); // the coins arrive with the chest, so the number waits for them
-        float x = fx.getWidth() / 2f, y = fx.getHeight() * 0.42f;
-        fx.play("pickups_chest-open", x, y, PixelTheme.dp(this, 3), JAR_CHEST_SPEED, null);
-        contentLayer.postDelayed(() -> {
-            fx.play("ui_confetti", x, y, PixelTheme.dp(this, 2.4f), null);
-            earn(jarBtn, coinChip, progress.coins);
-        }, JAR_COINS_AT_MS);
-    }
-
-    private PixelButton sideButton(String label, String icon, int fill, Class<?> screen) {
-        PixelButton b = new PixelButton(this, label, fill, PixelTheme.INK);
-        b.setLabelSize(PixelTheme.SIZE_CAPTION);
-        b.setIcon(icon);
-        b.setIconSize(20);
-        b.setOnClickListener(v -> go(new Intent(this, screen)));
-        return b;
-    }
-
-    private LinearLayout.LayoutParams sideParams() {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        p.leftMargin = dp(8);
-        return p;
     }
 
     private LinearLayout.LayoutParams matchWrap(int top) {
@@ -401,19 +340,17 @@ public class MainActivity extends BaseActivity {
         coinChip.setValue(progress.coins);
         hintChip.setValue(progress.hintTokens);
         cat.dress(progress);
-        boolean hungry = Bond.isHungry(progress, Days.today()) && Bond.canFeed(progress, Bond.Treat.KIBBLE, Days.today());
-        bondBtn.setText(hungry ? "FEED" : "LV " + Bond.level(progress));
         int ready = Achievement.claimable(progress).size() + Quest.claimable(progress).size();
         claimBadge.setText(String.valueOf(ready));
         claimBadge.setVisibility(ready > 0 ? View.VISIBLE : View.GONE);
 
-        playBtn.setSubtitle(isNewPlayer() ? "Start your journey" : "Level " + progress.level + " and every game mode");
+        playBtn.setSubtitle(isNewPlayer() ? "Start your journey" : "Journey: level " + progress.level);
 
         long today = Days.today();
         int streak = StreakLogic.displayStreak(progress.streak, today);
         boolean doneToday = progress.streak.lastDay == today;
         boolean megaReady = MegaBoard.isOpen(today) && !MegaBoard.isSolved(progress, today);
-        playBtn.setBadge(!isNewPlayer() && (!doneToday || megaReady) ? "NEW" : "");
+        modesBtn.setBadge(!isNewPlayer() && (!doneToday || megaReady) ? "NEW" : "");
 
         refreshExtras(today);
 
@@ -506,65 +443,6 @@ public class MainActivity extends BaseActivity {
         Haptics.celebrate();
         earn(cat, coinChip, progress.coins);
         hintChip.animateTo(progress.hintTokens);
-    }
-
-    private void showBond() {
-        long today = Days.today();
-        int level = Bond.level(progress);
-        PixelBar bar = new PixelBar(this);
-        bar.setSegments(20);
-        bar.setColor(PixelTheme.ROSE);
-        bar.setValue(Bond.progress(progress));
-        FrameLayout barBox = new FrameLayout(this); // the modal stretches a row's width but not its height
-        barBox.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(18)));
-        PixelModal m = new PixelModal(this).title("YOUR BOND").icon("heart").accent(PixelTheme.ROSE)
-                .body("Treats bring you and your cat closer, and every level unlocks something.")
-                .custom(barBox)
-                .stat("heart", "Bond level", level + " / " + Bond.MAX_LEVEL, PixelTheme.ROSE);
-        if (level < Bond.MAX_LEVEL) m.stat("sparkle", "To the next level", String.valueOf(Bond.xpToNext(progress)), PixelTheme.TEXT);
-        m.stat("paw", "Treats left today", Bond.treatsLeft(progress, today) + " / " + Bond.treatsPerDay(progress), PixelTheme.GOLD);
-        for (Bond.Treat treat : Bond.Treat.values()) {
-            boolean can = Bond.canFeed(progress, treat, today);
-            m.button(treat.title.toUpperCase(Locale.ROOT) + " " + treat.price, can ? PixelTheme.GOLD : PixelTheme.PANEL,
-                    can ? PixelTheme.INK : PixelTheme.TEXT_DIM, can ? treat.icon : "lock", can ? null : Sfx.Id.UI_TAP,
-                    () -> feed(treat));
-        }
-        m.heading("UNLOCKS");
-        for (Bond.Perk perk : Bond.perks()) {
-            boolean won = level >= perk.level;
-            m.stat(won ? "check" : "lock", perk.text, "LV " + perk.level, won ? PixelTheme.MINT : PixelTheme.TEXT_DIM);
-        }
-        m.secondary("CLOSE", null).show();
-    }
-
-    private void feed(Bond.Treat treat) {
-        long today = Days.today();
-        if (!Bond.canFeed(progress, treat, today)) return;
-        int levelBefore = Bond.level(progress);
-        Reward prize = Bond.feed(progress, treat, today);
-        store.save(progress);
-        PlayGamesService.saveProgress(this, progress.serialize());
-        coinChip.animateTo(progress.coins);
-        refresh();
-        Sfx.play(Sfx.Id.MEOW, 1.1f);
-        Haptics.success();
-        cat.hop();
-        for (int i = 0; i < 3; i++) cat.heart();
-        int level = Bond.level(progress);
-        if (level == levelBefore) {
-            catSays("Yum! Thank you!");
-            return;
-        }
-        Sfx.play(Sfx.Id.STREAK_UP);
-        fx.play("ui_confetti", fx.getWidth() / 2f, fx.getHeight() * 0.3f, PixelTheme.dp(this, 2.4f), null);
-        catSays("We're closer now! Bond level " + level + "!");
-        if (prize != null) {
-            new PixelModal(this).title("BOND LEVEL " + level + "!").icon("heart").accent(PixelTheme.ROSE)
-                    .body("Your cat gave you something it's been keeping safe.")
-                    .stat(prize.icon(), prize.label(), "", PixelTheme.GOLD)
-                    .primary("I LOVE YOU TOO", null)
-                    .show();
-        }
     }
 
     private void onCatPetted() {
@@ -795,7 +673,7 @@ public class MainActivity extends BaseActivity {
                 .body("Every chapter ends with a boss. Each word you find hurts it, but it fights back every few words, "
                         + "and whenever you spell something wrong.")
                 .heading("SHOP")
-                .body("Spend your coins on accessories, breeds and rooms for your cat, or on treats to raise your bond.")
+                .body("Spend your coins on accessories, breeds and rooms for your cat. You'll find the shop under Modes.")
                 .heading("EVERY DAY")
                 .body("Spin the wheel, fill the piggy jar, and climb the Season Pass.")
                 .primary("LET'S GO", null)
