@@ -122,7 +122,7 @@ public class HomeActivity extends BaseActivity {
         back.setClickSound(Sfx.Id.UI_BACK);
         back.setOnClickListener(v -> finish());
         bar.addView(back, new LinearLayout.LayoutParams(dp(46), dp(46)));
-        TextView title = PixelTheme.display(this, "CAT HOME", PixelTheme.SIZE_TITLE, PixelTheme.GOLD);
+        TextView title = PixelTheme.display(this, "HOME", PixelTheme.SIZE_TITLE, PixelTheme.GOLD);
         title.setGravity(Gravity.CENTER);
         bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         coins = new StatChip(this, "coin");
