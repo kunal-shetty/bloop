@@ -28,8 +28,20 @@ public class ItemCard extends PressableView {
         PixelTheme.styleBody(name, PixelTheme.bodyPx(context, PixelTheme.SIZE_BODY));
         name.setTextAlign(Paint.Align.CENTER);
         PixelTheme.styleDisplay(price, PixelTheme.displayPx(context, PixelTheme.SIZE_CAPTION));
-        bitmap = CatView.layer(context, "acc_" + item.key);
+        bitmap = art(context, item);
         if (bitmap != null) findArt();
+    }
+
+    /** The accessory's front layer, with its back layer underneath if it has one. */
+    private static Bitmap art(Context context, Shop.Item item) {
+        Bitmap front = CatView.layer(context, "acc_" + item.key);
+        Bitmap behind = CatView.layer(context, "acc_" + item.key + "_back");
+        if (front == null || behind == null) return front;
+        Bitmap both = Bitmap.createBitmap(front.getWidth(), front.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(both);
+        c.drawBitmap(behind, 0, 0, null);
+        c.drawBitmap(front, 0, 0, null);
+        return both;
     }
 
     /** The layer is a full 32x32 canvas; this finds the part that has the accessory on it. */
