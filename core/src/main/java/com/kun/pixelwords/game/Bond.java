@@ -41,7 +41,6 @@ public final class Bond {
     public static final int MAX_LEVEL = 10;
     public static final int CHATTER_LEVEL = 2;
     public static final int FIRST_GIFT_LEVEL = 3;
-    public static final int COVE_LEVEL = 4;
     public static final int EXTRA_TREAT_LEVEL = 5;
     public static final int SECOND_GIFT_LEVEL = 7;
     private static final int TREATS_PER_DAY = 3;
@@ -51,7 +50,6 @@ public final class Bond {
     private static final Perk[] PERKS = {
             new Perk(CHATTER_LEVEL, "Your cat has more to say"),
             new Perk(FIRST_GIFT_LEVEL, "Bigger coin gifts"),
-            new Perk(COVE_LEVEL, "Trips to Treasure Cove"),
             new Perk(EXTRA_TREAT_LEVEL, "One more treat a day"),
             new Perk(SECOND_GIFT_LEVEL, "Even bigger coin gifts"),
             new Perk(MAX_LEVEL, "The Heart Collar"),
