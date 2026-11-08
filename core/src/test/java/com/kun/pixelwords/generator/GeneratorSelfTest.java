@@ -23,7 +23,9 @@ import com.kun.pixelwords.game.RedeemCode;
 import com.kun.pixelwords.game.Region;
 import com.kun.pixelwords.game.Reward;
 import com.kun.pixelwords.game.Season;
+import com.kun.pixelwords.game.BossRush;
 import com.kun.pixelwords.game.Shop;
+import com.kun.pixelwords.game.WordTower;
 import com.kun.pixelwords.game.Trophies;
 import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.game.Purchases;
@@ -98,6 +100,8 @@ public final class GeneratorSelfTest {
         testDailySpin();
         testOldSaveExtras();
         testTrophies();
+        testWordTower(gen);
+        testBossRush(gen);
         testSeason();
         testFishHunt(gen);
         testNewSaveFields();
@@ -1023,6 +1027,58 @@ public final class GeneratorSelfTest {
             check(s.legendary || s.reward != null, "every slice has a prize");
             check(s.oddsLabel().endsWith("%"), "odds read as a percent");
         }
+    }
+
+    private static void testWordTower(LevelGenerator gen) {
+        int lastMin = 0;
+        for (int floor = 0; floor < 40; floor++) {
+            LevelGenerator.Spec spec = LevelGenerator.specForTower(floor);
+            check(spec.minWordLength >= lastMin, "tower words never get shorter: floor " + floor);
+            lastMin = spec.minWordLength;
+            for (long seed = 1; seed <= 3; seed++) {
+                Level l = gen.forTower(seed, floor);
+                check(l.placements.size() >= 3 && l.rows <= LevelGenerator.MAX_ROWS, "tower floor " + floor + " is playable");
+                for (Level.Placement w : l.placements) check(w.word.length() >= spec.minWordLength, "floor " + floor + " has no short words: " + w.word);
+            }
+            check(gen.forTower(7, floor).fingerprint() == gen.forTower(7, floor).fingerprint(), "tower floors come from the run seed");
+        }
+        check(LevelGenerator.specForTower(30).minWordLength > LevelGenerator.specForTower(0).minWordLength, "the tower gets harder");
+
+        WordTower t = new WordTower();
+        check(t.floor() == 1 && t.lives() == WordTower.LIVES, "a climb starts on floor one");
+        for (int i = 0; i < 10; i++) check(!t.boardCleared(50), "floors never give lives back");
+        check(t.floor() == 11 && t.result() == 10, "floors climbed");
+        for (int i = 0; i < WordTower.LIVES; i++) t.wrongWord();
+        check(t.isOver(), "three slips and the climb is over");
+        Progress p = new Progress();
+        check(t.finish(p) && p.bestTower == 10 && p.coins == 10 * WordTower.COINS_PER_FLOOR, "a climb pays and records its height");
+        check(Progress.parse(p.serialize()).bestTower == 10, "the best climb is saved");
+    }
+
+    private static void testBossRush(LevelGenerator gen) {
+        Progress p = new Progress();
+        p.level = Journey.LEVELS_PER_CHAPTER + 1;
+        check(!BossRush.isOpen(p), "one boss isn't a rush");
+        p.level = Journey.LEVELS_PER_CHAPTER * 5 + 1;
+        check(BossRush.isOpen(p), "the rush opens after beating enough bosses");
+        BossRush r = new BossRush(p, 42);
+        check(r.bosses() == 5, "every beaten boss is in the rush");
+        Set<Integer> seen = new HashSet<>();
+        for (int i = 0; i < r.bosses(); i++) {
+            seen.add(r.chapter());
+            check(Trophies.has(p, r.chapter()), "only beaten bosses come back");
+            Level l = gen.forRush(42, i, Journey.lastLevel(r.chapter()));
+            check(l.placements.size() >= 3, "rush board " + i + " is playable");
+            r.boardCleared(100);
+        }
+        check(seen.size() == 5, "each boss comes once before any repeats");
+        int first = new BossRush(p, 42).chapter();
+        check(r.chapter() == first, "then the order starts over");
+        for (int i = 0; i < BossRush.LIVES; i++) r.wrongWord();
+        Progress q = Progress.parse(p.serialize());
+        check(r.isOver() && r.finish(q) && q.bestRush == 5 && q.coins == 5 * BossRush.COINS_PER_BOSS, "a rush records bosses beaten");
+        Progress merged = Progress.merge(p, q);
+        check(merged.bestRush == 5, "the best rush survives a merge");
     }
 
     private static void testTrophies() {
