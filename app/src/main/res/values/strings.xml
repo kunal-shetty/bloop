@@ -13,8 +13,8 @@
     <string name="admob_rewarded_unit" translatable="false">ca-app-pub-3940256099942544/5224354917</string>
     <string name="admob_interstitial_unit" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
 
-    <string name="leaderboard_daily" translatable="false">REPLACE_ME</string>
-    <string name="leaderboard_timed" translatable="false">REPLACE_ME</string>
+    <string name="leaderboard_daily" translatable="false">CgkI7vPumYkREAIQAQ</string>
+    <string name="leaderboard_timed" translatable="false">CgkI7vPumYkREAIQAg</string>
     <string name="leaderboard_duel" translatable="false">REPLACE_ME</string>
     <string name="leaderboard_lives" translatable="false">REPLACE_ME</string>
     <string name="leaderboard_tower" translatable="false">REPLACE_ME</string>
