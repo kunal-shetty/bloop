@@ -54,7 +54,11 @@ public class TrophiesActivity extends PageActivity {
             if (i % COLUMNS > 0) lp.leftMargin = dp(GAP_DP);
             row.addView(card(chapter), lp);
         }
-        if (count % COLUMNS != 0) row.addView(new LinearLayout(this), new LinearLayout.LayoutParams(0, 1, 1f));
+        if (count % COLUMNS != 0) {
+            LinearLayout.LayoutParams empty = new LinearLayout.LayoutParams(0, 1, 1f);
+            empty.leftMargin = dp(GAP_DP); // the same gap as a real card, so the last card isn't wider
+            row.addView(new LinearLayout(this), empty);
+        }
         String hint = count == 0
                 ? "Every chapter of the Journey ends with a boss. Beat one to win its trophy."
                 : "Beat the boss of chapter " + (count + 1) + " for your next trophy. Tap a trophy to put it in your cat's room.";
