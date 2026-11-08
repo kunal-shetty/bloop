@@ -7,10 +7,13 @@ import android.widget.LinearLayout;
 
 import com.kun.pixelwords.audio.Sfx;
 import com.kun.pixelwords.data.Days;
+import com.kun.pixelwords.game.BossRush;
 import com.kun.pixelwords.game.DailyArchive;
 import com.kun.pixelwords.game.Journey;
 import com.kun.pixelwords.game.MegaBoard;
 import com.kun.pixelwords.game.StreakLogic;
+import com.kun.pixelwords.game.Trophies;
+import com.kun.pixelwords.game.WordTower;
 import com.kun.pixelwords.services.PlayGamesService;
 import com.kun.pixelwords.ui.AmbientView;
 import com.kun.pixelwords.ui.ModeCard;
@@ -27,7 +30,7 @@ public class PlayActivity extends PageActivity {
     private static final int SOLVED_FILL = 0xFF4FB488;
 
     private PixelButton journey;
-    private ModeCard dailyCard, archiveCard, timedCard, duelCard, livesCard, megaCard;
+    private ModeCard dailyCard, archiveCard, timedCard, duelCard, livesCard, megaCard, towerCard, rushCard;
 
     @Override
     protected String pageTitle() {
@@ -60,12 +63,18 @@ public class PlayActivity extends PageActivity {
         duelCard = new ModeCard(this, "swords", "DUEL", PixelTheme.ROSE);
         duelCard.setOnClickListener(v -> onDuel());
 
+        towerCard = new ModeCard(this, "tower", "TOWER", 0xFF8E7FD0);
+        towerCard.setOnClickListener(v -> onTower());
+        rushCard = new ModeCard(this, "swords", "RUSH", 0xFFFF6B8B);
+        rushCard.setOnClickListener(v -> onRush());
+
         archiveCard = new ModeCard(this, "book", "PAST", 0xFFC9A6FF);
         archiveCard.setOnClickListener(v -> go(new Intent(this, ArchiveActivity.class)));
 
         list.addView(cardRow(dailyCard, archiveCard), matchWrap(10));
         list.addView(cardRow(timedCard, livesCard), matchWrap(10));
         list.addView(cardRow(megaCard, duelCard), matchWrap(10));
+        list.addView(cardRow(towerCard, rushCard), matchWrap(10));
     }
 
     @Override
@@ -109,6 +118,11 @@ public class PlayActivity extends PageActivity {
         megaCard.setClosed(!megaReady && !megaSolved);
         megaCard.setFill(megaSolved ? SOLVED_FILL : PixelTheme.GOLD);
         duelCard.setStatus(progress.duelsPlayed > 0 ? MainActivity.wins(progress.duelWins) : "Beat the bot");
+        towerCard.setStatus(progress.bestTower > 0 ? "Best: floor " + progress.bestTower : "Climb high!");
+        boolean rushOpen = BossRush.isOpen(progress);
+        rushCard.setClosed(!rushOpen);
+        rushCard.setStatus(!rushOpen ? "Beat " + BossRush.BOSSES_TO_OPEN + " bosses"
+                : progress.bestRush > 0 ? "Best " + progress.bestRush : "Rematch!");
     }
 
     private static String days(int n) {
@@ -150,6 +164,39 @@ public class PlayActivity extends PageActivity {
                 .show();
     }
 
+    private void onTower() {
+        new PixelModal(this).title("WORD TOWER").icon("tower").accent(0xFF8E7FD0)
+                .body("Climb floor by floor. Every two floors the words get longer, so short words stop counting. "
+                        + "Three wrong words and you fall.")
+                .stat("heart", "Lives", String.valueOf(WordTower.LIVES), PixelTheme.ROSE)
+                .stat("coin", "Per floor", "+" + WordTower.COINS_PER_FLOOR, PixelTheme.GOLD)
+                .stat("trophy", "Highest floor", progress.bestTower > 0 ? String.valueOf(progress.bestTower) : "-", PixelTheme.TEXT)
+                .primary("CLIMB", "play", () -> launch(GameActivity.Mode.TOWER))
+                .secondary("NOT NOW", null)
+                .show();
+    }
+
+    private void onRush() {
+        if (!BossRush.isOpen(progress)) {
+            new PixelModal(this).title("BOSS RUSH").icon("lock").accent(PixelTheme.ROSE)
+                    .body("Beat " + BossRush.BOSSES_TO_OPEN + " bosses in the Journey to open Boss Rush, then fight them all again back to back.")
+                    .stat("swords", "Bosses beaten", Trophies.count(progress) + " / " + BossRush.BOSSES_TO_OPEN, PixelTheme.ROSE)
+                    .primary("OK", null)
+                    .show();
+            return;
+        }
+        new PixelModal(this).title("BOSS RUSH").icon("swords").accent(PixelTheme.ROSE)
+                .body("Every boss you've beaten, back to back, on one set of lives. They still fight back, "
+                        + "and a wrong word costs a life as well.")
+                .stat("swords", "Bosses", String.valueOf(Trophies.count(progress)), PixelTheme.ROSE)
+                .stat("heart", "Lives", String.valueOf(BossRush.LIVES), PixelTheme.ROSE)
+                .stat("coin", "Per boss", "+" + BossRush.COINS_PER_BOSS, PixelTheme.GOLD)
+                .stat("trophy", "Most in one rush", progress.bestRush > 0 ? String.valueOf(progress.bestRush) : "-", PixelTheme.TEXT)
+                .primary("FIGHT", "swords", () -> launch(GameActivity.Mode.RUSH))
+                .secondary("NOT NOW", null)
+                .show();
+    }
+
     private void onMega() {
         long today = Days.today();
         if (MegaBoard.isSolved(progress, today)) {
@@ -185,7 +232,7 @@ public class PlayActivity extends PageActivity {
 
     private void onLeaderboard() {
         if (PlayGamesService.isConfigured(this) && PlayGamesService.hasLeaderboards(this)) {
-            PlayGamesService.showLeaderboard(this, getString(R.string.leaderboard_daily));
+            PlayGamesService.showAllLeaderboards(this);
             return;
         }
         new PixelModal(this).title("RANKS").icon("trophy").accent(0xFFC9A6FF)
@@ -194,6 +241,8 @@ public class PlayActivity extends PageActivity {
                 .stat("clock", "Timed score", progress.bestTimed > 0 ? String.valueOf(progress.bestTimed) : "-", PixelTheme.GOLD)
                 .stat("heart", "Nine Lives", progress.bestLives > 0 ? String.valueOf(progress.bestLives) : "-", PixelTheme.ROSE)
                 .stat("swords", "Duels won", String.valueOf(progress.duelWins), PixelTheme.ROSE)
+                .stat("tower", "Highest floor", progress.bestTower > 0 ? String.valueOf(progress.bestTower) : "-", 0xFF8E7FD0)
+                .stat("swords", "Best boss rush", progress.bestRush > 0 ? String.valueOf(progress.bestRush) : "-", PixelTheme.ROSE)
                 .stat("flame", "Best streak", days(progress.streak.best), PixelTheme.ROSE)
                 .stat("book", "Words found", String.valueOf(progress.totalWordsFound), PixelTheme.MINT)
                 .primary("GOT IT", null)
