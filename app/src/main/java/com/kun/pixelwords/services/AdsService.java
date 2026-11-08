@@ -41,8 +41,8 @@ public final class AdsService {
     private boolean loadingRewarded;
     private InterstitialAd interstitial;
     private boolean loadingInterstitial;
-    private int levelsSinceBreak;
-    private long lastBreakAt = -AdPolicy.MIN_MILLIS_BETWEEN_AD_BREAKS;
+    private int winsSinceBreak;
+    private long lastVideoAt = -AdPolicy.REWARDED_GRACE_MILLIS;
 
     public static synchronized AdsService get(Context context) {
         if (instance == null) instance = new AdsService(context.getApplicationContext());
@@ -137,7 +137,10 @@ public final class AdsService {
                 load();
             }
         });
-        ad.show(activity, item -> onReward.run());
+        ad.show(activity, item -> {
+            lastVideoAt = SystemClock.elapsedRealtime();
+            onReward.run();
+        });
     }
 
     /**
@@ -145,17 +148,16 @@ public final class AdsService {
      * break if one is due. A break that isn't ready is skipped, so the player never waits for an ad.
      */
     public void betweenLevels(Activity activity, Progress progress, final Runnable next) {
-        levelsSinceBreak++;
-        long sinceBreak = SystemClock.elapsedRealtime() - lastBreakAt;
+        winsSinceBreak++;
+        long sinceVideo = SystemClock.elapsedRealtime() - lastVideoAt;
         final InterstitialAd ad = interstitial;
-        if (ad == null || !AdPolicy.adBreakDue(progress, levelsSinceBreak, sinceBreak)) {
+        if (ad == null || !AdPolicy.adBreakDue(progress, winsSinceBreak, sinceVideo)) {
             loadInterstitial();
             next.run();
             return;
         }
         interstitial = null;
-        levelsSinceBreak = 0;
-        lastBreakAt = SystemClock.elapsedRealtime();
+        winsSinceBreak = 0;
         ad.setFullScreenContentCallback(new FullScreenContentCallback() {
             @Override public void onAdDismissedFullScreenContent() {
                 loadInterstitial();
