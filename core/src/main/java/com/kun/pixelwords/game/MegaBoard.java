@@ -46,7 +46,7 @@ public final class MegaBoard {
     public static boolean claim(Progress p) {
         if (p.megaSolvedWeek == p.megaWeek) return false;
         p.megaSolvedWeek = p.megaWeek;
-        p.coins += COINS;
+        p.addCoins(COINS);
         return true;
     }
 }
