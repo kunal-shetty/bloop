@@ -25,6 +25,7 @@ import java.util.Random;
 /**
  * The cat: stacks the 32x32 art layers from assets/cat (see tools/gen_cat.py) at a whole-number scale.
  * It breathes, wags, blinks and looks around on its own; tap it for a hop, a mew and some hearts.
+ * An accessory with an _f1 layer moves, swapping between its two frames.
  */
 public class CatView extends View {
 
@@ -37,6 +38,7 @@ public class CatView extends View {
     private static final long WINCE_MS = 650;
     private static final long STARTLE_MS = 900;
     private static final long FLINCH_STEP_MS = 60;
+    private static final long ACCESSORY_FRAME_MS = 420;
     private static final Map<String, Bitmap> CACHE = new HashMap<>();
 
     private static final class Heart {
@@ -53,7 +55,7 @@ public class CatView extends View {
     private final float wantDp;
 
     private final Paint snore = new Paint();
-    private Shop.Item head, face, neck;
+    private Shop.Item head, face, neck, back;
     private String coat = "";
     private long nextBlink, blinkUntil, hopAt, happyUntil, lastMew, lastPet, winceUntil, wideUntil;
     private boolean cheering, naps, gift, worried;
@@ -75,6 +77,7 @@ public class CatView extends View {
         head = Shop.wearing(p, Shop.Slot.HEAD);
         face = Shop.wearing(p, Shop.Slot.FACE);
         neck = Shop.wearing(p, Shop.Slot.NECK);
+        back = Shop.wearing(p, Shop.Slot.BACK);
         tryOn(Shop.breed(p));
     }
 
@@ -88,7 +91,8 @@ public class CatView extends View {
     public void tryOn(Shop.Item item) {
         if (item.slot == Shop.Slot.HEAD) head = item;
         else if (item.slot == Shop.Slot.FACE) face = item;
-        else neck = item;
+        else if (item.slot == Shop.Slot.NECK) neck = item;
+        else back = item;
         invalidate();
     }
 
@@ -176,15 +180,16 @@ public class CatView extends View {
         c.drawText("z", left + size * (0.72f + k * 0.12f), top + size * (0.3f - k * 0.2f), snore);
     }
 
+    /** A layer of cat art, or null if there is no such file. Misses are cached too, as this runs every frame. */
     static Bitmap layer(Context c, String name) {
-        Bitmap b = CACHE.get(name);
-        if (b != null) return b;
+        if (CACHE.containsKey(name)) return CACHE.get(name);
+        Bitmap b;
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inScaled = false;
         try (InputStream in = c.getAssets().open("cat/" + name + ".png")) {
             b = BitmapFactory.decodeStream(in, null, o);
         } catch (IOException e) {
-            return null;
+            b = null;
         }
         CACHE.put(name, b);
         return b;
@@ -201,8 +206,12 @@ public class CatView extends View {
         if (b != null) c.drawBitmap(b, src, dst, paint);
     }
 
-    private void wear(Canvas c, Shop.Item item) {
-        if (item != null) draw(c, "acc_" + item.key);
+    /** Draws one layer of an accessory, on its second frame half the time if it has one. */
+    private void wear(Canvas c, Shop.Item item, String part, long now) {
+        if (item == null) return;
+        String name = "acc_" + item.key + part;
+        boolean second = !PixelTheme.reduceMotion() && (now / ACCESSORY_FRAME_MS) % 2 == 1;
+        draw(c, second && layer(getContext(), name + "_f1") != null ? name + "_f1" : name);
     }
 
     @Override
@@ -241,13 +250,15 @@ public class CatView extends View {
         boolean happy = now < happyUntil;
         boolean wide = worried || now < wideUntil;
         boolean asleep = naps && !happy && !wide && now - lastPet > NAP_AFTER_MS;
+        wear(c, back, "_back", now);
         draw(c, "tail_" + (happy ? (now / 90) % 3 : (now / 340) % 3) + coat);
         draw(c, "body" + coat);
         draw(c, wincing ? "eyes_wince" : happy ? "eyes_happy" : wide ? "eyes_wide"
                 : asleep || now < blinkUntil ? "eyes_closed" : "eyes_open");
-        wear(c, neck);
-        wear(c, face);
-        wear(c, head);
+        wear(c, back, "", now);
+        wear(c, neck, "", now);
+        wear(c, face, "", now);
+        wear(c, head, "", now);
         if (asleep) drawSnore(c, now, left, top - lift, size);
         if (gift) {
             float coin = scale * 9f;
