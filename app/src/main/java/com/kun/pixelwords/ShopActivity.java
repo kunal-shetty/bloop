@@ -123,9 +123,9 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(0, dp(4), 0, dp(16));
         TabBar tabs = new TabBar(this);
-        addBreeds(tabs.add("BREEDS", list));
+        addBreeds(tabs.add("CATS", list));
         addRows(tabs.add("HATS", list), Shop.itemsIn(Shop.Slot.HEAD));
-        addRows(tabs.add("GLASSES", list), Shop.itemsIn(Shop.Slot.FACE));
+        addRows(tabs.add("FACE", list), Shop.itemsIn(Shop.Slot.FACE));
         addRows(tabs.add("NECK", list), Shop.itemsIn(Shop.Slot.NECK));
         addRows(tabs.add("BACK", list), Shop.itemsIn(Shop.Slot.BACK));
         if (Features.MONETIZATION) addStore(tabs.add("COINS", list));
