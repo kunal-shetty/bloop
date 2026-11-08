@@ -160,8 +160,9 @@ public class MainActivity extends BaseActivity {
         bondBtn.setIcon("heart");
         bondBtn.setIconSize(16);
         bondBtn.setOnClickListener(v -> showBond());
+        // Top corner: the cat sits at the bottom of its box and is wide enough to reach the bottom corners.
         catBox.addView(bondBtn, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START));
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.START));
         column.addView(catBox, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(136), 1f));
 
         column.addView(streakAndShop(), matchWrap(8));
