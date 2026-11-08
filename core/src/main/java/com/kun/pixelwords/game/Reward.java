@@ -77,7 +77,7 @@ public final class Reward {
     public Reward grant(Progress p, long seed) {
         switch (kind) {
             case COINS:
-                p.coins += amount;
+                p.addCoins(amount);
                 return this;
             case HINTS:
                 p.hintTokens += amount;
@@ -95,7 +95,7 @@ public final class Reward {
     }
 
     private static Reward duplicate(Progress p) {
-        p.coins += DUPLICATE_COINS;
+        p.addCoins(DUPLICATE_COINS);
         return coins(DUPLICATE_COINS);
     }
 }
