@@ -1157,7 +1157,10 @@ public final class GeneratorSelfTest {
         Season.addXp(p, day, Season.XP_PER_TIER * 100);
         check(Season.tiersReached(p) == Season.TIERS, "tiers stop at the top");
         Season.rollOver(p, first + 31);
-        check(Shop.owns(p, Shop.Item.ICE_CROWN) && Home.owns(p, Home.Item.WINDOW_AURORA), "unclaimed rewards are paid when a season ends");
+        check(!Shop.owns(p, Shop.Item.ICE_CROWN) && !Home.owns(p, Home.Item.WINDOW_AURORA), "season exclusives stay locked");
+        check(p.coins >= 500, "unclaimed rewards are paid when a season ends");
+        check(Shop.Item.ICE_CROWN.source.locked() && Shop.Item.HEART_COLLAR.source.locked() && !Shop.Item.GALAXY_CROWN.source.locked(),
+                "season and bond prizes are locked, spin prizes aren't");
         check(p.seasonId == 2 && p.seasonXp == 0 && !p.seasonPremium && p.seasonClaimedFree == 0, "the next season starts clean");
 
         Progress a = new Progress(), b = new Progress();
