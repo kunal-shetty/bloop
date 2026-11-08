@@ -18,6 +18,7 @@ import com.kun.pixelwords.audio.Haptics;
 import com.kun.pixelwords.audio.Sfx;
 import com.kun.pixelwords.data.ProgressStore;
 import com.kun.pixelwords.game.Home;
+import com.kun.pixelwords.game.Season;
 import com.kun.pixelwords.game.Progress;
 import com.kun.pixelwords.services.PhotoProvider;
 import com.kun.pixelwords.services.PlayGamesService;
@@ -347,7 +348,7 @@ public class HomeActivity extends BaseActivity {
     private void confirmBuy(Home.Item item) {
         if (!Home.forSale(item)) {
             new PixelModal(this).title(item.title.toUpperCase(Locale.ROOT)).icon("sparkle").accent(PixelTheme.SKY)
-                    .note("A Season Pass reward.")
+                    .note(Season.EXCLUSIVES_LOCKED ? "Locked for now. A new way to earn it is coming." : "A Season Pass reward.")
                     .primary("OK", null)
                     .show();
             return;
