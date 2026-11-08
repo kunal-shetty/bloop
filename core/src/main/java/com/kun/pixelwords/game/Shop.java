@@ -152,13 +152,20 @@ public final class Shop {
 
     /** Where something comes from. Only {@link #COINS} things can be bought. */
     public enum Source {
-        COINS(""), SPIN("Won on the Daily Spin"), SEASON("A Season Pass reward"),
-        EVENT("A Fish Hunt reward"), BOND("Reach bond level " + Bond.MAX_LEVEL + " with your cat");
+        COINS(""), SPIN("Won on the Daily Spin"),
+        SEASON(Season.EXCLUSIVES_LOCKED ? "Locked for now. A new way to earn it is coming" : "A Season Pass reward"),
+        EVENT("A Fish Hunt reward"),
+        BOND(Bond.ENABLED ? "Reach bond level " + Bond.MAX_LEVEL + " with your cat" : "Locked for now. A new way to earn it is coming");
 
         public final String how;
 
         Source(String how) {
             this.how = how;
+        }
+
+        /** No way to earn it at the moment. */
+        public boolean locked() {
+            return this == SEASON && Season.EXCLUSIVES_LOCKED || this == BOND && !Bond.ENABLED;
         }
     }
 
