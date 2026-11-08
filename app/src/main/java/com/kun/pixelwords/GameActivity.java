@@ -173,7 +173,7 @@ public class GameActivity extends BaseActivity {
         progress = store.load();
         buildUi();
         fx.playCover("transitions_star-iris", IRIS_OPEN_FRAME, null);
-        fx.preload("pickups_collect-burst", "ui_confetti", "ui_quest-complete", "pickups_coin-spin", "ui_achievement",
+        fx.preload("pickups_collect-burst", "pickups_chest-open", "ui_confetti", "ui_quest-complete", "pickups_coin-spin", "ui_achievement",
                 "ui_combo-counter", "ui_countdown");
         AdsService.get(this).load(); // start loading a rewarded ad early
         GameEngine.get().whenReady(this::startRound);
@@ -1028,13 +1028,15 @@ public class GameActivity extends BaseActivity {
     /** Drops bonus words in the jar and banks fish. */
     private void bankCollections(Outcome o, long today) {
         PiggyJar.add(progress, session.foundBonusWords().size());
+        // A full jar opens right here, so nobody has to leave the level to collect it.
+        o.jarOpened = PiggyJar.canOpen(progress, today) && PiggyJar.open(progress, today);
         o.fish = fishFound();
         if (o.fish > 0) FishHunt.add(progress, today, o.fish);
     }
 
     /** What happened in the round, gathered for the results modal. */
     private static final class Outcome {
-        boolean solved, record, streakGrew, freezeEarned, chapterFinished, lifeBack, trophy;
+        boolean solved, record, streakGrew, freezeEarned, chapterFinished, lifeBack, trophy, jarOpened;
         int found, bonus, hints, score, coins, levelNumber, streakBefore, mine, bot, previousBest;
         int fish, megaCoins;
         Reward prize;
@@ -1063,7 +1065,14 @@ public class GameActivity extends BaseActivity {
             m.heading("STREAK MILESTONE!");
             for (Reward r : o.milestonePrizes) m.stat(r.icon(), r.label(), "", PixelTheme.GOLD);
         }
-        if (o.bonus > 0 && replayLevel == 0) {
+        if (o.jarOpened) {
+            m.countStat("jar", "Piggy jar opened!", "+", PiggyJar.COINS, PixelTheme.GOLD);
+            handler.postDelayed(() -> {
+                fx.play("pickups_chest-open", fx.getWidth() / 2f, fx.getHeight() * 0.3f, PixelTheme.dp(this, 3), null);
+                Sfx.play(Sfx.Id.BUY);
+                Haptics.celebrate();
+            }, 500);
+        } else if (o.bonus > 0 && replayLevel == 0) {
             m.stat("jar", "Piggy jar", progress.jarWords + " / " + PiggyJar.CAPACITY, PixelTheme.GOLD);
         }
         if (o.fish > 0) m.stat("fish", "Fish caught", "+" + o.fish, PixelTheme.SKY);
