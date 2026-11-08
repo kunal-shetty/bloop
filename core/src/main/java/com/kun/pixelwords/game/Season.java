@@ -103,6 +103,12 @@ public final class Season {
         return tiersReached(p) >= TIERS ? XP_PER_TIER : p.seasonXp % XP_PER_TIER;
     }
 
+    /**
+     * The season's exclusive accessory, furniture and the Galaxy Cat are locked for now: the premium
+     * track pays coins and power-ups in their place until a new way of earning them is added.
+     */
+    public static final boolean EXCLUSIVES_LOCKED = true;
+
     /** The reward on a track at a tier. */
     public static Reward reward(long season, int tier, boolean premium) {
         return premium ? premiumReward(theme(season), season, tier) : freeReward(tier);
@@ -117,9 +123,9 @@ public final class Season {
     }
 
     private static Reward premiumReward(Theme theme, long season, int tier) {
-        if (tier == TIERS) return Reward.item(theme.accessory);
-        if (tier == 20) return Reward.furniture(theme.furniture);
-        if (tier == 25 && theme == Theme.STARLIGHT) return Reward.breed(Shop.Breed.GALAXY);
+        if (tier == TIERS) return EXCLUSIVES_LOCKED ? Reward.coins(500) : Reward.item(theme.accessory);
+        if (tier == 20) return EXCLUSIVES_LOCKED ? Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 3) : Reward.furniture(theme.furniture);
+        if (tier == 25 && theme == Theme.STARLIGHT && !EXCLUSIVES_LOCKED) return Reward.breed(Shop.Breed.GALAXY);
         if (tier == 10) return Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 2);
         if (tier % 5 == 0) return Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 1);
         if (tier % 3 == 0) return Reward.powerUp(PowerUps.Kind.PICK_LETTER, 1);
