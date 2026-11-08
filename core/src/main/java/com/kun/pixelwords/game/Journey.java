@@ -101,7 +101,7 @@ public final class Journey {
     /** Pays for every finished chapter not yet rewarded, and returns how many that was. */
     public static int payChapterRewards(Progress p) {
         int owed = chaptersToReward(p);
-        p.coins += owed * Scoring.COINS_PER_CHAPTER;
+        p.addCoins(owed * Scoring.COINS_PER_CHAPTER);
         p.hintTokens += owed * Scoring.HINTS_PER_CHAPTER;
         p.chaptersRewarded += owed;
         return owed;
