@@ -100,6 +100,7 @@ public final class GeneratorSelfTest {
         testDailySpin();
         testOldSaveExtras();
         testTrophies();
+        testCoinCap();
         testWordTower(gen);
         testBossRush(gen);
         testSeason();
@@ -1079,6 +1080,20 @@ public final class GeneratorSelfTest {
         check(r.isOver() && r.finish(q) && q.bestRush == 5 && q.coins == 5 * BossRush.COINS_PER_BOSS, "a rush records bosses beaten");
         Progress merged = Progress.merge(p, q);
         check(merged.bestRush == 5, "the best rush survives a merge");
+    }
+
+    private static void testCoinCap() {
+        Progress p = new Progress();
+        p.coins = Progress.MAX_COINS - 10;
+        p.addCoins(500);
+        check(p.coins == Progress.MAX_COINS, "coins stop at the cap");
+        Reward.coins(1000).grant(p, 1);
+        check(p.coins == Progress.MAX_COINS, "rewards can't pass the cap");
+        p.addCoins(-99);
+        check(p.coins == Progress.MAX_COINS - 99, "spending still works at the cap");
+        check(Progress.parse("coins=1000424\n").coins == Progress.MAX_COINS, "a save over the cap loads at the cap");
+        p.coins = 2_000_000;
+        check(Progress.parse(p.serialize()).coins == Progress.MAX_COINS, "and never saves over it");
     }
 
     private static void testTrophies() {
