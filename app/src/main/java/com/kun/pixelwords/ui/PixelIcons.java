@@ -291,6 +291,19 @@ public final class PixelIcons {
                 ".kgkk...kgk.",
                 "..kgk..kgk..",
                 "kkk.k..k.kkk"});
+        ART.put("tower", new String[]{
+                "............",
+                "..kk.kk.kk..",
+                "..kddddddk..",
+                "..kddddddk..",
+                "..kddkkddk..",
+                "..kddkkddk..",
+                "..kddddddk..",
+                "..kqqddqqk..",
+                "..kddkkddk..",
+                "..kddkkddk..",
+                ".kkkkkkkkkk.",
+                "............"});
         ART.put("trophy", new String[]{
                 ".kkkkkkkkkk.",
                 "kkygggggookk",
