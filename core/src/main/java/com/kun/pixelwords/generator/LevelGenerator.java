@@ -28,7 +28,20 @@ public final class LevelGenerator {
     private static final int TOWER_MAX_WORDS = 6;
     private static final int MAX_WHEEL_LETTERS = 8;
     /** Few wheels spell more long common words than this, and chasing more wastes every generation attempt. */
-    private static final int MAX_HARD_WORDS = 9;
+    /** Levels in a Journey chapter; matches Journey.LEVELS_PER_CHAPTER. */
+    public static final int CHAPTER_LEVELS = 20;
+    /**
+     * Each chapter climbs from easy to hard. By slot (1 = first level, 20 = boss): wheel letters and
+     * words in the grid. Three quick levels open it, then 6 letters, then 7, then 8 near the boss, with
+     * the word count growing faster and faster.
+     */
+    private static final int[] CHAPTER_LETTERS = {4, 4, 5, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8};
+    private static final int[] CHAPTER_WORDS = {3, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 13, 13, 14};
+    /** The first chapters stop short of the full climb, so new players aren't thrown at 8-letter boards. */
+    private static final int[] FIRST_CHAPTER_MAX_LETTERS = {6, 7};
+    private static final int[] FIRST_CHAPTER_MAX_WORDS = {8, 12};
+    /** More than this from 8 letters can take a phone seconds to lay out, so hard levels stop here. */
+    private static final int MAX_WORDS = 14;
 
     public static final int MAX_ROWS = 10;
     public static final int MAX_COLS = 10;
@@ -150,23 +163,28 @@ public final class LevelGenerator {
     }
 
     /**
-     * Difficulty curve for generated campaign levels (levelNumber is 1-based, >= 4 in practice).
-     * Word length, word count and grid size all climb slowly, one step at a time.
+     * Difficulty for a generated campaign level (levelNumber is 1-based, >= 4 in practice). It starts
+     * easy at the beginning of every chapter and climbs steeply towards the boss; see CHAPTER_LETTERS.
      */
     public static Spec specForLevel(int n) {
-        if (n <= 15) return new Spec(4, 3 + (n - 4) / 4, 6);                 // 4 letters, 3..5 words, 6x6
-        if (n <= 45) return new Spec(5, 4 + (n - 16) / 8, 7);                // 5 letters, 4..7 words, 7x7
-        if (n <= 95) return new Spec(6, 6 + (n - 46) / 12, 8);               // 6 letters, 6..10 words, 8x8
-        if (n <= 170) return new Spec(7, 8 + (n - 96) / 15, 9);              // 7 letters, 8..12 words, 9x9
-        return new Spec(8, Math.min(16, 10 + (n - 171) / 25), 10);           // 8 letters, 10..16 words, 10x10
+        int chapter = (n - 1) / CHAPTER_LEVELS, slot = (n - 1) % CHAPTER_LEVELS;
+        int letters = CHAPTER_LETTERS[slot], words = CHAPTER_WORDS[slot];
+        if (chapter < FIRST_CHAPTER_MAX_LETTERS.length) {
+            letters = Math.min(letters, FIRST_CHAPTER_MAX_LETTERS[chapter]);
+            words = Math.min(words, FIRST_CHAPTER_MAX_WORDS[chapter]);
+        }
+        int grid = Math.min(MAX_ROWS, words >= 12 ? MAX_ROWS : letters + 2);
+        return new Spec(letters, words, grid);
     }
 
     /** One step past the normal curve at this level, so a hard level is tough but never out of reach. */
     public static Spec specForHard(int n) {
         Spec base = specForLevel(n);
         int letters = Math.min(MAX_WHEEL_LETTERS, base.letterCount + 1);
-        int words = Math.min(base.targetWords + 2, MAX_HARD_WORDS);
-        return new Spec(letters, words, Math.min(MAX_ROWS, base.maxGrid + 1), letters >= 7 ? 5 : 4);
+        int words = Math.min(base.targetWords + 2, MAX_WORDS);
+        // Long words only where the wheel can still make enough of them.
+        int shortest = letters >= 7 && words <= 10 ? 5 : 4;
+        return new Spec(letters, words, Math.min(MAX_ROWS, base.maxGrid + 1), shortest);
     }
 
     // ---------------------------------------------------------------- core
