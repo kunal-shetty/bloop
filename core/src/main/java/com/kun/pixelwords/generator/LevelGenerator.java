@@ -20,6 +20,12 @@ public final class LevelGenerator {
     private static final long HARD_SALT = 0x5057_4841_5244_0003L;
     private static final long MEGA_SALT = 0x5057_4D45_4741_0004L;
     private static final long LIVES_SALT = 0x5057_4C49_5645_0005L;
+    private static final long TOWER_SALT = 0x5057_544F_5752_0006L;
+    private static final long RUSH_SALT = 0x5057_5255_5348_0007L;
+    /** The Word Tower's steps, two floors each: wheel letters, words, shortest word. The last repeats, growing. */
+    private static final int[][] TOWER_STEPS = {
+            {4, 3, 3}, {5, 4, 3}, {5, 3, 4}, {6, 4, 4}, {6, 3, 5}, {7, 4, 5}, {8, 3, 5}};
+    private static final int TOWER_MAX_WORDS = 6;
     private static final int MAX_WHEEL_LETTERS = 8;
     /** Few wheels spell more long common words than this, and chasing more wastes every generation attempt. */
     private static final int MAX_HARD_WORDS = 9;
@@ -120,6 +126,27 @@ public final class LevelGenerator {
         int grid = Math.min(MAX_ROWS, 6 + depth / 3);
         long seed = SeedUtil.mix(SeedUtil.mix(LIVES_SALT, runSeed), depth);
         return generate("L" + depth, Level.Kind.LIVES, seed, new Spec(letters, words, grid));
+    }
+
+    /** A floor of the Word Tower. {@code floor} counts from 0. */
+    public Level forTower(long runSeed, int floor) {
+        long seed = SeedUtil.mix(SeedUtil.mix(TOWER_SALT, runSeed), floor);
+        return generate("T" + floor, Level.Kind.TOWER, seed, specForTower(floor));
+    }
+
+    /** The words get longer every two floors, and the top step keeps adding words. */
+    public static Spec specForTower(int floor) {
+        int step = Math.max(0, floor) / 2;
+        int[] s = TOWER_STEPS[Math.min(step, TOWER_STEPS.length - 1)];
+        int extra = Math.max(0, step - (TOWER_STEPS.length - 1)) / 2;
+        int letters = s[0];
+        return new Spec(letters, Math.min(TOWER_MAX_WORDS, s[1] + extra), Math.min(MAX_ROWS, letters + 2), s[2]);
+    }
+
+    /** A board in Boss Rush: as hard as the boss's own level, but a fresh board each round. */
+    public Level forRush(long runSeed, int round, int bossLevel) {
+        long seed = SeedUtil.mix(SeedUtil.mix(RUSH_SALT, runSeed), round);
+        return generate("R" + round, Level.Kind.RUSH, seed, specForHard(Math.max(FixedLevels.COUNT + 1, bossLevel)));
     }
 
     /**
