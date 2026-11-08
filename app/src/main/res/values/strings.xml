@@ -3,9 +3,6 @@
     <string name="app_name">Bloop</string>
 
     <string name="reminder_channel">Daily reminder</string>
-    <string name="trip_channel">Cat trips</string>
-    <string name="trip_title">Your cat is home!</string>
-    <string name="trip_text">Come and see what it brought back.</string>
     <string name="reminder_title">Your cat is waiting!</string>
     <string name="reminder_streak">Solve today\'s puzzle to keep your %1$d-day streak.</string>
     <string name="reminder_fresh">Today\'s puzzle is ready. Come and solve it!</string>
