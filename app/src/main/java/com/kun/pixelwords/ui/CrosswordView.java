@@ -30,6 +30,10 @@ public class CrosswordView extends View {
     private static final long STAGGER_MS = 55;
     private static final long FLIP_MS = 170;
     private static final long INTRO_MS = 12;
+    /** A word that lands, or is found again, hops as one; each letter a moment after the one before. */
+    private static final long PULSE_MS = 260;
+    private static final long PULSE_STEP_MS = 35;
+    private static final long RIPPLE_STEP_MS = 40;
 
     private final Paint paint = new Paint();
     private final Paint textPaint = new Paint();
@@ -37,6 +41,7 @@ public class CrosswordView extends View {
     private float cell, originX, originY;
     private long[][] showAt;     // when each letter was scheduled to appear; 0 = still hidden
     private long[][] dealAt;     // when each slot deals in
+    private long[][] pulseAt;    // when each letter last hopped as part of a word; 0 = never
     private boolean[][] reported;
     private int reportedCount;
     private LetterListener letterListener;
@@ -152,6 +157,7 @@ public class CrosswordView extends View {
         showAt = new long[l.rows][l.cols];
         dealAt = new long[l.rows][l.cols];
         reported = new boolean[l.rows][l.cols];
+        pulseAt = new long[l.rows][l.cols];
         long now = SystemClock.uptimeMillis();
         for (int r = 0; r < l.rows; r++) {
             for (int c = 0; c < l.cols; c++) dealAt[r][c] = now + (r + c) * INTRO_MS * 3;
@@ -173,6 +179,26 @@ public class CrosswordView extends View {
                     at += STAGGER_MS;
                 }
             }
+        }
+        invalidate();
+    }
+
+    /** Makes a whole word hop once its letters have landed, crossings included. */
+    public void pulse(Level.Placement p) {
+        if (session == null || PixelTheme.reduceMotion()) return;
+        long landed = SystemClock.uptimeMillis();
+        for (int i = 0; i < p.word.length(); i++) landed = Math.max(landed, showAt[p.rowAt(i)][p.colAt(i)] + FLIP_MS);
+        for (int i = 0; i < p.word.length(); i++) pulseAt[p.rowAt(i)][p.colAt(i)] = landed + i * PULSE_STEP_MS;
+        invalidate();
+    }
+
+    /** A wave across the whole board, for clearing it. */
+    public void ripple() {
+        if (session == null || PixelTheme.reduceMotion()) return;
+        Level l = session.level();
+        long now = SystemClock.uptimeMillis();
+        for (int r = 0; r < l.rows; r++) {
+            for (int c = 0; c < l.cols; c++) pulseAt[r][c] = Math.max(pulseAt[r][c], now + 300 + (r + c) * RIPPLE_STEP_MS);
         }
         invalidate();
     }
@@ -254,6 +280,11 @@ public class CrosswordView extends View {
                 float k = Math.min(1f, since / (float) FLIP_MS);
                 if (k < 1f) animating = true;
                 float bump = k < 1f ? 1f + 0.28f * (1f - k) : 1f;
+                long pulse = pulseAt[r][col] == 0 ? -1 : now - pulseAt[r][col];
+                if (pulseAt[r][col] != 0 && pulse < PULSE_MS) {
+                    animating = true;
+                    if (pulse >= 0) bump *= 1f + 0.16f * (float) Math.sin(Math.PI * pulse / PULSE_MS);
+                }
                 float s = half * bump;
                 int fill = k < 0.5f ? 0xFFFFFFFF : session.mods().isGold(l, r, col) ? PixelTheme.GOLD : PixelTheme.CREAM;
                 PixelTheme.drawTile(c, paint, cx - s, cy - s, cx + s, cy + s, fill, px, px * 2);
