@@ -530,7 +530,7 @@ public class GameActivity extends BaseActivity {
                 grid.refresh();
                 if (p != null) grid.pulse(p);
                 Sfx.play(Sfx.Id.WORD_FOUND, Math.min(1.5f, 1f + (combo - 1) * 0.08f));
-                Haptics.success();
+                Haptics.word(word.length(), combo);
                 wheelCat.hop();
                 if (combo >= CAT_HEARTS_FROM) wheelCat.heart();
                 String praise = praiseFor(word.length());
