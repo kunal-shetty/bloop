@@ -38,6 +38,11 @@ public class SeasonActivity extends PageActivity {
     private boolean scrolled;
 
     @Override
+    protected Explain.Topic explainTopic() {
+        return Explain.Topic.SEASON;
+    }
+
+    @Override
     protected String pageTitle() {
         return "SEASON PASS";
     }
