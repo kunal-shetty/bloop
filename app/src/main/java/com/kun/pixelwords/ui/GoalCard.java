@@ -117,10 +117,11 @@ public class GoalCard extends PressableView {
     private float drawReward(Canvas c, float right, float baseline, boolean onGold) {
         String amount = "+" + coins;
         float icon = dp(18), gap = dp(4);
-        float x = right - label.measureText(amount);
+        // The block is always as wide as "+000", so every card's progress bar ends in the same place.
+        float reserved = Math.max(label.measureText(amount), label.measureText("+000"));
         label.setColor(onGold ? PixelTheme.INK : PixelTheme.GOLD);
-        c.drawText(amount, x, baseline, label);
-        x -= icon + gap;
+        c.drawText(amount, right - label.measureText(amount), baseline, label);
+        float x = right - reserved - icon - gap;
         PixelIcons.draw(c, paint, "coin", x, baseline - icon * 0.82f, icon);
         return x;
     }
