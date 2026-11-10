@@ -26,6 +26,7 @@ abstract class PageActivity extends BaseActivity {
     protected ProgressStore store;
     protected Progress progress;
     protected StatChip coins;
+    protected ScrollView scroll;
 
     protected abstract String pageTitle();
 
@@ -56,7 +57,7 @@ abstract class PageActivity extends BaseActivity {
         page.setPadding(dp(14), dp(12), dp(14), 0);
         page.addView(topBar(), matchWrap(0));
 
-        ScrollView scroll = new ScrollView(this);
+        scroll = new ScrollView(this);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         scroll.setVerticalScrollBarEnabled(false);
         LinearLayout list = new LinearLayout(this);
