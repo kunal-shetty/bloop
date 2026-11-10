@@ -492,20 +492,35 @@ public class MainActivity extends BaseActivity {
         m.button("ACCESSIBILITY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showAccessibility);
         m.button("REDEEM CODE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "ticket", Sfx.Id.UI_TAP, this::showRedeem);
         m.button("CLOUD SAVE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "cloud", Sfx.Id.UI_TAP, this::onCloud);
-        m.button("HOW TO PLAY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showHowToPlay);
-        m.button("GAME GUIDE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showGuide);
+        m.button("HELP", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showHelp);
+        m.button("ABOUT AND LEGAL", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showAbout);
         if (Links.hasDiscord()) {
             m.button("JOIN OUR DISCORD", PixelTheme.SKY, PixelTheme.INK, "sparkle", Sfx.Id.UI_TAP, () -> LegalActivity.openDiscord(this));
         }
-        m.button("CREDITS", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, () -> startActivity(LegalActivity.open(this, LegalText.Kind.CREDITS)));
-        m.button("PRIVACY POLICY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, () -> startActivity(LegalActivity.open(this, LegalText.Kind.PRIVACY)));
-        m.button("TERMS OF SERVICE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, () -> startActivity(LegalActivity.open(this, LegalText.Kind.TERMS)));
-        m.button("REFUND POLICY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, () -> startActivity(LegalActivity.open(this, LegalText.Kind.REFUNDS)));
+        m.show();
+    }
+
+    /** How to play, the game guide and the ad choices, kept out of the main settings list. */
+    private void showHelp() {
+        PixelModal m = new PixelModal(this).title("HELP").icon("book").accent(PixelTheme.SKY);
+        m.button("HOW TO PLAY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showHowToPlay);
+        m.button("GAME GUIDE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showGuide);
         AdsService ads = AdsService.get(this);
         if (ads.hasPrivacyOptions()) {
             m.button("AD PRIVACY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "gear", Sfx.Id.UI_TAP, () -> ads.showPrivacyOptions(this));
         }
-        m.show();
+        m.secondary("BACK", this::showSettings).show();
+    }
+
+    /** Credits and the legal pages. */
+    private void showAbout() {
+        PixelModal m = new PixelModal(this).title("ABOUT AND LEGAL").icon("heart").accent(PixelTheme.ROSE);
+        for (LegalText.Kind kind : LegalText.Kind.values()) {
+            m.button(kind.title, PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, kind == LegalText.Kind.CREDITS ? "heart" : "book",
+                    Sfx.Id.UI_TAP, () -> startActivity(LegalActivity.open(this, kind)));
+        }
+        m.stat(null, "Version", versionName(this), PixelTheme.TEXT);
+        m.secondary("BACK", this::showSettings).show();
     }
 
     private void showRedeem() {
