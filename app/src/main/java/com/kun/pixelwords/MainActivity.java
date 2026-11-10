@@ -647,7 +647,7 @@ public class MainActivity extends BaseActivity {
         setReminders(granted);
         if (!granted) {
             new PixelModal(this).title("NOTIFICATIONS OFF").icon("calendar").accent(PixelTheme.ROSE)
-                    .body("Reminders can't appear until notifications are allowed for Bloop in your phone's settings.")
+                    .body("Reminders can't appear until notifications are allowed for Paws & Puzzles in your phone's settings.")
                     .primary("GOT IT", null)
                     .show();
         }
