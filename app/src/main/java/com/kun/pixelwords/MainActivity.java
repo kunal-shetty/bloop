@@ -511,7 +511,13 @@ public class MainActivity extends BaseActivity {
         m.button("REDEEM CODE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "ticket", Sfx.Id.UI_TAP, this::showRedeem);
         m.button("CLOUD SAVE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "cloud", Sfx.Id.UI_TAP, this::onCloud);
         m.button("HOW TO PLAY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showHowToPlay);
-        m.button("CREDITS", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showCredits);
+        if (Links.hasDiscord()) {
+            m.button("JOIN OUR DISCORD", PixelTheme.SKY, PixelTheme.INK, "sparkle", Sfx.Id.UI_TAP, () -> LegalActivity.openDiscord(this));
+        }
+        m.button("CREDITS", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, () -> startActivity(LegalActivity.open(this, LegalText.Kind.CREDITS)));
+        m.button("PRIVACY POLICY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, () -> startActivity(LegalActivity.open(this, LegalText.Kind.PRIVACY)));
+        m.button("TERMS OF SERVICE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, () -> startActivity(LegalActivity.open(this, LegalText.Kind.TERMS)));
+        m.button("REFUND POLICY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, () -> startActivity(LegalActivity.open(this, LegalText.Kind.REFUNDS)));
         AdsService ads = AdsService.get(this);
         if (ads.hasPrivacyOptions()) {
             m.button("AD PRIVACY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "gear", Sfx.Id.UI_TAP, () -> ads.showPrivacyOptions(this));
@@ -723,26 +729,9 @@ public class MainActivity extends BaseActivity {
                 .show();
     }
 
-    private void showCredits() {
-        new PixelModal(this).title("CREDITS").icon("heart").accent(PixelTheme.ROSE)
-                .heading("MADE FOR AYUSHI")
-                .body("Thank you to Ayushi, for inspiring me to create this game.")
-                .stat(null, "Version", version(), PixelTheme.TEXT)
-                .heading("EFFECTS")
-                .note("PixelFX by patch-gg (MIT), with parts adapted from Hugo Duprez's MIT effects.")
-                .heading("FONTS")
-                .note("Press Start 2P and VT323, SIL Open Font License 1.1.")
-                .heading("WORDS")
-                .note("ENABLE word list (public domain); google-10000-english; LDNOOBW word filter (CC BY 4.0).")
-                .heading("MEANINGS")
-                .note("WordNet 3.1, Copyright 2011 by Princeton University. All rights reserved. Used under its licence.")
-                .primary("CLOSE", null)
-                .show();
-    }
-
-    private String version() {
+    static String versionName(android.content.Context context) {
         try {
-            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            return context.getPackageManager().getPackageInfo(context.getPackageName(), 0).versionName;
         } catch (android.content.pm.PackageManager.NameNotFoundException e) {
             return "?";
         }
