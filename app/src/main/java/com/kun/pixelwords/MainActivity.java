@@ -469,24 +469,7 @@ public class MainActivity extends BaseActivity {
     }
 
     private void showStreakDetails() {
-        long today = Days.today();
-        PixelModal m = new PixelModal(this).title("YOUR STREAK").icon("flame").accent(PixelTheme.ROSE)
-                .body("Solve the daily puzzle every day to keep your streak alive.")
-                .stat("flame", "Current streak", days(StreakLogic.displayStreak(progress.streak, today)), PixelTheme.ROSE)
-                .stat("trophy", "Best streak", days(progress.streak.best), PixelTheme.GOLD)
-                .stat("freeze", "Streak freezes", progress.streak.freezes + " / " + StreakLogic.MAX_FREEZES, PixelTheme.SKY)
-                .note("You earn a freeze every " + StreakLogic.FREEZE_EVERY_DAYS + " days. A freeze saves your streak if you miss one day.")
-                .heading("MILESTONES");
-        for (StreakMilestone goal : StreakMilestone.values()) {
-            boolean won = goal.isPaid(progress);
-            m.stat(won ? "check" : "lock", days(goal.days), won ? "WON" : "", won ? PixelTheme.MINT : PixelTheme.TEXT_DIM);
-            if (!won) m.note(goal.summary());
-        }
-        if (progress.streak.lastDay != today) {
-            m.primary("PLAY DAILY", "calendar", () -> goToBoard(new Intent(this, GameActivity.class)
-                    .putExtra(GameActivity.EXTRA_MODE, GameActivity.Mode.DAILY.name())));
-        }
-        m.secondary("CLOSE", null).show();
+        go(new Intent(this, StreakActivity.class));
     }
 
     private void showSettings() {
