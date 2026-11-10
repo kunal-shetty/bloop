@@ -42,6 +42,11 @@ public class StreakActivity extends PageActivity {
     private TextView nextText;
 
     @Override
+    protected Explain.Topic explainTopic() {
+        return Explain.Topic.STREAK;
+    }
+
+    @Override
     protected String pageTitle() {
         return "STREAK";
     }
