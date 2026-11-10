@@ -353,13 +353,30 @@ public class GameActivity extends BaseActivity {
             return;
         }
 
-        if (timed) {
+        Runnable begin = () -> {
+            if (timed) {
+                wheel.setLocked(true);
+                runCountdown();
+            } else {
+                wheel.setLocked(false);
+                roundLive = true;
+            }
+        };
+        Explain.Topic intro = openingTopic();
+        if (intro != null && !Explain.seen(intro)) {
             wheel.setLocked(true);
-            runCountdown();
+            Explain.first(this, intro, begin);
         } else {
-            wheel.setLocked(false);
-            roundLive = true;
+            begin.run();
         }
+    }
+
+    /** A mechanic on this board that the player has not been shown yet. Bosses first, then twists, then fish. */
+    private Explain.Topic openingTopic() {
+        if (fight != null) return Explain.Topic.BOSS;
+        if (session.mods() != TileMods.NONE) return Explain.Topic.TWISTS;
+        if (!fishCells.isEmpty()) return Explain.Topic.FISH;
+        return null;
     }
 
     /** Nine Lives, the Word Tower and Boss Rush: boards one after another on one set of lives. */
@@ -555,6 +572,9 @@ public class GameActivity extends BaseActivity {
                 say("BONUS WORD  JAR +1", PixelTheme.GOLD);
                 Sfx.play(Sfx.Id.WORD_BONUS);
                 Haptics.success();
+                if (limit() == 0 && !Explain.seen(Explain.Topic.JAR)) handler.postDelayed(() -> {
+                    if (!finished) Explain.first(this, Explain.Topic.JAR, null);
+                }, 600);
                 break;
             case FROZEN:
                 preview.resolve(PixelTheme.SKY, true);
@@ -798,6 +818,15 @@ public class GameActivity extends BaseActivity {
 
     private void onPowerPressed() {
         if (finished || session == null || !roundLive) return;
+        if (!Explain.seen(Explain.Topic.POWERUPS)) {
+            stopClock();
+            wheel.setLocked(true);
+            Explain.first(this, Explain.Topic.POWERUPS, () -> {
+                afterModal();
+                onPowerPressed();
+            });
+            return;
+        }
         Sfx.play(Sfx.Id.UI_TAP);
         stopClock();
         wheel.setLocked(true);
