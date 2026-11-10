@@ -171,8 +171,8 @@ public final class LanHost extends LanMatch {
         }
 
         private boolean admit(String[] f) {
-            if (f.length < 5 || !HELLO.equals(f[0])) return refuse("That isn't a Bloop game.");
-            if (!String.valueOf(PROTOCOL_VERSION).equals(f[1])) return refuse("You and the host need the same version of Bloop.");
+            if (f.length < 5 || !HELLO.equals(f[0])) return refuse("That isn't a Paws & Puzzles game.");
+            if (!String.valueOf(PROTOCOL_VERSION).equals(f[1])) return refuse("You and the host need the same version of Paws & Puzzles.");
             if (started) return refuse("The race has already started.");
             synchronized (players) {
                 if (players.containsKey(f[2])) return refuse("You're already in this room.");
