@@ -5,7 +5,6 @@
     <string name="reminder_channel">Daily reminder</string>
     <string name="reminder_title">Your cat is waiting!</string>
     <string name="reminder_streak">Solve today\'s puzzle to keep your %1$d-day streak.</string>
-    <string name="reminder_test">This is how your daily reminder will look. Your cat says hi!</string>
     <string name="reminder_fresh">Today\'s puzzle is ready. Come and solve it!</string>
 
     <!-- Real IDs for release builds. Debug builds use Google's test ads from src/debug/res/values/admob.xml. -->
