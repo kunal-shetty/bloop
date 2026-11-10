@@ -2,6 +2,7 @@ package com.kun.pixelwords;
 
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -102,31 +103,47 @@ public class SeasonActivity extends PageActivity {
         huntStatus = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.TEXT);
         huntStatus.setPadding(dp(4), dp(6), dp(4), 0);
         list.addView(huntStatus);
-        for (int i = 0; i < FishHunt.prizes(); i++) addPrize(list, i);
+        LinearLayout prizes = new LinearLayout(this);
+        for (int i = 0; i < FishHunt.prizes(); i++) addPrize(prizes, i);
+        list.addView(prizes, matchWrap(6));
     }
 
-    private void addPrize(LinearLayout list, int prize) {
+    /** The hunt's prizes sit in one compact row, so the pass itself isn't pushed off the screen. */
+    private void addPrize(LinearLayout row, int prize) {
         Reward reward = FishHunt.prize(prize);
-        PixelButton b = new PixelButton(this, FishHunt.goal(prize) + " FISH", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
+        PixelButton b = new PixelButton(this, String.valueOf(FishHunt.goal(prize)), PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         b.setLabelSize(PixelTheme.SIZE_SMALL);
         b.setIcon(reward.icon());
-        b.setSubtitle(reward.label());
+        b.setIconSize(22);
+        b.setSpokenName(FishHunt.goal(prize) + " fish: " + reward.label());
         b.setOnClickListener(v -> {
             Reward paid = FishHunt.claim(progress, prize);
-            onClaimed(paid);
+            if (paid != null) {
+                onClaimed(paid);
+            } else {
+                Sfx.play(Sfx.Id.UI_TAP);
+                new PixelModal(this).title(FishHunt.goal(prize) + " FISH").icon(reward.icon()).accent(PixelTheme.SKY)
+                        .body("Catch " + FishHunt.goal(prize) + " fish this month to win:")
+                        .note(reward.label())
+                        .primary("OK", null)
+                        .show();
+            }
         });
-        rows.add(() -> styleClaim(b, FishHunt.isClaimable(progress, prize), FishHunt.isClaimed(progress, prize), reward));
-        list.addView(b, matchWrap(6));
+        rows.add(() -> {
+            styleClaim(b, FishHunt.isClaimable(progress, prize), FishHunt.isClaimed(progress, prize), reward);
+            b.setSubtitle("");
+        });
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        if (prize > 0) lp.leftMargin = dp(4);
+        row.addView(b, lp);
     }
 
     private void addTier(LinearLayout list, int tier) {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
         boolean milestone = tier % 5 == 0;
-        if (milestone) {
-            row.setBackground(new PanelDrawable(0xE03A2E6E, Math.max(2f, dp(1))));
-            row.setPadding(dp(4), dp(6), dp(4), dp(6));
-        }
+        row.setPadding(dp(4), dp(6), dp(4), dp(6)); // every row has the same inset, so the columns line up
+        if (milestone) row.setBackground(new PanelDrawable(0xE03A2E6E, Math.max(2f, dp(1))));
         TextView number = PixelTheme.display(this, String.valueOf(tier), PixelTheme.SIZE_SMALL, PixelTheme.CREAM);
         number.setGravity(Gravity.CENTER);
         number.setPadding(0, dp(8), 0, dp(8));
@@ -198,7 +215,7 @@ public class SeasonActivity extends PageActivity {
             nextReward.setText("Next, tier " + next + ": " + Season.reward(progress.seasonId, next, false).label()
                     + "  (" + toGo + " XP to go)");
         }
-        if (!scrolled && currentRow != null && scroll != null) {
+        if (!scrolled && currentRow != null && scroll != null && reached >= 3) {
             scrolled = true;
             scroll.post(() -> scroll.scrollTo(0, Math.max(0, currentRow.getTop() - dp(160))));
         }
