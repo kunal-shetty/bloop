@@ -56,14 +56,6 @@ public final class Reminders {
         notifyNow(context, message(context, StreakLogic.displayStreak(progress.streak, today)));
     }
 
-    /** Posts a reminder right now, so the player can check notifications work. False if they are blocked. */
-    public static boolean postTest(Context context) {
-        if (!mayNotify(context)) return false;
-        if (!context.getSystemService(NotificationManager.class).areNotificationsEnabled()) return false;
-        notifyNow(context, context.getString(R.string.reminder_test));
-        return true;
-    }
-
     private static void notifyNow(Context context, String text) {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         Notification.Builder builder;
