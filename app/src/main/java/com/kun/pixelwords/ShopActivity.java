@@ -64,7 +64,7 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
         store = new ProgressStore(this);
         progress = store.load();
         buildUi();
-        fx.preload("ui_confetti");
+        fx.preload("ui_confetti", "pickups_collect-burst");
         billing = BillingService.get(this);
         billing.setListener(this); // stays set behind Play's payment sheet, so the result isn't missed
         AdsService.get(this).load();
@@ -198,15 +198,37 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
     }
 
     private void addStore(LinearLayout list) {
+        storeHeading(list, "FREE COINS");
+        videoButton = storeButton(list, "WATCH A VIDEO", "film", PixelTheme.MINT, PixelTheme.INK);
+        videoButton.setOnClickListener(v -> watchCoinVideo());
+        PixelButton spin = storeButton(list, "DAILY SPIN", "sparkle", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
+        spin.setSubtitle("One free spin every day");
+        spin.setOnClickListener(v -> startActivity(new android.content.Intent(this, SpinActivity.class)));
+        PixelButton goals = storeButton(list, "GOALS", "trophy", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
+        goals.setSubtitle("Quests and achievements pay coins");
+        goals.setOnClickListener(v -> startActivity(new android.content.Intent(this, AchievementsActivity.class)));
+        PixelButton season = storeButton(list, "SEASON PASS", "ticket", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
+        season.setSubtitle("Every tier pays out");
+        season.setOnClickListener(v -> startActivity(new android.content.Intent(this, SeasonActivity.class)));
+
+        storeHeading(list, "COIN PACKS");
         for (Purchases.Pack pack : Purchases.Pack.values()) {
-            PixelButton b = storeButton(list, pack.coins + " COINS", "coin", PixelTheme.GOLD, PixelTheme.INK);
+            boolean featured = !pack.tag.isEmpty();
+            PixelButton b = storeButton(list, pack.coins + " COINS  " + pack.name, "coin",
+                    featured ? PixelTheme.GOLD : PixelTheme.PANEL_LIGHT, featured ? PixelTheme.INK : PixelTheme.TEXT);
             b.setOnClickListener(v -> buyProduct(pack.productId));
             packButtons.put(pack, b);
         }
-        videoButton = storeButton(list, "FREE COINS", "film", PixelTheme.MINT, PixelTheme.INK);
-        videoButton.setOnClickListener(v -> watchCoinVideo());
+
+        storeHeading(list, "EXTRAS");
         removeAdsButton = storeButton(list, "NO AD BREAKS", "close", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT);
         removeAdsButton.setOnClickListener(v -> confirmRemoveAds());
+    }
+
+    private void storeHeading(LinearLayout list, String text) {
+        android.widget.TextView heading = PixelTheme.display(this, text, PixelTheme.SIZE_SMALL, PixelTheme.CREAM);
+        heading.setPadding(dp(4), dp(8), 0, dp(8));
+        list.addView(heading, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
     private PixelButton storeButton(LinearLayout list, String label, String icon, int fill, int text) {
@@ -252,8 +274,10 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
     private void refreshStore() {
         if (!Features.MONETIZATION) return;
         for (Map.Entry<Purchases.Pack, PixelButton> e : packButtons.entrySet()) {
-            String price = billing.price(e.getKey().productId);
-            e.getValue().setSubtitle(price != null ? price : "Store closed");
+            Purchases.Pack pack = e.getKey();
+            String price = billing.price(pack.productId);
+            String tag = pack.tag.isEmpty() ? "" : pack.tag + "  ";
+            e.getValue().setSubtitle(tag + (price != null ? price : "Store closed"));
         }
         int left = AdPolicy.coinVideosLeft(progress, Days.today());
         videoButton.setSubtitle("+" + Scoring.REWARDED_AD_COINS + " per video, " + left + " left today");
@@ -292,6 +316,13 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
             if (!AdPolicy.payCoinVideo(progress, today)) return;
             save();
             refresh();
+            Sfx.play(Sfx.Id.COIN);
+            Haptics.success();
+            fx.play("pickups_collect-burst", fx.getWidth() / 2f, fx.getHeight() * 0.12f, PixelTheme.dp(this, 3f), null);
+            new PixelModal(this).title("COINS!").icon("coin").accent(PixelTheme.GOLD)
+                    .countStat("coin", "Coins earned", "+", Scoring.REWARDED_AD_COINS, PixelTheme.GOLD)
+                    .primary("NICE", null)
+                    .show();
         }), () -> new PixelModal(this).title("NO VIDEO").icon("film").accent(PixelTheme.ROSE)
                 .body("There isn't a video available right now. This usually clears up in a minute, or check your connection.")
                 .primary("OK", null)
