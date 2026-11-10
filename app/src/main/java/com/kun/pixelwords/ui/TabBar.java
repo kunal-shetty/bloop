@@ -17,6 +17,12 @@ public class TabBar extends LinearLayout {
     private final List<PixelButton> tabs = new ArrayList<>();
     private final List<LinearLayout> sections = new ArrayList<>();
     private ScrollView scroll;
+    private java.util.function.IntConsumer onShown;
+
+    /** Called with the tab's index whenever one opens, including the first. */
+    public void setOnShown(java.util.function.IntConsumer listener) {
+        onShown = listener;
+    }
 
     public TabBar(Context context) {
         super(context);
@@ -60,5 +66,6 @@ public class TabBar extends LinearLayout {
             tabs.get(i).setTextColor(on ? PixelTheme.INK : PixelTheme.TEXT);
         }
         scroll.scrollTo(0, 0);
+        if (onShown != null) onShown.accept(index);
     }
 }
