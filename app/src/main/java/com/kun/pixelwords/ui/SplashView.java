@@ -215,11 +215,12 @@ public class SplashView extends View {
         android.graphics.RectF dst = new android.graphics.RectF(x, y + dy + size - h, x + size, y + dy + size);
         c.drawBitmap(logo, null, dst, tilePaint);
         if (glow > 0f) {
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(0xFFFFFFFF);
-            paint.setAlpha((int) (70 * glow));
-            c.drawRect(dst, paint);
-            paint.setAlpha(255);
+            // A white shine drawn only where the logo has pixels, so no box shows around it.
+            tilePaint.setColorFilter(new android.graphics.PorterDuffColorFilter(0xFFFFFFFF, android.graphics.PorterDuff.Mode.SRC_ATOP));
+            tilePaint.setAlpha((int) (110 * glow));
+            c.drawBitmap(logo, null, dst, tilePaint);
+            tilePaint.setColorFilter(null);
+            tilePaint.setAlpha(255);
         }
     }
 
