@@ -494,6 +494,7 @@ public class MainActivity extends BaseActivity {
         m.button("REDEEM CODE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "ticket", Sfx.Id.UI_TAP, this::showRedeem);
         m.button("CLOUD SAVE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "cloud", Sfx.Id.UI_TAP, this::onCloud);
         m.button("HOW TO PLAY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showHowToPlay);
+        m.button("GAME GUIDE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "book", Sfx.Id.UI_TAP, this::showGuide);
         if (Links.hasDiscord()) {
             m.button("JOIN OUR DISCORD", PixelTheme.SKY, PixelTheme.INK, "sparkle", Sfx.Id.UI_TAP, () -> LegalActivity.openDiscord(this));
         }
@@ -683,6 +684,17 @@ public class MainActivity extends BaseActivity {
                     .primary("GOT IT", null)
                     .show();
         }
+    }
+
+    /** Every mode and mechanic's how-to-play card, to read again. */
+    private void showGuide() {
+        PixelModal m = new PixelModal(this).title("GAME GUIDE").icon("book").accent(PixelTheme.GOLD)
+                .body("Tap anything to read how it works.");
+        for (Explain.Topic topic : Explain.Topic.values()) {
+            m.button(topic.title, PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, topic.icon, Sfx.Id.UI_TAP,
+                    () -> Explain.card(this, topic, "BACK", this::showGuide).show());
+        }
+        m.secondary("CLOSE", null).show();
     }
 
     private void showHowToPlay() {
