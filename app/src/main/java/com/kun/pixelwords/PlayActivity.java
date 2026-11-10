@@ -247,7 +247,7 @@ public class PlayActivity extends PageActivity {
                             + (debuggable() ? "\n\n(" + reason + ")" : "")));
             return;
         }
-        showRanks("Global leaderboards need Google Play Games, which isn't connected in this build yet.");
+        showRanks("Global leaderboards aren't available right now. Please try again later.");
     }
 
     /** Test builds show Google's reason when something fails; players never see it. */
