@@ -126,7 +126,23 @@ public class PlayActivity extends PageActivity {
     private void launch(GameActivity.Mode mode) {
         Intent i = new Intent(this, GameActivity.class);
         i.putExtra(GameActivity.EXTRA_MODE, mode.name());
-        goToBoard(i);
+        Explain.Topic topic = explainerFor(mode);
+        if (topic == null) goToBoard(i);
+        else Explain.first(this, topic, () -> goToBoard(i));
+    }
+
+    /** The how-to-play card a mode shows the first time it is started. */
+    private static Explain.Topic explainerFor(GameActivity.Mode mode) {
+        switch (mode) {
+            case DAILY: return Explain.Topic.DAILY;
+            case TIMED: return Explain.Topic.TIMED;
+            case LIVES: return Explain.Topic.LIVES;
+            case TOWER: return Explain.Topic.TOWER;
+            case RUSH: return Explain.Topic.RUSH;
+            case MEGA: return Explain.Topic.MEGA;
+            case DUEL: return Explain.Topic.DUEL;
+            default: return null;
+        }
     }
 
     private void onDaily() {
