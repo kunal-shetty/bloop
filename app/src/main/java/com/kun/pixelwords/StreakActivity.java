@@ -70,10 +70,13 @@ public class StreakActivity extends PageActivity {
         flame.setOnClickListener(v -> poke());
         hero.addView(flame, new LinearLayout.LayoutParams(dp(96), dp(96)));
         count = PixelTheme.display(this, "0", PixelTheme.SIZE_TITLE * 2, PixelTheme.ROSE);
-        hero.addView(count);
+        count.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, PixelTheme.displayPx(this, PixelTheme.SIZE_TITLE) * 2f);
+        count.setGravity(Gravity.CENTER);
+        hero.addView(count, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         title = PixelTheme.display(this, "", PixelTheme.SIZE_SMALL, PixelTheme.CREAM);
         title.setPadding(0, dp(4), 0, 0);
-        hero.addView(title);
+        title.setGravity(Gravity.CENTER);
+        hero.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         status = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, PixelTheme.TEXT);
         status.setGravity(Gravity.CENTER);
         status.setPadding(0, dp(8), 0, 0);
@@ -195,17 +198,19 @@ public class StreakActivity extends PageActivity {
             cell.setGravity(Gravity.CENTER_HORIZONTAL);
             cell.setPadding(dp(2), dp(6), dp(2), dp(6));
             cell.setBackground(new PanelDrawable(isToday ? 0xE0584A9A : 0xE0251D4A, Math.max(2f, dp(1))));
-            TextView name = PixelTheme.body(this, WEEKDAYS[(int) Math.floorMod(d + 3, 7L)], PixelTheme.SIZE_CAPTION,
+            TextView name = PixelTheme.body(this, WEEKDAYS[(int) Math.floorMod(d + 3, 7L)], PixelTheme.SIZE_BODY,
                     isToday ? PixelTheme.GOLD : PixelTheme.TEXT_DIM);
-            cell.addView(name);
+            name.setGravity(Gravity.CENTER);
+            cell.addView(name, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             View icon = PixelIcons.view(this, solved ? "flame" : isToday ? "calendar" : "close");
             icon.setAlpha(solved || isToday ? 1f : 0.35f);
             LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(dp(26), dp(26));
             ip.topMargin = dp(4);
             cell.addView(icon, ip);
-            TextView date = PixelTheme.body(this, Days.dayOfMonth(d), PixelTheme.SIZE_CAPTION, PixelTheme.TEXT);
+            TextView date = PixelTheme.body(this, Days.dayOfMonth(d), PixelTheme.SIZE_BODY, PixelTheme.TEXT);
             date.setPadding(0, dp(2), 0, 0);
-            cell.addView(date);
+            date.setGravity(Gravity.CENTER);
+            cell.addView(date, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             cell.setOnClickListener(v -> onDay(d, solved, isToday));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
             if (day > today - 6) lp.leftMargin = dp(4);
