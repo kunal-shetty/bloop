@@ -19,16 +19,23 @@ public final class Purchases {
 
     /** Consumable coin packs. The ids must match Play Console, and the prices live there too. */
     public enum Pack {
-        SMALL("coins_small", 250),
-        MEDIUM("coins_medium", 800),
-        LARGE("coins_large", 2000);
+        SMALL("coins_small", 250, "POUCH", ""),
+        MEDIUM("coins_medium", 800, "SACK", "POPULAR"),
+        LARGE("coins_large", 2000, "CHEST", "BEST VALUE"),
+        HUGE("coins_huge", 5000, "VAULT", ""),
+        MEGA("coins_mega", 12000, "HOARD", "MEGA DEAL");
 
         public final String productId;
         public final int coins;
+        /** What the pack is called in the store, and a short tag for the ones worth pointing out. */
+        public final String name;
+        public final String tag;
 
-        Pack(String productId, int coins) {
+        Pack(String productId, int coins, String name, String tag) {
             this.productId = productId;
             this.coins = coins;
+            this.name = name;
+            this.tag = tag;
         }
 
         /** The pack sold under a product id, or null if it isn't a coin pack. */
