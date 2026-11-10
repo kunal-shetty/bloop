@@ -63,6 +63,19 @@ public final class StreakLogic {
         return 0;
     }
 
+    /** Smallest streak worth offering a rescue for. */
+    public static final int MIN_RESCUE_STREAK = 3;
+
+    /** True if one day was missed with no freeze to cover it, so a watched video could still save a good streak. */
+    public static boolean canRescue(State s, long today) {
+        return s.streak >= MIN_RESCUE_STREAK && s.lastDay == today - 2 && s.freezes == 0;
+    }
+
+    /** The same streak with one more freeze, which then covers the missed day. */
+    public static State withFreeze(State s) {
+        return new State(s.streak, s.best, s.lastDay, Math.min(MAX_FREEZES, s.freezes + 1));
+    }
+
     /** True if the player has not yet done today's daily and their streak is at risk of ending tonight. */
     public static boolean atRisk(State s, long today) {
         return s.streak > 0 && s.lastDay == today - 1;
