@@ -115,7 +115,7 @@ public class GameActivity extends BaseActivity {
     private CrosswordView grid;
     private WheelView wheel;
     private WordPreview preview;
-    private TextView titleText, subText, timerText, duelText, coachText, banner, comboText;
+    private TextView titleText, subText, timerText, duelText, coachText, banner, comboText, comboBig;
     private PixelBar timerBar;
     private View timerRow;
     private StatChip coinChip;
@@ -240,6 +240,7 @@ public class GameActivity extends BaseActivity {
         roundLive = false;
         combo = 0;
         comboText.setVisibility(View.INVISIBLE);
+        comboBig.setVisibility(View.INVISIBLE);
         meaningCard.setVisibility(View.GONE);
         botScore = 0;
         usedExtraTime = false;
@@ -610,11 +611,34 @@ public class GameActivity extends BaseActivity {
         comboText.animate().scaleX(size).scaleY(size).setDuration(220).setInterpolator(new OvershootInterpolator(2.5f)).start();
         if (combo == COMBO_SHEET_AT) {
             fx.play("ui_combo-counter", fx.getWidth() / 2f, fx.getHeight() * 0.16f, PixelTheme.dp(this, 1.5f), null);
+        } else if (combo > COMBO_SHEET_AT && combo % COMBO_SHEET_AT == 0) {
+            bigCombo();
         }
+    }
+
+    /** Every fifth answer in a row past the first gets a big centred "x10", "x15" and so on, with a burst. */
+    private void bigCombo() {
+        int[] colours = {PixelTheme.ROSE, PixelTheme.GOLD, PixelTheme.MINT, PixelTheme.SKY};
+        comboBig.setText("COMBO\nx" + combo);
+        comboBig.setTextColor(colours[(combo / COMBO_SHEET_AT - 2) % colours.length]);
+        comboBig.setVisibility(View.VISIBLE);
+        comboBig.animate().cancel();
+        comboBig.setAlpha(1f);
+        comboBig.setScaleX(0.3f);
+        comboBig.setScaleY(0.3f);
+        comboBig.animate().scaleX(1.25f).scaleY(1.25f).setDuration(260).setInterpolator(new OvershootInterpolator(3f))
+                .withEndAction(() -> comboBig.animate().alpha(0f).scaleX(1.6f).scaleY(1.6f).setStartDelay(650).setDuration(280)
+                        .withEndAction(() -> comboBig.setVisibility(View.INVISIBLE)).start())
+                .start();
+        fx.play("pickups_collect-burst", fx.getWidth() / 2f, fx.getHeight() * 0.3f, PixelTheme.dp(this, 3f), null);
+        Sfx.play(Sfx.Id.WORD_BONUS, Math.min(1.6f, 1f + combo * 0.02f));
+        Haptics.celebrate();
     }
 
     private void breakCombo() {
         combo = 0;
+        comboBig.animate().cancel();
+        comboBig.setVisibility(View.INVISIBLE);
         comboText.animate().cancel();
         comboText.animate().alpha(0f).scaleX(0.5f).scaleY(0.5f).setDuration(180)
                 .withEndAction(() -> comboText.setVisibility(View.INVISIBLE)).start();
@@ -1636,6 +1660,13 @@ public class GameActivity extends BaseActivity {
         comboText.setPadding(dp(14), dp(10), dp(14), dp(10));
         boardBox.addView(comboText, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END));
+        comboBig = PixelTheme.display(this, "", PixelTheme.SIZE_TITLE, PixelTheme.GOLD);
+        comboBig.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, PixelTheme.displayPx(this, PixelTheme.SIZE_TITLE) * 1.7f);
+        comboBig.setGravity(Gravity.CENTER);
+        comboBig.setShadowLayer(0.01f, dp(3), dp(3), PixelTheme.INK);
+        comboBig.setVisibility(View.INVISIBLE);
+        boardBox.addView(comboBig, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
         LinearLayout.LayoutParams boardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
         boardLp.topMargin = dp(8);
         boardLp.bottomMargin = dp(4);
