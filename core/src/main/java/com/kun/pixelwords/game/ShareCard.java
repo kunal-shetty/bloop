@@ -17,7 +17,7 @@ public final class ShareCard {
     }
 
     public static String daily(long epochDay, int stars, int streak, int hints, int score) {
-        StringBuilder sb = new StringBuilder("Bloop Daily #").append(dailyNumber(epochDay)).append('\n');
+        StringBuilder sb = new StringBuilder("Paws & Puzzles Daily #").append(dailyNumber(epochDay)).append('\n');
         for (int i = 0; i < stars; i++) sb.append(STAR);
         sb.append(hints == 0 ? "  No hints!" : "  " + hints + (hints == 1 ? " hint" : " hints")).append('\n');
         sb.append(FLAME).append(' ').append(streak).append("-day streak\n");
