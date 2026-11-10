@@ -48,6 +48,7 @@ public class LanActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        root.post(() -> Explain.first(this, Explain.Topic.RACE, null));
         discovery = new LanDiscovery(this);
         buildUi();
         if (!LanDiscovery.onWifi(this)) {
