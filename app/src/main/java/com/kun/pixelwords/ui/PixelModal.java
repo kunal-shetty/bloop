@@ -272,9 +272,26 @@ public final class PixelModal {
         int inset = (int) (framePx * 3);
         panel.setPadding(inset, inset, inset, inset + (int) framePx);
 
-        panel.addView(header(framePx), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        View header = header(framePx);
+        panel.addView(header, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        final int maxBody = (int) (screenH * 0.56f);
+        // The scrolling part gets whatever height the header and the fixed buttons leave, so a modal with many
+        // buttons can never push them off the bottom of the screen.
+        int panelW = Math.min(screenW - dp(32), dp(380));
+        int innerW = View.MeasureSpec.makeMeasureSpec(panelW - 2 * inset, View.MeasureSpec.EXACTLY);
+        int unbounded = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        header.measure(innerW, unbounded);
+        int fixed = header.getMeasuredHeight() + inset * 2 + (int) framePx;
+        // A long list of buttons scrolls with the content; one or two stay pinned under it.
+        boolean buttonsScroll = buttons.getChildCount() > 3;
+        if (buttons.getChildCount() > 0 && !buttonsScroll) {
+            buttons.setPadding(dp(12), 0, dp(12), dp(10));
+            buttons.measure(innerW, unbounded);
+            fixed += buttons.getMeasuredHeight();
+        }
+        final int maxBody = Math.max(dp(120), buttonsScroll
+                ? (int) (screenH * 0.86f) - fixed
+                : Math.min((int) (screenH * 0.56f), (int) (screenH * 0.88f) - fixed));
         ScrollView scroll = new ScrollView(ctx) {
             @Override protected void onMeasure(int w, int h) {
                 super.onMeasure(w, MeasureSpec.makeMeasureSpec(maxBody, MeasureSpec.AT_MOST));
@@ -283,13 +300,14 @@ public final class PixelModal {
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         scroll.setVerticalScrollBarEnabled(false);
         content.setPadding(dp(12), dp(14), dp(12), dp(4));
+        if (buttonsScroll) {
+            buttons.setPadding(0, 0, 0, dp(10));
+            content.addView(buttons, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
         scroll.addView(content);
         panel.addView(scroll);
 
-        if (buttons.getChildCount() > 0) {
-            buttons.setPadding(dp(12), 0, dp(12), dp(10));
-            panel.addView(buttons);
-        }
+        if (buttons.getChildCount() > 0 && !buttonsScroll) panel.addView(buttons);
 
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 Math.min(screenW - dp(32), dp(380)), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
