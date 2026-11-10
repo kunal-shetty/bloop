@@ -21,6 +21,11 @@ public class SpinActivity extends PageActivity {
     private boolean spinning;
 
     @Override
+    protected Explain.Topic explainTopic() {
+        return Explain.Topic.SPIN;
+    }
+
+    @Override
     protected String pageTitle() {
         return "DAILY SPIN";
     }
