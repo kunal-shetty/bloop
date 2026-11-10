@@ -69,6 +69,15 @@ public final class Journey {
         return slotOf(level) == LEVELS_PER_CHAPTER;
     }
 
+    /** What to look forward to after clearing a level: the boss that ends its chapter. Empty after a boss. */
+    public static String nextGoal(int level) {
+        int left = LEVELS_PER_CHAPTER - slotOf(level);
+        if (left <= 0) return "";
+        String boss = regionOf(level).bossName();
+        if (left == 1) return "Next level is the boss: " + boss + "!";
+        return left + " more levels to face " + boss + ".";
+    }
+
     /** The region a level is in, which also says who its boss is. */
     public static Region regionOf(int level) {
         return Region.forChapter(chapterOf(level));
