@@ -1153,6 +1153,8 @@ public class GameActivity extends BaseActivity {
         addWinnings(m, o, o.coins);
         if (fight != null) m.note(Journey.regionOf(playLevel).bossName() + " runs off, and the path is clear.");
         if (s < 3) m.note("Clear a level with no hints for three stars.");
+        String goal = replayLevel == 0 ? Journey.nextGoal(playLevel) : "";
+        if (!goal.isEmpty()) m.note(goal);
         if (Features.MONETIZATION && replayLevel == 0 && o.coins > 0) {
             m.button("DOUBLE COINS", PixelTheme.MINT, PixelTheme.INK, "film", Sfx.Id.UI_TAP, () -> doubleCoins(o));
         }
