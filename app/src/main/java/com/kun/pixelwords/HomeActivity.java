@@ -73,6 +73,7 @@ public class HomeActivity extends BaseActivity {
         fx.preload("ui_confetti");
         coins.setValue(progress.coins);
         refresh();
+        Explain.first(this, Explain.Topic.HOME, null);
     }
 
     private int dp(float v) {
