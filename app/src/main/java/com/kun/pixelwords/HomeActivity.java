@@ -177,7 +177,7 @@ public class HomeActivity extends BaseActivity {
         c.drawText("MY CAT'S HOME", photo.getWidth() / 2f, art + pad * 2 + band * 0.52f, paint);
         paint.setColor(PixelTheme.TEXT_DIM);
         PixelTheme.styleDisplay(paint, band * 0.2f);
-        c.drawText("BLOOP", photo.getWidth() / 2f, art + pad * 2 + band * 0.86f, paint);
+        c.drawText("PAWS & PUZZLES", photo.getWidth() / 2f, art + pad * 2 + band * 0.86f, paint);
 
         Uri uri;
         try {
