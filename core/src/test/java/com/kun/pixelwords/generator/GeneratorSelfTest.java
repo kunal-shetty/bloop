@@ -78,6 +78,7 @@ public final class GeneratorSelfTest {
         testGameSession(gen);
         testStreaks();
         testNextGoal();
+        testCoinPacks();
         testStreakRescue();
         testAchievementCatalogue();
         testProgress();
@@ -749,6 +750,20 @@ public final class GeneratorSelfTest {
         check(!StreakLogic.canRescue(new StreakLogic.State(2, 2, 98, 0), 100), "short streaks are not worth a rescue");
         check(!StreakLogic.canRescue(new StreakLogic.State(5, 5, 97, 0), 100), "two missed days cannot be rescued");
         check(StreakLogic.withFreeze(new StreakLogic.State(5, 5, 98, 3)).freezes == 3, "freezes stay capped");
+    }
+
+    private static void testCoinPacks() {
+        java.util.Set<String> ids = new HashSet<>();
+        int last = 0;
+        boolean growing = true;
+        for (Purchases.Pack pack : Purchases.Pack.values()) {
+            ids.add(pack.productId);
+            growing &= pack.coins > last && Purchases.Pack.byProduct(pack.productId) == pack;
+            last = pack.coins;
+        }
+        check(ids.size() == Purchases.Pack.values().length, "every coin pack has its own product id");
+        check(growing, "coin packs get bigger and each is found by its product id");
+        check(Purchases.Pack.values().length == 5, "the store sells five coin packs");
     }
 
     private static void testNextGoal() {
