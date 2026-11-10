@@ -30,6 +30,11 @@ abstract class PageActivity extends BaseActivity {
 
     protected abstract String pageTitle();
 
+    /** The how-to-play card to show the first time this page opens, or null. */
+    protected Explain.Topic explainTopic() {
+        return null;
+    }
+
     protected abstract AmbientView.Theme pageTheme();
 
     /** Adds the screen's contents. {@code progress} is ready when this runs. */
@@ -70,6 +75,8 @@ abstract class PageActivity extends BaseActivity {
         fillPage(list);
         fx.preload("ui_confetti", "pickups_collect-burst");
         coins.setValue(progress.coins);
+        Explain.Topic topic = explainTopic();
+        if (topic != null) Explain.first(this, topic, null);
     }
 
     @Override
