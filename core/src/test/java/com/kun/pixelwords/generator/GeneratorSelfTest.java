@@ -78,6 +78,7 @@ public final class GeneratorSelfTest {
         testGameSession(gen);
         testStreaks();
         testNextGoal();
+        testStreakRescue();
         testProgress();
         testPurchases();
         testAdPolicy();
@@ -684,6 +685,19 @@ public final class GeneratorSelfTest {
             }
             check(g.isComplete(), "level " + n + " solvable purely by hints");
         }
+    }
+
+    private static void testStreakRescue() {
+        StreakLogic.State broken = new StreakLogic.State(5, 5, 98, 0);
+        check(StreakLogic.canRescue(broken, 100), "a 5-day streak missed one day with no freeze can be rescued");
+        check(StreakLogic.displayStreak(broken, 100) == 0, "the broken streak reads as 0 before the rescue");
+        StreakLogic.State saved = StreakLogic.withFreeze(broken);
+        check(!StreakLogic.canRescue(saved, 100), "no second rescue once a freeze is held");
+        check(StreakLogic.displayStreak(saved, 100) == 5, "the rescued streak is alive again");
+        check(StreakLogic.onDailyCompleted(saved, 100).streak == 6, "solving the daily continues the streak");
+        check(!StreakLogic.canRescue(new StreakLogic.State(2, 2, 98, 0), 100), "short streaks are not worth a rescue");
+        check(!StreakLogic.canRescue(new StreakLogic.State(5, 5, 97, 0), 100), "two missed days cannot be rescued");
+        check(StreakLogic.withFreeze(new StreakLogic.State(5, 5, 98, 3)).freezes == 3, "freezes stay capped");
     }
 
     private static void testNextGoal() {
