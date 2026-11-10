@@ -86,7 +86,7 @@ final class Explain {
                 "A freeze shield saves your streak if you miss one day. You earn one every seven days."),
         HOME("home", "CAT HOME", "home", PixelTheme.MINT,
                 "This is your cat's room. Buy furniture and themes in the shop below.",
-                "Drag furniture to move it. Tap the camera to share a photo.");
+                "Drag furniture to move it. Tap the share button to send a photo.");
 
         final String key, title, icon;
         final int accent;
@@ -122,7 +122,7 @@ final class Explain {
         PixelModal m = new PixelModal(context).title(topic.title).icon(topic.icon).accent(topic.accent).cancelable(false)
                 .heading("HOW IT WORKS");
         m.body(topic.lines[0]);
-        for (int i = 1; i < topic.lines.length; i++) m.note((i) + ".  " + topic.lines[i]);
+        for (int i = 1; i < topic.lines.length; i++) m.note((topic.lines.length > 2 ? i + ".  " : "") + topic.lines[i]);
         return m.primary(button, "check", then);
     }
 }
