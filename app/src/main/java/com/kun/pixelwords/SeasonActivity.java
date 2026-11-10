@@ -1,6 +1,7 @@
 package com.kun.pixelwords;
 
 import android.view.Gravity;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -31,7 +32,10 @@ public class SeasonActivity extends PageActivity {
     private final List<Row> rows = new ArrayList<>();
     private TextView summary, huntStatus;
     private PixelBar bar;
-    private PixelButton premium;
+    private PixelButton premium, claimAll;
+    private TextView nextReward;
+    private View currentRow;
+    private boolean scrolled;
 
     @Override
     protected String pageTitle() {
@@ -61,6 +65,15 @@ public class SeasonActivity extends PageActivity {
         bar.setSegments(Season.XP_PER_TIER / 4);
         bar.setColor(theme.color);
         panel.addView(bar, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(16)));
+        nextReward = PixelTheme.body(this, "", PixelTheme.SIZE_BODY, theme.color);
+        nextReward.setPadding(0, dp(8), 0, 0);
+        panel.addView(nextReward);
+        claimAll = new PixelButton(this, "CLAIM ALL", PixelTheme.MINT, PixelTheme.INK);
+        claimAll.setLabelSize(PixelTheme.SIZE_LABEL);
+        claimAll.setIcon("check");
+        claimAll.setShine(true);
+        claimAll.setOnClickListener(v -> claimEverything());
+        panel.addView(claimAll, matchWrap(10));
         premium = new PixelButton(this, "UNLOCK PREMIUM", PixelTheme.GOLD, PixelTheme.INK);
         premium.setLabelSize(PixelTheme.SIZE_LABEL);
         premium.setIcon("ticket");
@@ -104,12 +117,27 @@ public class SeasonActivity extends PageActivity {
     private void addTier(LinearLayout list, int tier) {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
+        boolean milestone = tier % 5 == 0;
+        if (milestone) {
+            row.setBackground(new PanelDrawable(0xE03A2E6E, Math.max(2f, dp(1))));
+            row.setPadding(dp(4), dp(6), dp(4), dp(6));
+        }
         TextView number = PixelTheme.display(this, String.valueOf(tier), PixelTheme.SIZE_SMALL, PixelTheme.CREAM);
         number.setGravity(Gravity.CENTER);
-        row.addView(number, new LinearLayout.LayoutParams(dp(34), LinearLayout.LayoutParams.WRAP_CONTENT));
+        number.setPadding(0, dp(8), 0, dp(8));
+        row.addView(number, new LinearLayout.LayoutParams(dp(38), LinearLayout.LayoutParams.WRAP_CONTENT));
         row.addView(tierButton(tier, false), trackParams(0));
         row.addView(tierButton(tier, true), trackParams(6));
         list.addView(row, matchWrap(6));
+        rows.add(() -> {
+            int reached = Season.tiersReached(progress);
+            boolean done = tier <= reached, current = tier == reached + 1;
+            number.setBackground(new PanelDrawable(done ? Season.theme(progress.seasonId).color : current ? PixelTheme.GOLD : PixelTheme.PANEL,
+                    Math.max(2f, dp(1))));
+            number.setTextColor(done || current ? PixelTheme.INK : PixelTheme.TEXT_DIM);
+            row.setAlpha(done || current || milestone ? 1f : 0.72f);
+            if (current) currentRow = row;
+        });
     }
 
     private LinearLayout.LayoutParams trackParams(int left) {
@@ -154,6 +182,49 @@ public class SeasonActivity extends PageActivity {
         premium.setVisibility(progress.seasonPremium || !Season.PREMIUM_WITH_COINS ? android.view.View.GONE : android.view.View.VISIBLE);
         huntStatus.setText("You've caught " + progress.fishCount + " fish. They hide under letters on campaign levels and dailies.");
         for (Row r : rows) r.refresh();
+        int ready = Season.claimableCount(progress);
+        claimAll.setVisibility(ready > 0 ? View.VISIBLE : View.GONE);
+        claimAll.setText("CLAIM ALL (" + ready + ")");
+        if (reached >= Season.TIERS) {
+            nextReward.setText("Every tier reached. Well played!");
+        } else {
+            int next = reached + 1;
+            int toGo = Season.XP_PER_TIER - Season.xpIntoTier(progress);
+            nextReward.setText("Next, tier " + next + ": " + Season.reward(progress.seasonId, next, false).label()
+                    + "  (" + toGo + " XP to go)");
+        }
+        if (!scrolled && currentRow != null && scroll != null) {
+            scrolled = true;
+            scroll.post(() -> scroll.scrollTo(0, Math.max(0, currentRow.getTop() - dp(160))));
+        }
+    }
+
+    /** Pays every ready tier on both tracks and shows what came in. */
+    private void claimEverything() {
+        StringBuilder paid = new StringBuilder();
+        int count = 0;
+        for (int tier = 1; tier <= Season.TIERS; tier++) {
+            for (int track = 0; track < 2; track++) {
+                Reward reward = Season.claim(progress, tier, track == 1);
+                if (reward == null) continue;
+                count++;
+                if (paid.length() > 0) paid.append("\n");
+                paid.append("Tier ").append(tier).append(": ").append(reward.label());
+            }
+        }
+        if (count == 0) {
+            Sfx.play(Sfx.Id.UI_TAP);
+            return;
+        }
+        save();
+        earn(coins, progress.coins);
+        Sfx.play(Sfx.Id.COIN);
+        celebrate();
+        refreshPage();
+        new PixelModal(this).title(count + " REWARDS").icon("ticket").accent(PixelTheme.GOLD)
+                .body(paid.toString())
+                .primary("NICE", null)
+                .show();
     }
 
     private void onClaimed(Reward paid) {
