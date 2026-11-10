@@ -1362,6 +1362,15 @@ public final class GeneratorSelfTest {
         check(RedeemCode.redeem(p, "WELCOMEBLOOP", 2).status == RedeemCode.Status.ALREADY_USED && p.coins == 200, "a code only works once");
         check(RedeemCode.redeem(p, "MEOWMEOW", 2).status == RedeemCode.Status.OK && p.revealTokens == 1, "each code works separately");
         check(RedeemCode.redeem(p, "TUNATIME", 2).status == RedeemCode.Status.OK && p.coins == 200 + 150 + 300, "all the codes work");
+        Progress many = new Progress();
+        int paid = 0;
+        for (String code : new String[]{"PAWSANDPUZZLES", "WORDCONNECT", "LAUNCHDAY", "HAPPYCAT", "PURRFECT", "YARNBALL",
+                "CATNAP", "NINELIVES", "LUCKYPAW", "DISCORDFRIEND", "FISHYTREAT", "WORDNERD"}) {
+            if (RedeemCode.redeem(many, code, 1).status == RedeemCode.Status.OK) paid++;
+        }
+        check(paid == 12, "all twelve launch codes work");
+        check(many.coins == 500 + 250 + 1000 + 100 + 350 + 200 + 150 + 900 + 300 + 400 + 250 + 300, "the launch codes pay what they say");
+        check(Long.bitCount(many.redeemedCodes) == 12, "each launch code has its own bit");
         check(Progress.parse(p.serialize()).redeemedCodes == p.redeemedCodes, "used codes are saved");
         Progress a = new Progress(), b = new Progress();
         a.redeemedCodes = 1;
