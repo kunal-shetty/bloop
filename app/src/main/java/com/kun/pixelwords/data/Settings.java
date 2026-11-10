@@ -62,6 +62,10 @@ public final class Settings {
     public static long rescueOfferedDay() { return prefs.getLong("rescueDay", -1); }
     public static void setRescueOfferedDay(long day) { prefs.edit().putLong("rescueDay", day).apply(); }
 
+    /** Whether a how-to-play card has been shown, by topic key. */
+    public static boolean explained(String topic) { return prefs.getBoolean("explained_" + topic, false); }
+    public static void setExplained(String topic) { prefs.edit().putBoolean("explained_" + topic, true).apply(); }
+
     public static void setSound(boolean on) { prefs.edit().putBoolean("sound", on).apply(); }
     public static void setHaptics(boolean on) { prefs.edit().putBoolean("haptics", on).apply(); }
     public static void setMusic(boolean on) { prefs.edit().putBoolean("music", on).apply(); }
