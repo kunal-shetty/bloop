@@ -7,6 +7,7 @@ import android.graphics.Path;
 import android.os.SystemClock;
 import android.view.View;
 
+import com.kun.pixelwords.R;
 import com.kun.pixelwords.audio.Haptics;
 import com.kun.pixelwords.audio.Sfx;
 
@@ -23,12 +24,11 @@ public class SplashView extends View {
         void onFinished();
     }
 
-    private static final String[] WORD = {"BLOOP"};
     private static final long CRT_END = 320;
     private static final long FIRST_TILE = 420;
     private static final long TILE_GAP = 140;
     private static final long TILE_FALL = 190;
-    private static final long STING_AT = FIRST_TILE + 5 * TILE_GAP + 160;
+    private static final long STING_AT = FIRST_TILE + TILE_FALL + 240;
     private static final long READY_AT = STING_AT + 1250;
     private static final long IRIS_MS = 380;
 
@@ -43,7 +43,8 @@ public class SplashView extends View {
     private final float[] starX = new float[STARS], starY = new float[STARS], starPhase = new float[STARS];
     private final float[] dustX = new float[DUST], dustY = new float[DUST], dustVx = new float[DUST], dustVy = new float[DUST], dustLife = new float[DUST];
     private final Random rnd = new Random(42);
-    private final boolean[] landed = new boolean[5];
+    private final android.graphics.Bitmap logo;
+    private boolean landed;
 
     private long start;
     private long lastFrame;
@@ -68,6 +69,7 @@ public class SplashView extends View {
             starY[i] = rnd.nextFloat();
             starPhase[i] = rnd.nextFloat() * 6.28f;
         }
+        logo = android.graphics.BitmapFactory.decodeResource(context.getResources(), R.drawable.splash_logo);
         setOnClickListener(v -> skip = true);
     }
 
@@ -119,18 +121,11 @@ public class SplashView extends View {
 
         drawStars(c, w, h, t);
 
-        float size = Math.min((w - px * 20) / 5f, h / 7f);
-        float gap = px * 2;
-        float topY = h * 0.44f - size / 2f;
-        letter.setTextSize(Math.max(16f, (float) Math.floor(size * 0.62f / 8f) * 8f));
+        float size = Math.min(w * 0.86f, h * 0.52f);
+        float topY = h * 0.42f - size / 2f;
 
         if (stung) drawRays(c, w / 2f, topY + size / 2f, (t - STING_AT) / 1000f, Math.max(w, h));
-
-        float rowW = 5 * size + 4 * gap;
-        float x0 = (w - rowW) / 2f;
-        for (int i = 0; i < 5; i++) {
-            drawTile(c, 0, i, i, x0 + i * (size + gap), topY, size, t, FIRST_TILE + i * TILE_GAP);
-        }
+        drawLogo(c, (w - size) / 2f, topY, size, t);
 
         if (t >= STING_AT && !stung) {
             stung = true;
@@ -191,9 +186,10 @@ public class SplashView extends View {
         }
     }
 
-    private void drawTile(Canvas c, int r, int i, int idx, float x, float y, float size, long t, long tAt) {
-        long since = t - tAt;
-        if (since < 0) return;
+    /** The logo drops in from above, lands with a squash and a puff of dust, then the sting plays. */
+    private void drawLogo(Canvas c, float x, float y, float size, long t) {
+        long since = t - FIRST_TILE;
+        if (since < 0 || logo == null) return;
 
         float dy, squash = 1f;
         if (since < TILE_FALL) {
@@ -201,28 +197,30 @@ public class SplashView extends View {
             dy = -(1f - k * k) * (getHeight() * 0.5f + size);   // accelerates like it has weight
         } else {
             dy = 0;
-            if (!landed[idx]) {
-                landed[idx] = true;
-                Sfx.play(Sfx.Id.TILE_LAND, 0.9f + idx * 0.05f);
+            if (!landed) {
+                landed = true;
+                Sfx.play(Sfx.Id.TILE_LAND, 0.9f);
                 Haptics.click();
-                shake(px * 4, t);
-                dustBurst(x + size / 2f, y + size, 7);
+                shake(px * 6, t);
+                dustBurst(x + size * 0.25f, y + size, 7);
+                dustBurst(x + size * 0.75f, y + size, 7);
             }
             long after = since - TILE_FALL;
-            if (after < 120) squash = 1f - 0.18f * (1f - after / 120f);
+            if (after < 160) squash = 1f - 0.12f * (1f - after / 160f);
         }
-
-        // Once the logo hits, a wave of light rolls across the tiles.
-        int fill = i % 2 == 0 ? PixelTheme.GOLD : PixelTheme.MINT;
-        long wave = t - STING_AT - idx * 40;
-        if (wave > 0 && wave < 220) fill = PixelTheme.shade(fill, 1.75f);
-
-        float tileH = size * squash;
-        float top = y + dy + size - tileH;
-        PixelTheme.drawTile(c, tilePaint, x, top, x + size, top + tileH, fill, px, px * 3);
-        float cap = -letter.ascent() * 0.86f;
-        letter.setColor(PixelTheme.INK);
-        c.drawText(WORD[r].substring(i, i + 1), x + size / 2f, top + (tileH - px * 3) / 2f + cap / 2f, letter);
+        float h = size * squash;
+        float glow = stung ? Math.max(0f, 1f - (t - STING_AT) / 500f) : 0f;
+        tilePaint.setFilterBitmap(false);
+        tilePaint.setAlpha(255);
+        android.graphics.RectF dst = new android.graphics.RectF(x, y + dy + size - h, x + size, y + dy + size);
+        c.drawBitmap(logo, null, dst, tilePaint);
+        if (glow > 0f) {
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(0xFFFFFFFF);
+            paint.setAlpha((int) (70 * glow));
+            c.drawRect(dst, paint);
+            paint.setAlpha(255);
+        }
     }
 
     private void drawRays(Canvas c, float cx, float cy, float t, float reach) {
