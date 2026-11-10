@@ -190,7 +190,7 @@ public class HomeActivity extends BaseActivity {
         }
         Intent send = new Intent(Intent.ACTION_SEND).setType("image/png")
                 .putExtra(Intent.EXTRA_STREAM, uri)
-                .putExtra(Intent.EXTRA_TEXT, "Come and see my cat's home in Bloop!")
+                .putExtra(Intent.EXTRA_TEXT, "Come and see my cat's home in Paws & Puzzles!")
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivity(Intent.createChooser(send, "Share your cat's home"));
     }
