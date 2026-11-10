@@ -84,6 +84,11 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".StreakActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".LegalActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
