@@ -79,6 +79,7 @@ public final class GeneratorSelfTest {
         testStreaks();
         testNextGoal();
         testStreakRescue();
+        testAchievementCatalogue();
         testProgress();
         testPurchases();
         testAdPolicy();
@@ -578,6 +579,13 @@ public final class GeneratorSelfTest {
         every.duelWins = 1000;
         every.streak = new StreakLogic.State(1000, 1000, 0, 0);
         every.coins = 100_000;
+        for (int level = 1; level < every.level; level++) every.recordStars(level, 3);
+        every.bestTower = 100;
+        every.bestRush = 100;
+        every.homeOwned = -1L;
+        every.themesOwned = -1L;
+        every.breedsOwned = -1L;
+        every.redeemedCodes = 1;
         for (Shop.Item item : Shop.Item.values()) Shop.buy(every, item);
         for (Achievement a : Achievement.values()) {
             long before = every.claimedAchievements;
@@ -698,6 +706,36 @@ public final class GeneratorSelfTest {
             }
             check(g.isComplete(), "level " + n + " solvable purely by hints");
         }
+    }
+
+    private static void testAchievementCatalogue() {
+        java.util.Set<String> titles = new java.util.HashSet<>();
+        java.util.Set<Integer> bits = new java.util.HashSet<>();
+        boolean fits = true, sorted = true;
+        for (Achievement a : Achievement.values()) {
+            titles.add(a.title);
+            fits &= a.category != null && a.goal > 0;
+        }
+        check(titles.size() == Achievement.values().length, "every achievement has its own title");
+        check(fits, "every achievement has a category and a goal");
+        check(Achievement.values().length > 40, "there are over forty achievements");
+        for (Achievement.Category c : Achievement.Category.values()) {
+            int n = 0;
+            for (Achievement a : Achievement.values()) if (a.category == c) n++;
+            check(n >= 4, c.label + " has several achievements");
+        }
+        Progress p = new Progress();
+        p.level = 51;
+        check(Achievement.LEVELS_50.isUnlocked(p) && !Achievement.LEVELS_100.isUnlocked(p), "levels count toward journey goals");
+        check(Achievement.BOSS_1.isUnlocked(p) && !Achievement.BOSS_5.isUnlocked(p), "finished chapters count as bosses");
+        p.recordStars(1, 3);
+        p.recordStars(2, 3);
+        check(Achievement.STARS_25.progress(p) == 2, "three-star levels are counted");
+        p.bestTower = 6;
+        check(Achievement.TOWER_5.isUnlocked(p) && !Achievement.TOWER_20.isUnlocked(p), "tower floors count");
+        p.redeemedCodes = 1L << 3;
+        check(Achievement.GIFT_CODE.isUnlocked(p), "redeeming a code counts");
+        check(Achievement.GIFT_CODE.claim(p) && !Achievement.GIFT_CODE.claim(p), "a reward pays once");
     }
 
     private static void testStreakRescue() {
