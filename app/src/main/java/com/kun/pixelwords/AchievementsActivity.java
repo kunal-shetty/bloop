@@ -37,6 +37,7 @@ public class AchievementsActivity extends BaseActivity {
 
     private static final int BRONZE = 0xFFD08A4E;
     private static final int SILVER = 0xFFCFD8EA;
+    private static final int PLATINUM = 0xFF9BE8F5;
 
     private ProgressStore store;
     private Progress progress;
@@ -85,8 +86,17 @@ public class AchievementsActivity extends BaseActivity {
         int days = Quest.daysLeft(Days.today());
         addHeading(list, "THIS WEEK", days == 1 ? "Last day!" : days + " days left");
         for (Quest q : Quest.forWeek(progress.questWeek)) addQuest(list, q);
-        addHeading(list, "ACHIEVEMENTS", null);
-        for (Achievement a : inDisplayOrder()) addAchievement(list, a);
+        List<Achievement> ordered = inDisplayOrder();
+        for (Achievement.Category category : Achievement.Category.values()) {
+            int done = 0, total = 0;
+            for (Achievement a : ordered) {
+                if (a.category != category) continue;
+                total++;
+                if (a.isUnlocked(progress)) done++;
+            }
+            addHeading(list, category.label, done + " / " + total);
+            for (Achievement a : ordered) if (a.category == category) addAchievement(list, a);
+        }
 
         scroll.addView(list);
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
@@ -131,6 +141,7 @@ public class AchievementsActivity extends BaseActivity {
         switch (a.tier) {
             case BRONZE: return BRONZE;
             case SILVER: return SILVER;
+            case PLATINUM: return PLATINUM;
             default: return PixelTheme.GOLD;
         }
     }
