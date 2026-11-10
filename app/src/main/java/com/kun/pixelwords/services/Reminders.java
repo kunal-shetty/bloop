@@ -53,7 +53,18 @@ public final class Reminders {
         Progress progress = new ProgressStore(context).load();
         long today = Days.today();
         if (progress.streak.lastDay == today) return;
+        notifyNow(context, message(context, StreakLogic.displayStreak(progress.streak, today)));
+    }
 
+    /** Posts a reminder right now, so the player can check notifications work. False if they are blocked. */
+    public static boolean postTest(Context context) {
+        if (!mayNotify(context)) return false;
+        if (!context.getSystemService(NotificationManager.class).areNotificationsEnabled()) return false;
+        notifyNow(context, context.getString(R.string.reminder_test));
+        return true;
+    }
+
+    private static void notifyNow(Context context, String text) {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         Notification.Builder builder;
         if (Build.VERSION.SDK_INT >= 26) {
@@ -66,7 +77,7 @@ public final class Reminders {
         Intent open = new Intent(context, SplashActivity.class);
         builder.setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(context.getString(R.string.reminder_title))
-                .setContentText(message(context, StreakLogic.displayStreak(progress.streak, today)))
+                .setContentText(text)
                 .setAutoCancel(true)
                 .setContentIntent(PendingIntent.getActivity(context, 0, open,
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
