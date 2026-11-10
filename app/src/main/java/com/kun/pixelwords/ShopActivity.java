@@ -128,7 +128,12 @@ public class ShopActivity extends BaseActivity implements BillingService.Listene
         addRows(tabs.add("FACE", list), Shop.itemsIn(Shop.Slot.FACE));
         addRows(tabs.add("NECK", list), Shop.itemsIn(Shop.Slot.NECK));
         addRows(tabs.add("BACK", list), Shop.itemsIn(Shop.Slot.BACK));
-        if (Features.MONETIZATION) addStore(tabs.add("COINS", list));
+        if (Features.MONETIZATION) {
+            final int coinsTab = 5;
+            addStore(tabs.add("COINS", list));
+            // The store is long, so the cat steps aside and the list gets the whole screen.
+            tabs.setOnShown(index -> cat.setVisibility(index == coinsTab ? View.GONE : View.VISIBLE));
+        }
         scroll.addView(list);
         tabs.attach(scroll);
         page.addView(tabs, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
