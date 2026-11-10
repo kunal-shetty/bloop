@@ -250,8 +250,18 @@ public final class GeneratorSelfTest {
         return c;
     }
 
+    /** Polls until the condition holds or five seconds pass, so a slow machine can't fail a check by timing alone. */
+    private static boolean waitUntil(java.util.function.BooleanSupplier condition) throws InterruptedException {
+        long deadline = System.nanoTime() + 5_000_000_000L;
+        while (!condition.getAsBoolean()) {
+            if (System.nanoTime() > deadline) return false;
+            Thread.sleep(5);
+        }
+        return true;
+    }
+
     private static void waitForPlayers(LanMatch m, int count) throws InterruptedException {
-        for (int i = 0; i < 300 && m.players().size() != count; i++) Thread.sleep(10);
+        waitUntil(() -> m.players().size() == count);
     }
 
     private static void testLan() throws IOException, InterruptedException {
@@ -303,7 +313,10 @@ public final class GeneratorSelfTest {
         a.sendScore(50);
         host.sendScore(30);
         check(heard(bProbe.scores) && heard(bProbe.scores), "scores reach the other players");
-        Thread.sleep(50);
+        waitUntil(() -> {
+            List<LanPlayer> r = LanPlayer.ranked(b.players());
+            return r.size() == 3 && r.get(0).score == 50 && r.get(1).score == 30;
+        });
         List<LanPlayer> ranks = LanPlayer.ranked(b.players());
         check(ranks.get(0).id.equals("a") && ranks.get(0).score == 50, "the leader is ranked first");
         check(ranks.get(1).id.equals("host") && ranks.get(2).id.equals("b"), "the rest follow in score order");
