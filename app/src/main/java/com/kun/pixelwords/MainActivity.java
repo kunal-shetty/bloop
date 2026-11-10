@@ -504,6 +504,7 @@ public class MainActivity extends BaseActivity {
                     if (on) enableReminders();
                     else setReminders(false);
                 });
+        m.button("TEST NOTIFICATION", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "calendar", Sfx.Id.UI_TAP, this::testNotification);
         m.button("REMINDER TIME", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "clock", Sfx.Id.UI_TAP, this::showReminderTimes);
         m.button("ACCESSIBILITY", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "heart", Sfx.Id.UI_TAP, this::showAccessibility);
         m.button("REDEEM CODE", PixelTheme.PANEL_LIGHT, PixelTheme.TEXT, "ticket", Sfx.Id.UI_TAP, this::showRedeem);
@@ -615,7 +616,7 @@ public class MainActivity extends BaseActivity {
 
     /** One time only, after the first daily, when the player already knows what's being offered. */
     private void offerReminders() {
-        if (Settings.reminderOffered() || Settings.reminders() || progress.dailiesCompleted < 1 || modalShowing()) return;
+        if (Settings.reminderOffered() || Settings.reminders() || (progress.dailiesCompleted < 1 && progress.level < 4) || modalShowing()) return;
         Settings.setReminderOffered();
         new PixelModal(this).title("DAILY REMINDER").icon("calendar").accent(PixelTheme.MINT)
                 .body("Want a nudge at " + Reminders.hourLabel(Settings.reminderHour())
@@ -632,6 +633,18 @@ public class MainActivity extends BaseActivity {
         } else {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQUEST_NOTIFICATIONS);
         }
+    }
+
+    /** Sends a notification now. If it can't, says how to allow them. */
+    private void testNotification() {
+        if (Reminders.postTest(this)) return;
+        new PixelModal(this).title("NOTIFICATIONS OFF").icon("calendar").accent(PixelTheme.ROSE)
+                .body("Notifications are blocked for Paws & Puzzles. Allow them in your phone's settings, then try again.")
+                .primary("OPEN SETTINGS", "gear", () -> startActivity(new android.content.Intent(
+                        android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName())))
+                .secondary("LATER", null)
+                .show();
     }
 
     private void setReminders(boolean on) {
