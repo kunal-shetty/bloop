@@ -1,4 +1,4 @@
-# Bloop
+# Paws & Puzzles: Word Connect
 
 A Words-of-Wonder-style word-wheel crossword for Android, in pure Java, with a pixel-art world, a pixel cat you can dress up and collect breeds for, a room to furnish, daily streaks, a daily spin, a monthly Season Pass, Fish Hunt events, Nine Lives, a weekend Mega Board, word duels, timed mode, boss fights, regions that never repeat, word meanings, past daily puzzles, gift codes, leaderboards and cloud save.
 
