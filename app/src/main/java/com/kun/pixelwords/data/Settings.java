@@ -58,6 +58,10 @@ public final class Settings {
     /** True once the player has been offered reminders, so they are only asked one time. */
     public static boolean reminderOffered() { return prefs.getBoolean("reminderOffered2", false); }
 
+    /** The last day the streak rescue was offered, so it shows once a day. */
+    public static long rescueOfferedDay() { return prefs.getLong("rescueDay", -1); }
+    public static void setRescueOfferedDay(long day) { prefs.edit().putLong("rescueDay", day).apply(); }
+
     public static void setSound(boolean on) { prefs.edit().putBoolean("sound", on).apply(); }
     public static void setHaptics(boolean on) { prefs.edit().putBoolean("haptics", on).apply(); }
     public static void setMusic(boolean on) { prefs.edit().putBoolean("music", on).apply(); }
