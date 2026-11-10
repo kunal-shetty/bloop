@@ -51,6 +51,18 @@ public final class RedeemCode {
             new Entry(0, 0x7cf1b43209b6a8e3L, FOREVER, Reward.coins(200), Reward.hints(2)),
             new Entry(1, 0xb4008750837a73beL, FOREVER, Reward.coins(150), Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 1)),
             new Entry(2, 0xc2f6ecb4a613a361L, FOREVER, Reward.coins(300), Reward.powerUp(PowerUps.Kind.PICK_LETTER, 1)),
+            new Entry(3, 0x13adba7fbf41898cL, FOREVER, Reward.coins(500), Reward.hints(3)),                    // PAWSANDPUZZLES
+            new Entry(4, 0x16c6ae11357e29cbL, FOREVER, Reward.coins(250), Reward.powerUp(PowerUps.Kind.EXTRA_TIME, 2)), // WORDCONNECT
+            new Entry(5, 0xb67a0336b49d08c4L, FOREVER, Reward.coins(1000), Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 2)), // LAUNCHDAY
+            new Entry(6, 0xdb5cb3de1f00f9eaL, FOREVER, Reward.coins(100), Reward.hints(5)),                    // HAPPYCAT
+            new Entry(7, 0xe23b87bd553c74e4L, FOREVER, Reward.coins(350)),                                     // PURRFECT
+            new Entry(8, 0x503278732012a5c8L, FOREVER, Reward.coins(200), Reward.powerUp(PowerUps.Kind.PICK_LETTER, 2)), // YARNBALL
+            new Entry(9, 0xb3714901256a3b9bL, FOREVER, Reward.coins(150), Reward.powerUp(PowerUps.Kind.EXTRA_TIME, 1)), // CATNAP
+            new Entry(10, 0xca41caead60e26d3L, FOREVER, Reward.coins(900)),                                    // NINELIVES
+            new Entry(11, 0x7099067931811ef1L, FOREVER, Reward.coins(300), Reward.hints(2), Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 1)), // LUCKYPAW
+            new Entry(12, 0x9db01c8655b52a4eL, FOREVER, Reward.coins(400), Reward.hints(4)),                   // DISCORDFRIEND
+            new Entry(13, 0xc6e0a41cc3d7954eL, FOREVER, Reward.coins(250), Reward.powerUp(PowerUps.Kind.PICK_LETTER, 1)), // FISHYTREAT
+            new Entry(14, 0x1f37dab72b318bf2L, FOREVER, Reward.coins(300), Reward.powerUp(PowerUps.Kind.REVEAL_WORD, 1)), // WORDNERD
     };
 
     private RedeemCode() {}
