@@ -43,6 +43,20 @@ public final class Haptics {
         wave(new long[]{0, 16, 50, 26}, new int[]{0, 110, 0, 220});
     }
 
+    /**
+     * A found word that feels as big as it is: short words get the plain success tap, long words or a
+     * run of combos get a fuller roll, and very long ones a rising three-hit finish.
+     */
+    public static void word(int length, int combo) {
+        if (length >= 8) {
+            wave(new long[]{0, 16, 40, 22, 40, 60}, new int[]{0, 110, 0, 180, 0, 255});
+        } else if (length >= 6 || combo >= 4) {
+            wave(new long[]{0, 16, 45, 28, 45, 34}, new int[]{0, 100, 0, 170, 0, 210});
+        } else {
+            success();
+        }
+    }
+
     /** A wrong word: a rough double buzz. */
     public static void error() {
         wave(new long[]{0, 40, 40, 60}, new int[]{0, 200, 0, 140});
