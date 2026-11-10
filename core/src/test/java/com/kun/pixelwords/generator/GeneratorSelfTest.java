@@ -577,7 +577,7 @@ public final class GeneratorSelfTest {
         check(ShareCard.dailyNumber(20000) == 1, "a clock set before launch still gets a valid number");
 
         String perfect = ShareCard.daily(20764, 3, 12, 0, 240);
-        check(perfect.startsWith("Bloop Daily #2\n"), "share card leads with the puzzle number");
+        check(perfect.startsWith("Paws & Puzzles Daily #2\n"), "share card leads with the puzzle number");
         check(perfect.contains("⭐⭐⭐  No hints!"), "share card shows stars and no hints");
         check(perfect.contains("12-day streak"), "share card shows the streak");
         check(perfect.endsWith("Score 240"), "share card ends with the score");
