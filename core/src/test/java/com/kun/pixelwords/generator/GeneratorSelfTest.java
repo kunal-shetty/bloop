@@ -77,6 +77,7 @@ public final class GeneratorSelfTest {
         testDuel(gen, dict);
         testGameSession(gen);
         testStreaks();
+        testNextGoal();
         testProgress();
         testPurchases();
         testAdPolicy();
@@ -683,6 +684,13 @@ public final class GeneratorSelfTest {
             }
             check(g.isComplete(), "level " + n + " solvable purely by hints");
         }
+    }
+
+    private static void testNextGoal() {
+        check(Journey.nextGoal(1).contains("19 more levels"), "level 1 counts 19 levels to the boss");
+        check(Journey.nextGoal(19).startsWith("Next level is the boss"), "level 19 points at the boss");
+        check(Journey.nextGoal(20).isEmpty(), "no goal line after a boss");
+        check(Journey.nextGoal(21).contains("19 more levels"), "chapter 2 starts counting again");
     }
 
     private static void testStreaks() {
