@@ -117,6 +117,7 @@ public class MainActivity extends BaseActivity {
             playIntro();
         }
         if (!welcomeBack() && Comeback.see(progress, Days.today())) store.save(progress);
+        offerStreakRescue();
         offerReminders();
         updateCat();
     }
@@ -612,6 +613,35 @@ public class MainActivity extends BaseActivity {
                     });
         }
         m.show();
+    }
+
+    /** Once a day, when a good streak has just broken for want of a freeze, a video can bring it back. */
+    private void offerStreakRescue() {
+        long today = Days.today();
+        if (!Features.MONETIZATION || modalShowing() || Settings.rescueOfferedDay() == today
+                || !StreakLogic.canRescue(progress.streak, today)) return;
+        Settings.setRescueOfferedDay(today);
+        new PixelModal(this).title("SAVE YOUR STREAK?").icon("flame").accent(PixelTheme.ROSE)
+                .body("You missed a day, and your " + progress.streak.streak + "-day streak is about to end. "
+                        + "Watch a short video to get a freeze, then solve today's daily to keep it.")
+                .primary("WATCH VIDEO", "film", this::rescueStreak)
+                .secondary("LET IT GO", null)
+                .show();
+    }
+
+    private void rescueStreak() {
+        AdsService.get(this).showRewarded(this, () -> runOnUiThread(() -> {
+            progress.streak = StreakLogic.withFreeze(progress.streak);
+            store.save(progress);
+            refresh();
+            new PixelModal(this).title("STREAK SAVED!").icon("freeze").accent(PixelTheme.SKY)
+                    .body("A freeze is ready. Solve today's daily to keep your " + progress.streak.streak + "-day streak.")
+                    .primary("GREAT", null)
+                    .show();
+        }), () -> new PixelModal(this).title("NO VIDEO").icon("film").accent(PixelTheme.ROSE)
+                .body("There isn't a video ready right now. Try again in a moment.")
+                .primary("OK", null)
+                .show());
     }
 
     /** One time only, after the first daily, when the player already knows what's being offered. */
