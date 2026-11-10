@@ -72,7 +72,9 @@ public class StreakActivity extends PageActivity {
         count = PixelTheme.display(this, "0", PixelTheme.SIZE_TITLE * 2, PixelTheme.ROSE);
         count.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, PixelTheme.displayPx(this, PixelTheme.SIZE_TITLE) * 2f);
         count.setGravity(Gravity.CENTER);
-        hero.addView(count, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout.LayoutParams countLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        countLp.topMargin = dp(8);
+        hero.addView(count, countLp);
         title = PixelTheme.display(this, "", PixelTheme.SIZE_SMALL, PixelTheme.CREAM);
         title.setPadding(0, dp(4), 0, 0);
         title.setGravity(Gravity.CENTER);
