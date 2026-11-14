@@ -27,29 +27,33 @@ public final class LevelGenerator {
             {4, 3, 3}, {5, 4, 3}, {5, 3, 4}, {6, 4, 4}, {6, 3, 5}, {7, 4, 5}, {8, 3, 5}};
     private static final int TOWER_MAX_WORDS = 6;
     private static final int MAX_WHEEL_LETTERS = 8;
-    /** Few wheels spell more long common words than this, and chasing more wastes every generation attempt. */
     /** Levels in a Journey chapter; matches Journey.LEVELS_PER_CHAPTER. */
     public static final int CHAPTER_LEVELS = 20;
     /**
-     * Each chapter climbs from easy to hard. By slot (1 = first level, 20 = boss): wheel letters and
-     * words in the grid. Three quick levels open it, then 6 letters, then 7, then 8 near the boss, with
-     * the word count growing faster and faster.
+     * Each chapter climbs gently. By slot (1 = first level, 20 = boss): wheel letters and words in the
+     * grid. Normal levels never pass 6 letters, hard levels 7, and bosses 8 (see specForHard, specForBoss).
      */
-    private static final int[] CHAPTER_LETTERS = {4, 4, 5, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8};
-    private static final int[] CHAPTER_WORDS = {3, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 13, 13, 14};
-    /** The first chapters stop short of the full climb, so new players aren't thrown at 8-letter boards. */
-    private static final int[] FIRST_CHAPTER_MAX_LETTERS = {6, 7};
-    private static final int[] FIRST_CHAPTER_MAX_WORDS = {8, 12};
-    /** More than this from 8 letters can take a phone seconds to lay out, so hard levels stop here. */
-    private static final int MAX_WORDS = 14;
+    private static final int[] CHAPTER_LETTERS = {4, 4, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
+    private static final int[] CHAPTER_WORDS = {3, 4, 4, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8};
+    /** The first chapter stops short of the full climb, so new players aren't thrown at full boards. */
+    private static final int FIRST_CHAPTER_MAX_WORDS = 6;
+    public static final int NORMAL_MAX_LETTERS = 6;
+    public static final int HARD_MAX_LETTERS = 7;
+    public static final int BOSS_MAX_LETTERS = 8;
+    /** Board limits outside the weekend Mega Board, which alone gets a big grid. */
+    private static final int NORMAL_MAX_GRID = 8;
+    private static final int HARD_MAX_GRID = 9;
+    private static final int HARD_MAX_WORDS = 9;
+    private static final int BOSS_MAX_GRID = 10;
+    private static final int BOSS_WORDS = 10;
 
     public static final int MAX_ROWS = 10;
     public static final int MAX_COLS = 10;
     /** Only weekend boards go past the usual limit, so no other level changes shape. */
     public static final int MEGA_MAX_GRID = 12;
     private static final int MEGA_WORDS = 18;
-    private static final int LIVES_MAX_LETTERS = 8;
-    private static final int LIVES_MAX_WORDS = 12;
+    private static final int LIVES_MAX_LETTERS = 7;
+    private static final int LIVES_MAX_WORDS = 9;
     /** Most words in a level that can pay coins, however many the letters could spell. */
     public static final int MAX_BONUS = 5;
 
@@ -136,7 +140,7 @@ public final class LevelGenerator {
     public Level forLives(long runSeed, int depth) {
         int letters = Math.min(LIVES_MAX_LETTERS, 4 + depth / 3);
         int words = Math.min(LIVES_MAX_WORDS, 3 + depth);
-        int grid = Math.min(MAX_ROWS, 6 + depth / 3);
+        int grid = Math.min(HARD_MAX_GRID, 6 + depth / 3);
         long seed = SeedUtil.mix(SeedUtil.mix(LIVES_SALT, runSeed), depth);
         return generate("L" + depth, Level.Kind.LIVES, seed, new Spec(letters, words, grid));
     }
@@ -156,35 +160,42 @@ public final class LevelGenerator {
         return new Spec(letters, Math.min(TOWER_MAX_WORDS, s[1] + extra), Math.min(MAX_ROWS, letters + 2), s[2]);
     }
 
+    /** A chapter's boss board: the biggest wheel in the Journey, on a board that still fits a phone. */
+    public Level forBoss(int levelNumber) {
+        if (levelNumber <= FixedLevels.COUNT) throw new IllegalArgumentException("Opening levels are never bosses");
+        long seed = SeedUtil.mix(HARD_SALT, levelNumber);
+        return generate("B" + levelNumber, Level.Kind.PROGRESSION, seed, specForBoss(levelNumber));
+    }
+
     /** A board in Boss Rush: as hard as the boss's own level, but a fresh board each round. */
     public Level forRush(long runSeed, int round, int bossLevel) {
         long seed = SeedUtil.mix(SeedUtil.mix(RUSH_SALT, runSeed), round);
-        return generate("R" + round, Level.Kind.RUSH, seed, specForHard(Math.max(FixedLevels.COUNT + 1, bossLevel)));
+        return generate("R" + round, Level.Kind.RUSH, seed, specForBoss(Math.max(FixedLevels.COUNT + 1, bossLevel)));
     }
 
     /**
      * Difficulty for a generated campaign level (levelNumber is 1-based, >= 4 in practice). It starts
-     * easy at the beginning of every chapter and climbs steeply towards the boss; see CHAPTER_LETTERS.
+     * easy at the beginning of every chapter and climbs to 6 letters; see CHAPTER_LETTERS.
      */
     public static Spec specForLevel(int n) {
         int chapter = (n - 1) / CHAPTER_LEVELS, slot = (n - 1) % CHAPTER_LEVELS;
-        int letters = CHAPTER_LETTERS[slot], words = CHAPTER_WORDS[slot];
-        if (chapter < FIRST_CHAPTER_MAX_LETTERS.length) {
-            letters = Math.min(letters, FIRST_CHAPTER_MAX_LETTERS[chapter]);
-            words = Math.min(words, FIRST_CHAPTER_MAX_WORDS[chapter]);
-        }
-        int grid = Math.min(MAX_ROWS, words >= 12 ? MAX_ROWS : letters + 2);
-        return new Spec(letters, words, grid);
+        int letters = Math.min(NORMAL_MAX_LETTERS, CHAPTER_LETTERS[slot]), words = CHAPTER_WORDS[slot];
+        if (chapter == 0) words = Math.min(words, FIRST_CHAPTER_MAX_WORDS);
+        return new Spec(letters, words, Math.min(NORMAL_MAX_GRID, letters + 2));
     }
 
     /** One step past the normal curve at this level, so a hard level is tough but never out of reach. */
     public static Spec specForHard(int n) {
         Spec base = specForLevel(n);
-        int letters = Math.min(MAX_WHEEL_LETTERS, base.letterCount + 1);
-        int words = Math.min(base.targetWords + 2, MAX_WORDS);
-        // Long words only where the wheel can still make enough of them.
-        int shortest = letters >= 7 && words <= 10 ? 5 : 4;
-        return new Spec(letters, words, Math.min(MAX_ROWS, base.maxGrid + 1), shortest);
+        int letters = Math.min(HARD_MAX_LETTERS, base.letterCount + 1);
+        int words = Math.min(base.targetWords + 1, HARD_MAX_WORDS);
+        return new Spec(letters, words, Math.min(HARD_MAX_GRID, letters + 2), 4);
+    }
+
+    /** The boss: 8 letters (7 in the first chapter), and no three-letter filler. */
+    public static Spec specForBoss(int n) {
+        int letters = (n - 1) / CHAPTER_LEVELS == 0 ? HARD_MAX_LETTERS : BOSS_MAX_LETTERS;
+        return new Spec(letters, BOSS_WORDS, BOSS_MAX_GRID, 4);
     }
 
     // ---------------------------------------------------------------- core
