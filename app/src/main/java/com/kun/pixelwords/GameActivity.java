@@ -320,7 +320,7 @@ public class GameActivity extends BaseActivity {
             default:
                 playLevel = replayLevel > 0 ? replayLevel : progress.level;
                 boolean hard = Journey.isHard(playLevel), boss = Journey.isBoss(playLevel);
-                level = hard || boss ? gen.forHard(playLevel) : gen.forProgression(playLevel);
+                level = boss ? gen.forBoss(playLevel) : hard ? gen.forHard(playLevel) : gen.forProgression(playLevel);
                 if (hard) mods = TileMods.forLevel(level);
                 ambient.setRegion(Region.forChapter(Journey.chapterOf(playLevel)));
                 titleText.setText((boss ? "BOSS " : hard ? "HARD " : "LEVEL ") + playLevel);
