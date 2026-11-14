@@ -90,6 +90,7 @@ public final class GeneratorSelfTest {
         testAchievements();
         testAchievementRewards();
         testJourney(gen, dict);
+        testLetterCaps(gen);
         testQuests();
         testCatMood();
         testHome();
@@ -165,6 +166,22 @@ public final class GeneratorSelfTest {
         for (long day = 101; day < 107; day++) p.streak = StreakLogic.onDailyCompleted(p.streak, day);
         check(Achievement.STREAK_7.isUnlocked(p), "seven days in a row reaches the streak goal");
         check(Achievement.STREAK_7.isUnlocked(Progress.parse(p.serialize())), "achievements survive a save and load");
+    }
+
+    /** Normal levels stop at 6 letters, hard at 7, bosses at 8, and only the Mega Board is bigger than 10. */
+    private static void testLetterCaps(LevelGenerator gen) {
+        for (int level = FixedLevels.COUNT + 1; level <= 400; level++) {
+            Level l = Journey.isBoss(level) ? gen.forBoss(level)
+                    : Journey.isHard(level) ? gen.forHard(level) : gen.forProgression(level);
+            int cap = Journey.isBoss(level) ? 8 : Journey.isHard(level) ? 7 : 6;
+            check(l.letters.length() <= cap, "level " + level + " has " + l.letters.length() + " letters");
+            int gridCap = Journey.isBoss(level) ? 10 : Journey.isHard(level) ? 9 : 8;
+            check(l.rows <= gridCap && l.cols <= gridCap, "level " + level + " board " + l.rows + "x" + l.cols);
+        }
+        for (int depth = 0; depth < 40; depth++) {
+            Level l = gen.forLives(9, depth);
+            check(l.letters.length() <= 7 && l.rows <= 9 && l.cols <= 9, "nine lives board " + depth + " stays small");
+        }
     }
 
     private static void testJourney(LevelGenerator gen, Dictionary dict) {
@@ -804,8 +821,8 @@ public final class GeneratorSelfTest {
         for (int n = 4; n <= 240; n += 3) h = h * 31 + levelHash(gen.forHard(n));
         for (long d = 20400; d < 20430; d++) h = h * 31 + levelHash(gen.forDaily(d));
         for (long s = 1; s <= 30; s++) h = h * 31 + levelHash(gen.forDuel(s * 7919));
-        // Changed on purpose on 2026-11-08: every chapter now climbs from easy to hard (LevelGenerator.specForLevel).
-        check(h == -4102016199446747428L, "existing levels are unchanged: " + h);
+        // Changed on purpose on 2026-11-14: letters capped at 6 normal, 7 hard, 8 boss, with smaller boards.
+        check(h == 233841974543200037L, "existing levels are unchanged: " + h);
     }
 
     private static long levelHash(Level l) {
@@ -1832,17 +1849,15 @@ public final class GeneratorSelfTest {
                 prev = s;
             }
             for (int n = first; n < first + 3; n++) check(LevelGenerator.specForLevel(n).letterCount <= 5, "a chapter opens with easy levels: " + n);
-            if (chapter >= 2) {
-                check(LevelGenerator.specForLevel(first + 3).letterCount == 6, "the fourth level of a chapter jumps to 6 letters");
-                check(LevelGenerator.specForLevel(Journey.lastLevel(chapter)).letterCount == 8, "a chapter ends on 8 letters");
-            }
+            check(LevelGenerator.specForLevel(first + 5).letterCount == 6, "the sixth level of a chapter reaches 6 letters");
+            if (chapter >= 1) check(LevelGenerator.specForBoss(Journey.lastLevel(chapter)).letterCount == 8, "a chapter's boss has 8 letters");
         }
         check(LevelGenerator.specForLevel(Journey.lastLevel(0) - 1).letterCount <= 6, "the first chapter stays gentle");
-        check(LevelGenerator.specForLevel(Journey.lastLevel(1) - 1).letterCount <= 7, "so does the second");
+        check(LevelGenerator.specForBoss(Journey.lastLevel(0)).letterCount == 7, "the first boss has 7 letters");
         long slowest = 0;
         for (int n : new int[]{41, 42, 43, 44, 55, 59, 60, 199, 200, 399, 400}) {
             long t0 = System.nanoTime();
-            Level l = Journey.isHard(n) || Journey.isBoss(n) ? gen.forHard(n) : gen.forProgression(n);
+            Level l = Journey.isBoss(n) ? gen.forBoss(n) : Journey.isHard(n) ? gen.forHard(n) : gen.forProgression(n);
             slowest = Math.max(slowest, System.nanoTime() - t0);
             check(l.placements.size() >= 3, "level " + n + " is playable: " + l.placements.size() + " words");
         }
